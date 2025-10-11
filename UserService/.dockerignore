@@ -1,0 +1,9 @@
+# IDE and build artifacts
+.gradle
+build
+.idea
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
