@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: front-ui-deployment
 spec:
-  replicas: 2 # 안정성을 위해 2개의 파드를 실행합니다.
+  replicas: 1 # 안정성을 위해 2개의 파드를 실행합니다.
   selector:
     matchLabels:
       app: front-ui
@@ -16,7 +16,7 @@ spec:
       - name: front-ui-app
         image: cuecode.kr.ncr.ntruss.com/cuecode:front-ui-latest # CI/CD 파이프라인에서 빌드한 이미지를 사용합니다.
         ports:
-        - containerPort: 8080
+        - containerPort: 14000
         resources:
           requests:
             cpu: "200m"
@@ -27,12 +27,12 @@ spec:
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
-            port: 8080
+            port: 14000
           initialDelaySeconds: 20
           periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
-            port: 8080
+            port: 14000
           initialDelaySeconds: 40
           periodSeconds: 15

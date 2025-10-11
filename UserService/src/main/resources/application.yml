@@ -5,6 +5,11 @@ spring:
     active: dev  # 여기서 dev 활성화
   config:
     import: "optional:configserver:http://localhost:8888/"
+  data:
+    mongodb:
+      uri: mongodb://poly:${DB_PASSWORD}@localhost:30000/userDB?authSource=userDB
+    redis:
+      uri: redis://localhost:6379
 server:
   port: 11000
   address: 0.0.0.0
