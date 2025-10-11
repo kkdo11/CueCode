@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: motion-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: motion-service
@@ -15,6 +15,9 @@ spec:
       containers:
       - name: app
         image: cuecode.kr.ncr.ntruss.com/cuecode:motion-service-latest
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: cluster-deploy
         envFrom:
         - secretRef:
             name: motion-db-secret
