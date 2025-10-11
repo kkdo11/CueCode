@@ -1,28 +1,15 @@
-# Use an official OpenJDK runtime as a parent image
-FROM openjdk:17-jdk-slim
-
-# Set the working directory in the container
+# STAGE 1: Build the application using Gradle
+FROM gradle:8.4-jdk17-alpine AS build
 WORKDIR /app
+# Copy the entire project context (respecting .dockerignore)
+COPY . .
+# Grant execution rights and run the build
+RUN chmod +x ./gradlew && ./gradlew build -x test
 
-# Copy the Gradle wrapper files
-COPY gradlew .
-COPY gradle gradle
-
-# Copy the build.gradle file
-COPY build.gradle .
-COPY settings.gradle .
-
-# Grant execution rights to the Gradle wrapper
-RUN chmod +x ./gradlew
-
-# Download dependencies. This will be cached if the build.gradle file hasn't changed.
-RUN ./gradlew dependencies
-
-# Copy the rest of the application's source code
-COPY src src
-
-# Expose the port the app runs on
+# STAGE 2: Create the final, lightweight image
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+# Copy only the built jar from the build stage
+COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8888
-
-# Command to run the application
-CMD ["./gradlew", "bootRun"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]

@@ -10,3 +10,14 @@ spring:
           uri: https://github.com/chloe-soyeon/CueCode-Config
           default-label: master
           search-paths: msa
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true

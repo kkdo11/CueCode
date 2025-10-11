@@ -31,6 +31,7 @@ ext {
 
 dependencies {
     implementation 'org.springframework.cloud:spring-cloud-config-server' // Config Server 핵심 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-actuator' // Health check를 위한 Actuator
 //    implementation 'org.springframework.boot:spring-boot-starter-web' // WebFlux가 아닌 일반 웹으로 사용
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     compileOnly 'org.projectlombok:lombok'

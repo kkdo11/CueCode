@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: config-server-app
-        image: cuecode.kr.ncr.ntruss.com/config-server:latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode:config-server-latest
         ports:
         - containerPort: 8888
         resources:
@@ -28,7 +28,7 @@ spec:
           httpGet:
             path: /actuator/health/readiness
             port: 8888
-          initialDelaySeconds: 15
+          initialDelaySeconds: 30
           periodSeconds: 10
         livenessProbe:
           httpGet:
