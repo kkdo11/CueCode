@@ -18,9 +18,11 @@ spec:
         image: cuecode.kr.ncr.ntruss.com/cuecode:api-gateway-latest # CI/CD 파이프라인에서 빌드한 이미지를 사용합니다.
         ports:
         - containerPort: 13000
+        env:
+        - name: SPRING_CONFIG_IMPORT
+          value: optional:configserver:http://config-server-service:8888/
         envFrom:
         - secretRef:
-            # 게이트웨이의 JWT 토큰 검증에 필요한 비밀키를 담은 Secret
             name: jwt-secret 
         resources:
           requests:
