@@ -21,6 +21,18 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: cluster-deploy
+        - name: JWT_TOKEN_CREATOR
+          value: cuecoder
+        - name: JWT_SECRET_KEY
+          value: "Ixp3HCXOS5Hi0py81JF610NG5nvySPjBq3VQXPmwsLI="
+        - name: JWT_TOKEN_ACCESS_VALID_TIME
+          value: "600"
+        - name: JWT_TOKEN_ACCESS_NAME
+          value: jwtAccessToken
+        - name: JWT_TOKEN_REFRESH_VALID_TIME
+          value: "7200"
+        - name: JWT_TOKEN_REFRESH_NAME
+          value: jwtRefreshToken
         envFrom:
         - secretRef:
             name: jwt-secret
