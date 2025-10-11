@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: front-ui-app
-        image: cuecode.kr.ncr.ntruss.com/front-ui:latest # CI/CD 파이프라인에서 빌드한 이미지를 사용합니다.
+        image: cuecode.kr.ncr.ntruss.com/cuecode:front-ui-latest # CI/CD 파이프라인에서 빌드한 이미지를 사용합니다.
         ports:
         - containerPort: 8080
         resources:

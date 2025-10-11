@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: user-service-app
-        image: cuecode.kr.ncr.ntruss.com/user-service:latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
         ports:
         - containerPort: 11000
         envFrom:
