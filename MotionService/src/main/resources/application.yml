@@ -1,10 +1,7 @@
 spring:
   application:
     name: motion   # Config repo 파일명(user-dev.yml)과 매칭
-  profiles:
-    active: dev  # 여기서 dev 활성화
-  config:
-    import: "optional:configserver:http://localhost:8888/"
+
   servlet:
     multipart:
       max-file-size: 100MB

@@ -15,6 +15,9 @@ spec:
       containers:
       - name: app
         image: cuecode.kr.ncr.ntruss.com/cuecode:motion-service-latest
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: cluster-deploy
         envFrom:
         - secretRef:
             name: motion-db-secret
