@@ -4,10 +4,8 @@ server:
 spring:
   application:
     name: gateway
-  profiles:
-    active: dev
-  config:
-    import: "optional:configserver:http://localhost:8888/"
+
+
   servlet:
     multipart:
       max-file-size: 100MB
