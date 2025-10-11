@@ -19,11 +19,11 @@ spec:
         ports:
         - containerPort: 13000
         env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: cluster-deploy
-          envFrom:
-            - secretRef:
-                name: jwt-secret 
+        - name: SPRING_PROFILES_ACTIVE
+          value: cluster-deploy
+        envFrom:
+        - secretRef:
+            name: jwt-secret
         resources:
           requests:
             cpu: "250m"
