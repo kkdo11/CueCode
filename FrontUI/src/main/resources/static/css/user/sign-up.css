@@ -189,6 +189,60 @@ input:focus{ border-color:#90cff8; box-shadow:0 0 0 .25rem rgba(111,200,248,.25)
     transform: translateY(-2px);
 }
 
+/* 진행 바 스타일 추가 */
+.progress-bar-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 40px;
+  margin-bottom: 2rem;
+}
+.progress-bar-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.progress-bar-step .circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e0e7ef;
+  color: #333;
+  font-weight: bold;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+  transition: background 0.2s, color 0.2s;
+}
+.progress-bar-step.active .circle {
+  background: #6FC8F8;
+  color: #fff;
+  box-shadow: 0 0 8px #6FC8F866;
+}
+.progress-bar-step .label {
+  font-size: 0.98rem;
+  color: #b0b8c1;
+  font-weight: 500;
+  letter-spacing: -1px;
+  transition: color 0.2s, font-weight 0.2s;
+}
+.progress-bar-step.active .label {
+  color: #1976d2;
+  font-weight: 700;
+}
+@media (max-width: 575.98px) {
+  .progress-bar-container {
+    gap: 16px;
+  }
+  .progress-bar-step .label {
+    font-size: 0.88rem;
+  }
+}
+
 /* 반응형 */
 @media (max-width: 991.98px){
     .signup-grid{ grid-template-columns:1fr; }
@@ -365,163 +419,6 @@ input:focus{ border-color:#90cff8; box-shadow:0 0 0 .25rem rgba(111,200,248,.25)
     }
 }
 
-/* 개인정보 수집 및 이용 동의 스타일 */
-.privacy-consent {
-    margin-top: 24px;
-    padding: 16px;
-    border: 1px solid #d1e7dd;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-}
-.privacy-consent h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-}
-.privacy-consent p {
-    margin-bottom: 12px;
-    line-height: 1.6;
-}
-.privacy-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-}
-.privacy-table-header {
-    background-color: #f1f5f9;
-    font-weight: bold;
-}
-.privacy-table-cell, .privacy-table-header {
-    padding: 8px;
-    border: 1px solid #dee2e6;
-    text-align: left;
-}
-.privacy-table-row {
-    display: table-row;
-}
-.privacy-table-cell {
-    display: table-cell;
-}
-.privacy-table-header {
-    display: table-header-group;
-}
-.privacy-table-row:nth-child(even) {
-    background-color: #f9f9f9;
-}
-.privacy-consent h3 {
-    font-size: 1rem;
-    font-weight: 500;
-    margin-top: 16px;
-    margin-bottom: 8px;
-}
-.privacy-consent ul {
-    margin-left: 20px;
-    margin-bottom: 12px;
-}
-.privacy-consent li {
-    margin-bottom: 8px;
-}
-
-/* 로그인/비밀번호 찾기 메뉴 스타일 */
-.login-sub-menu {
-    width: 100%;
-    margin: 36px 0 0 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    gap: 32px;
-    list-style: none;
-}
-.login-sub-menu li {
-    display: flex;
-    align-items: center;
-}
-.login-sub-menu a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: #1976d2;
-    background: #f7f9fc;
-    border-radius: 10px;
-    padding: 12px 28px;
-    text-decoration: none;
-    box-shadow: 0 2px 10px rgba(111,200,248,.10);
-    transition: background .18s, color .18s, box-shadow .18s, transform .12s;
-}
-.login-sub-menu a:hover {
-    background: linear-gradient(90deg, #6FC8F8 0%, #1976d2 100%);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(111,200,248,.18);
-    transform: translateY(-2px);
-}
-.login-sub-menu iconify-icon {
-    font-size: 1.3em;
-}
-@media (max-width: 575.98px) {
-    .login-sub-menu {
-        flex-direction: column;
-        gap: 14px;
-    }
-    .login-sub-menu a {
-        width: 100%;
-        justify-content: center;
-        font-size: 1rem;
-        padding: 12px 0;
-    }
-}
-
-/* 텍스트형 로그인/비밀번호 찾기 메뉴 스타일 (구분선 항상 보이게) */
-.login-text-menu {
-    width: 100%;
-    margin: 36px 0 0 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
-    list-style: none;
-    color: #8a8a8a;
-    font-size: 1.08rem;
-    font-weight: 500;
-}
-.login-text-menu li {
-    display: flex;
-    align-items: center;
-}
-.login-text-menu li:not(:last-child)::after {
-    content: '|';
-    display: inline-block;
-    margin: 0 12px;
-    color: #bdbdbd;
-    font-size: 1.08em;
-    font-weight: 400;
-    vertical-align: middle;
-}
-.login-text-menu a {
-    color: #8a8a8a;
-    text-decoration: none;
-    transition: color .18s;
-}
-.login-text-menu a:hover {
-    color: #1976d2;
-    text-decoration: underline;
-}
-@media (max-width: 575.98px) {
-    .login-text-menu {
-        flex-direction: column;
-        gap: 0;
-        align-items: center;
-    }
-    .login-text-menu li:not(:last-child)::after {
-        content: '|';
-        margin: 8px 0;
-        display: block;
-        text-align: center;
-    }
-}
-
 /* 입력 필드 간 간격 일관성 확보 */
 .form-group {
     margin-bottom: 16px;
@@ -529,163 +426,6 @@ input:focus{ border-color:#90cff8; box-shadow:0 0 0 .25rem rgba(111,200,248,.25)
 /* 이름 입력칸과 비밀번호 입력칸 사이에도 동일한 간격 적용 */
 #user_name.form-group {
     margin-bottom: 16px;
-}
-
-/* 개인정보 수집 및 이용 동의 스타일 */
-.privacy-consent {
-    margin-top: 24px;
-    padding: 16px;
-    border: 1px solid #d1e7dd;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-}
-.privacy-consent h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-}
-.privacy-consent p {
-    margin-bottom: 12px;
-    line-height: 1.6;
-}
-.privacy-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-}
-.privacy-table-header {
-    background-color: #f1f5f9;
-    font-weight: bold;
-}
-.privacy-table-cell, .privacy-table-header {
-    padding: 8px;
-    border: 1px solid #dee2e6;
-    text-align: left;
-}
-.privacy-table-row {
-    display: table-row;
-}
-.privacy-table-cell {
-    display: table-cell;
-}
-.privacy-table-header {
-    display: table-header-group;
-}
-.privacy-table-row:nth-child(even) {
-    background-color: #f9f9f9;
-}
-.privacy-consent h3 {
-    font-size: 1rem;
-    font-weight: 500;
-    margin-top: 16px;
-    margin-bottom: 8px;
-}
-.privacy-consent ul {
-    margin-left: 20px;
-    margin-bottom: 12px;
-}
-.privacy-consent li {
-    margin-bottom: 8px;
-}
-
-/* 로그인/비밀번호 찾기 메뉴 스타일 */
-.login-sub-menu {
-    width: 100%;
-    margin: 36px 0 0 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    gap: 32px;
-    list-style: none;
-}
-.login-sub-menu li {
-    display: flex;
-    align-items: center;
-}
-.login-sub-menu a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: #1976d2;
-    background: #f7f9fc;
-    border-radius: 10px;
-    padding: 12px 28px;
-    text-decoration: none;
-    box-shadow: 0 2px 10px rgba(111,200,248,.10);
-    transition: background .18s, color .18s, box-shadow .18s, transform .12s;
-}
-.login-sub-menu a:hover {
-    background: linear-gradient(90deg, #6FC8F8 0%, #1976d2 100%);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(111,200,248,.18);
-    transform: translateY(-2px);
-}
-.login-sub-menu iconify-icon {
-    font-size: 1.3em;
-}
-@media (max-width: 575.98px) {
-    .login-sub-menu {
-        flex-direction: column;
-        gap: 14px;
-    }
-    .login-sub-menu a {
-        width: 100%;
-        justify-content: center;
-        font-size: 1rem;
-        padding: 12px 0;
-    }
-}
-
-/* 텍스트형 로그인/비밀번호 찾기 메뉴 스타일 (구분선 항상 보이게) */
-.login-text-menu {
-    width: 100%;
-    margin: 36px 0 0 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
-    list-style: none;
-    color: #8a8a8a;
-    font-size: 1.08rem;
-    font-weight: 500;
-}
-.login-text-menu li {
-    display: flex;
-    align-items: center;
-}
-.login-text-menu li:not(:last-child)::after {
-    content: '|';
-    display: inline-block;
-    margin: 0 12px;
-    color: #bdbdbd;
-    font-size: 1.08em;
-    font-weight: 400;
-    vertical-align: middle;
-}
-.login-text-menu a {
-    color: #8a8a8a;
-    text-decoration: none;
-    transition: color .18s;
-}
-.login-text-menu a:hover {
-    color: #1976d2;
-    text-decoration: underline;
-}
-@media (max-width: 575.98px) {
-    .login-text-menu {
-        flex-direction: column;
-        gap: 0;
-        align-items: center;
-    }
-    .login-text-menu li:not(:last-child)::after {
-        content: '|';
-        margin: 8px 0;
-        display: block;
-        text-align: center;
-    }
 }
 
 /* 개인정보 수집 및 이용 동의 스타일 */

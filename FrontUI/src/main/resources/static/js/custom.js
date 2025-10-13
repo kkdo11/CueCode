@@ -78,4 +78,21 @@ $(function () {
 		once: true,
 	});
 
+
+    function removeCookie(name) {
+      document.cookie = name + '=; Max-Age=0; path=/; domain=localhost; Secure; SameSite=Strict';
+    }
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.onclick = function() {
+        fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
+          .finally(() => {
+            removeCookie('jwtAccessToken');
+            removeCookie('jwtRefreshToken');
+            window.location.href = 'sign-in.html';
+          });
+      };
+    }
+
 });

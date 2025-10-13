@@ -26,7 +26,10 @@
             <div class="login-container">
                 <div class="row g-0">
                     <!-- 좌측 Hero 섹션 -->
-                    <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5">
+                    <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5 position-relative">
+                        <a href="/user/index.html" class="home-icon-link position-absolute" style="top:24px;left:24px;z-index:10;">
+                            <iconify-icon icon="mingcute:home-3-fill" width="32" height="32" style="color: #e9ecef"></iconify-icon>
+                        </a>
                         <img src="/images/logos/logo-white-clean.svg" alt="CueCode Logo" class="img-fluid mb-4" style="max-width:350px;">
                         <h3 class="mb-3 display-6 fw-bold">Subtle Gestures, Deep Connections</h3>
                         <p class="fs-5">CueCode와 함께라면<br>당신의 표현이 언제나 닿을 수 있어요.</p>
@@ -103,12 +106,13 @@
                         }
                         Swal.fire({
                             icon: 'success',
-                            text: `${userName ? userName + '님, ' : ''}반가워요! 메인 페이지로 이동합니다.`,
+                            html: `${userName ? userName + '님, ' : ''}반가워요!<br>메인 페이지로 이동합니다.`,
                             timer: 1500,
                             showConfirmButton: false
                         });
+
                         setTimeout(() => {
-                            window.location.href = 'http://localhost:14000/user/index.html';
+                            window.location.href = '/user/index.html';
                         }, 1500);
                     } else {
                         Swal.fire({
