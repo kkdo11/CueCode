@@ -86,11 +86,26 @@ $(function () {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.onclick = function() {
-        fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
-          .finally(() => {
+        console.log('[프런트] 로그아웃 버튼 클릭됨');
+        fetch('http://localhost:13000/login/user/v1/logout', { method: 'POST', credentials: 'include' })
+          .then(res => {
+            console.log('[프런트] 로그아웃 fetch 응답:', res);
+            return res.text();
+          })
+          .then(data => {
+            console.log('[프런트] 로그아웃 fetch 응답 데이터:', data);
             removeCookie('jwtAccessToken');
             removeCookie('jwtRefreshToken');
-            window.location.href = 'sign-in.html';
+            setTimeout(() => {
+              window.location.href = 'sign-in.html';
+            }, 100); // 2초 후 이동
+          })
+          .catch(err => {
+            console.error('[프런트] 로그아웃 fetch 에러:', err);
+            alert('로그아웃 요청 에러: ' + err);
+            setTimeout(() => {
+              window.location.href = 'sign-in.html';
+            }, 2000); // 2초 후 이동
           });
       };
     }

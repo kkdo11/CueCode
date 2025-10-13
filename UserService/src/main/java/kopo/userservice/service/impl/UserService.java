@@ -256,34 +256,24 @@ public class UserService implements IUserService {
      */
     @Override
     public void invalidateRefreshToken(HttpServletRequest request) {
-        log.info("[invalidateRefreshToken] 토큰 블랙리스트 등록 시도");
+        log.info("[invalidateRefreshToken] 토큰 삭제 시도");
 
-        // Access Token 추출
+        // Access Token 추출 및 삭제
         String accessToken = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
+        log.info("[invalidateRefreshToken] accessToken: {}", accessToken);
         if (accessToken != null) {
-            try {
-                long accessExp = getExpiration(accessToken);
-                String accessKey = "blacklist:access:" + accessToken;
-                redisUtil.set(accessKey, "logged_out", accessExp);
-                log.info("[invalidateRefreshToken] Access Token 블랙리스트 등록 완료. TTL: {}초", accessExp);
-            } catch (Exception e) {
-                log.error("[invalidateRefreshToken] Access Token 블랙리스트 등록 오류: {}", e.getMessage());
-            }
+            redisUtil.delete("access:" + jwtTokenProvider.getUserIdFromToken(accessToken));
+            log.info("[invalidateRefreshToken] Access Token 삭제 완료.");
         } else {
             log.warn("[invalidateRefreshToken] Access Token 추출 실패.");
         }
 
-        // Refresh Token 추출
+        // Refresh Token 추출 및 삭제
         String refreshToken = jwtTokenProvider.resolveToken(request, JwtTokenType.REFRESH_TOKEN);
+        log.info("[invalidateRefreshToken] refreshToken: {}", refreshToken);
         if (refreshToken != null) {
-            try {
-                long refreshExp = getExpiration(refreshToken);
-                String refreshKey = "blacklist:refresh:" + refreshToken;
-                redisUtil.set(refreshKey, "logged_out", refreshExp);
-                log.info("[invalidateRefreshToken] Refresh Token 블랙리스트 등록 완료. TTL: {}초", refreshExp);
-            } catch (Exception e) {
-                log.error("[invalidateRefreshToken] Refresh Token 블랙리스트 등록 오류: {}", e.getMessage());
-            }
+            redisUtil.delete("refresh:" + jwtTokenProvider.getUserIdFromToken(refreshToken));
+            log.info("[invalidateRefreshToken] Refresh Token 삭제 완료.");
         } else {
             log.warn("[invalidateRefreshToken] Refresh Token 추출 실패.");
         }
