@@ -1,188 +1,275 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <title>회원가입</title>
+    <meta charset="UTF-8"/>
+    <title>CueCode | 회원가입</title>
+    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg"/>
+    <!-- 부트스트랩 CSS -->
+    <link rel="stylesheet" href="../css/bootstrap.css"/>
+    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
+    <link rel="stylesheet" href="../css/styles.css"/>
     <!-- iconify -->
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/user/sign-up.css">
+    <link rel="stylesheet" href="/css/user/sign-in.css">
 </head>
 <body>
-<div class="container signup">
-    <div class="signup-grid">
-        <!-- 좌측 -->
-        <aside class="signup-hero">
-            <img src="/images/logos/logo-white-clean.svg" alt="CueCode Logo" style="max-width:390px; margin-bottom:16px;">
-            <h3>Subtle Gestures, Deep Connections</h3>
-            <p>CueCode와 함께라면<br>당신의 표현이 언제나 닿을 수 있어요.</p>
-        </aside>
-        <!-- 우측 -->
-        <section class="signup-body">
-            <div class="rail">
-                <!-- 프로세싱 바 -->
-                <div class="progress-bar">
-                    <div class="step" id="step1-bar">1. 역할</div>
-                    <div class="step" id="step2-bar">2. 기본정보</div>
-                    <div class="step" id="step3-bar">3. 이메일</div>
-                    <div class="step" id="step4-bar">4. 감지방식</div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="login-container">
+                <div class="row g-0">
+                    <!-- 좌측 Hero 섹션 -->
+                    <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5">
+                        <a href="/user/index.html" class="home-icon-link position-absolute" style="top:24px;left:24px;z-index:10;">
+                            <iconify-icon icon="mingcute:home-3-fill" width="32" height="32" style="color: #e9ecef"></iconify-icon>
+                        </a>
+                        <img src="/images/logos/logo-white-clean.svg" alt="CueCode Logo" class="img-fluid mb-4" style="max-width:350px;">
+                        <h3 class="mb-3 display-6 fw-bold">지금 CueCode 회원가입하고<br>더 많은 소통의 기회를 경험하세요!</h3>
+                        <p class="fs-5">회원가입만 하면 맞춤형 서비스와 다양한 혜택을 바로 이용할 수 있습니다.<br>간편하게 가입하고 CueCode의 모든 기능을 무료로 체험해보세요!</p>
+                    </div>
+                    <!-- 우측 -->
+                    <div class="col-md-6 d-flex flex-column justify-content-center p-5">
+                        <div class="w-100">
+<!--                            <h1 class="text-center display-6 fw-bold mb-5">회원가입</h1>-->
+                            <!-- 프로세싱 바 -->
+<!--                            <h2 class="progress-title text-center mb-2" style="font-size:1.2rem;font-weight:600;">회원가입 진행 단계</h2>-->
+                            <div class="progress-bar-container mb-4" style="display:flex;justify-content:center;align-items:center;gap:0;">
+                                <ul class="progress-bar-list" style="display:flex;list-style:none;padding:0;margin:0;width:100%;justify-content:space-between;align-items:center;">
+                                    <li class="progress-bar-step active" id="step1-bar" style="flex:1;text-align:center;">
+                                        <div class="circle" style="width:32px;height:32px;border-radius:50%;background:#6FC8F8;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px;">1</div>
+                                        <div class="step-label" style="font-size:0.95rem;">역할 선택</div>
+                                    </li>
+                                    <li class="progress-bar-line" style="flex:0 0 32px;height:3px;background:#e0e0e0;margin:0 4px;"></li>
+                                    <li class="progress-bar-step" id="step2-bar" style="flex:1;text-align:center;">
+                                        <div class="circle" style="width:32px;height:32px;border-radius:50%;background:#e0e0e0;color:#6FC8F8;display:inline-flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px;">2</div>
+                                        <div class="step-label" style="font-size:0.95rem;">기본정보</div>
+                                    </li>
+                                    <li class="progress-bar-line" style="flex:0 0 32px;height:3px;background:#e0e0e0;margin:0 4px;"></li>
+                                    <li class="progress-bar-step" id="step3-bar" style="flex:1;text-align:center;">
+                                        <div class="circle" style="width:32px;height:32px;border-radius:50%;background:#e0e0e0;color:#6FC8F8;display:inline-flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px;">3</div>
+                                        <div class="step-label" style="font-size:0.95rem;">이메일 인증</div>
+                                    </li>
+                                    <li class="progress-bar-line" style="flex:0 0 32px;height:3px;background:#e0e0e0;margin:0 4px;"></li>
+                                    <li class="progress-bar-step" id="step4-bar" style="flex:1;text-align:center;">
+                                        <div class="circle" style="width:32px;height:32px;border-radius:50%;background:#e0e0e0;color:#6FC8F8;display:inline-flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px;">4</div>
+                                        <div class="step-label" style="font-size:0.95rem;">감지방식</div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- 단계별 폼 -->
+                            <form id="regForm">
+                                <!-- 1단계: 역할 선택 -->
+                                <section class="step-section" id="step1">
+                                    <h2 class="d-flex justify-content-between align-items-center mb-3" style="font-size:1.1rem;">
+                                        <span class="fw-semibold text-secondary fs-8">회원 유형을 선택하세요</span>
+                                        <button type="button" class="next-btn">
+                                            <iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon>
+                                        </button>
+                                    </h2>
+                                    <p style="margin: 18px 0 32px; color: #6b7280; font-size: 1.08rem; text-align: center;">
+                                        환자와 보호자 중 어떤 유형이신가요?<br>
+                                        선택하신 유형에 따라 맞춤 서비스를 제공해드릴게요.<br>
+                                        궁금한 점이 있으면 언제든 문의해 주세요.
+                                    </p>
+                                    <div class="role-btns">
+                                        <button type="button" id="patientBtn" class="active">환자</button>
+                                        <button type="button" id="managerBtn">보호자</button>
+                                    </div>
+                                </section>
+                                <!-- 2단계: 기본정보 -->
+                                <section class="step-section" id="step2" style="display:none;">
+                                    <h2 class="mb-4 fw-semibold text-secondary fs-8">기본정보 입력</h2>
+                                    <div class="form-group">
+                                        <label for="user_id">아이디</label>
+                                        <div class="input-row">
+                                            <input type="text" id="user_id" name="user_id" placeholder="영문/숫자 4~20자"
+                                                   autocomplete="username" required/>
+                                            <button type="button" class="action-btn" id="checkIdBtn">중복확인</button>
+                                        </div>
+                                        <div class="subtext" id="idCheckMsg"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="user_name">이름</label>
+                                        <input type="text" id="user_name" name="user_name" placeholder="이름"
+                                               autocomplete="name" required/>
+                                    </div>
+                                    <div class="form-group" style="padding-top: 10px;">
+                                        <label for="password">비밀번호</label>
+                                        <input type="password" id="password" name="password"
+                                               placeholder="영문·숫자·특수문자 조합 8~20자" autocomplete="new-password" required/>
+                                        <div class="subtext" id="pwValidMsg"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password2">비밀번호 재입력</label>
+                                        <input type="password" id="password2" name="password2"
+                                               placeholder="비밀번호를 다시 입력하세요" autocomplete="new-password" required/>
+                                        <div class="subtext err" id="pwCheckMsg"></div>
+                                    </div>
+                                    <div class="step-btns">
+                                        <button type="button" class="prev-btn">
+                                            <iconify-icon icon="fa:arrow-left" width="28" height="28"></iconify-icon>
+                                        </button>
+                                        <button type="button" class="next-btn">
+                                            <iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </section>
+                                <!-- 3단계: 이메일 인증 -->
+                                <section class="step-section" id="step3" style="display:none;">
+                                    <h2 class="mb-4 fw-semibold text-secondary fs-8">이메일 인증</h2>
+                                    <div class="form-group">
+                                        <label for="email">이메일</label>
+                                        <div class="input-row">
+                                            <input type="email" id="email" name="email" placeholder="example@cuecode.ai"
+                                                   autocomplete="email" required/>
+                                            <button type="button" class="action-btn" id="sendCodeBtn">인증번호 발송</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" id="emailVerifyGroup" style="display:none;">
+                                        <label for="email_code">인증번호</label>
+                                        <div class="input-row">
+                                            <input type="text" id="email_code" placeholder="인증번호 6자리"
+                                                   inputmode="numeric" autocomplete="one-time-code"/>
+                                            <button type="button" class="action-btn" id="verifyCodeBtn">확인</button>
+                                        </div>
+                                        <div class="subtext">남은 시간 <span id="countdown">03:00</span></div>
+                                        <div class="subtext" id="emailVerifyMsg"></div>
+                                    </div>
+                                    <div class="step-btns" id="step3-btns">
+                                        <button type="button" class="prev-btn" id="manager-prev-btn">
+                                            <iconify-icon icon="fa:arrow-left" width="28" height="28"></iconify-icon>
+                                        </button>
+                                        <button type="button" class="next-btn">
+                                            <iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon>
+                                        </button>
+                                    </div>
+
+                                    <!-- 보호자용 약관 동의 섹션 추가 -->
+                                    <div class="terms-agreement" id="manager-terms"
+                                         style="width: 100%; margin: 16px 0; display: none;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <input type="checkbox" id="agreeAllManager" style="margin-right: 8px;">
+                                            <label for="agreeAllManager" style="font-weight: bold; margin: 0;">전체
+                                                동의</label>
+                                        </div>
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
+                                            <input type="checkbox" id="agreeTermsManager"
+                                                   class="agreement-checkbox-manager" style="margin-right: 8px;">
+                                            <label for="agreeTermsManager" style="margin: 0;">이용약관 동의 (필수)</label>
+                                            <button type="button" id="viewTermsManager"
+                                                    style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">
+                                                보기
+                                            </button>
+                                        </div>
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
+                                            <input type="checkbox" id="agreePrivacyManager"
+                                                   class="agreement-checkbox-manager" style="margin-right: 8px;">
+                                            <label for="agreePrivacyManager" style="margin: 0;">개인정보 수집 및 이용 동의
+                                                (필수)</label>
+                                            <button type="button" id="viewPrivacyManager"
+                                                    style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">
+                                                보기
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 회원가입 버튼 -->
+                                    <div style="width: 100%; margin-top: 16px;">
+                                        <button type="submit" class="submit-btn" id="manager-signup-btn"
+                                                style="display:none;" onclick="submitForm()">
+                                            회원가입
+                                        </button>
+                                    </div>
+                                </section>
+                                <!-- 4단계: 감지방식(환자만) -->
+                                <section class="step-section" id="step4" style="display:none;">
+                                    <h2 class="mb-4 fw-semibold text-secondary fs-8">어떤 방식으로 표현할까요?</h2>
+
+                                    <div class="detect-btns" id="detectBtns">
+                                        <div class="detect-btn active" data-value="hand">
+                                            <iconify-icon icon="lucide:hand"></iconify-icon>
+                                            손
+                                        </div>
+                                        <div class="detect-btn" data-value="face">
+                                            <iconify-icon icon="lucide:scan-face"></iconify-icon>
+                                            얼굴
+                                        </div>
+                                        <div class="detect-btn" data-value="both">
+                                            <iconify-icon icon="lucide:scan-heart"></iconify-icon>
+                                            손+얼굴
+                                        </div>
+                                    </div>
+                                    <!-- 왼쪽 화살표 삭제하고 빈 div로 변경 -->
+                                    <div class="step-btns">
+                                        <!-- 왼쪽 화살표 버튼 삭제됨 -->
+                                    </div>
+
+                                    <!-- 약관 동의 섹션 추가 - 회원가입 버튼 위로 이동 -->
+                                    <div class="terms-agreement" style="width: 100%; margin: 16px 0;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <input type="checkbox" id="agreeAll" style="margin-right: 8px;">
+                                            <label for="agreeAll" style="font-weight: bold; margin: 0;">전체 동의</label>
+                                        </div>
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
+                                            <input type="checkbox" id="agreeTerms" class="agreement-checkbox"
+                                                   style="margin-right: 8px;">
+                                            <label for="agreeTerms" style="margin: 0;">이용약관 동의 (필수)</label>
+                                            <button type="button" id="viewTerms"
+                                                    style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">
+                                                보기
+                                            </button>
+                                        </div>
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
+                                            <input type="checkbox" id="agreePrivacy" class="agreement-checkbox"
+                                                   style="margin-right: 8px;">
+                                            <label for="agreePrivacy" style="margin: 0;">개인정보 수집 및 이용 동의 (필수)</label>
+                                            <button type="button" id="viewPrivacy"
+                                                    style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">
+                                                보기
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 회원가입 버튼을 별도 영역으로 분리 -->
+                                    <div style="width: 100%; margin-top: 16px;">
+                                        <button type="submit" class="submit-btn" onclick="submitForm()">회원가입</button>
+                                    </div>
+                                </section>
+                            </form>
+                            <div class="msg" id="msg"></div>
+                            <!-- 텍스트형 로그인/비밀번호 찾기 메뉴 (구분선 포함) -->
+                            <ul class="login-text-menu">
+                                <li><a href="/user/sign-in.html">로그인</a></li>
+                                <li><a href="/user/find-password.html">PW 찾기</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <!-- 단계별 폼 -->
-                <form id="regForm">
-                    <!-- 1단계: 역할 선택 -->
-                    <section class="step-section" id="step1">
-                        <h2 style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>회원 유형을 선택하세요</span>
-                            <button type="button" class="next-btn"><iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon></button>
-                        </h2>
-                        <p style="margin: 18px 0 32px; color: #6b7280; font-size: 1.08rem; text-align: center;">
-                            환자와 보호자 중 어떤 유형이신가요?<br>
-                            선택하신 유형에 따라 맞춤 서비스를 제공해드릴게요.<br>
-                            궁금한 점이 있으면 언제든 문의해 주세요.
-                        </p>
-                        <div class="role-btns">
-                            <button type="button" id="patientBtn" class="active">환자</button>
-                            <button type="button" id="managerBtn">보호자</button>
-                        </div>
-                    </section>
-                    <!-- 2단계: 기본정보 -->
-                    <section class="step-section" id="step2" style="display:none;">
-                        <h2>기본정보 입력</h2>
-                        <div class="form-group">
-                            <label for="user_id">아이디</label>
-                            <div class="input-row">
-                                <input type="text" id="user_id" name="user_id" placeholder="영문/숫자 4~20자" autocomplete="username" required />
-                                <button type="button" class="action-btn" id="checkIdBtn">중복확인</button>
-                            </div>
-                            <div class="subtext" id="idCheckMsg"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="user_name">이름</label>
-                            <input type="text" id="user_name" name="user_name" placeholder="이름" autocomplete="name" required />
-                        </div>
-                        <div class="form-group" style="padding-top: 10px;">
-                            <label for="password">비밀번호</label>
-                            <input type="password" id="password"  name="password" placeholder="영문·숫자·특수문자 조합 8~20자" autocomplete="new-password" required />
-                            <div class="subtext" id="pwValidMsg"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="password2">비밀번호 재입력</label>
-                            <input type="password" id="password2" name="password2" placeholder="비밀번호를 다시 입력하세요" autocomplete="new-password" required />
-                            <div class="subtext err" id="pwCheckMsg"></div>
-                        </div>
-                        <div class="step-btns">
-                            <button type="button" class="prev-btn"><iconify-icon icon="fa:arrow-left" width="28" height="28"></iconify-icon></button>
-                            <button type="button" class="next-btn"><iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon></button>
-                        </div>
-                    </section>
-                    <!-- 3단계: 이메일 인증 -->
-                    <section class="step-section" id="step3" style="display:none;">
-                        <h2>이메일 인증</h2>
-                        <div class="form-group">
-                            <label for="email">이메일</label>
-                            <div class="input-row">
-                                <input type="email" id="email" name="email" placeholder="example@cuecode.ai" autocomplete="email" required />
-                                <button type="button" class="action-btn" id="sendCodeBtn">인증번호 발송</button>
-                            </div>
-                        </div>
-                        <div class="form-group" id="emailVerifyGroup" style="display:none;">
-                            <label for="email_code">인증번호</label>
-                            <div class="input-row">
-                                <input type="text" id="email_code" placeholder="인증번호 6자리" inputmode="numeric" autocomplete="one-time-code" />
-                                <button type="button" class="action-btn" id="verifyCodeBtn">확인</button>
-                            </div>
-                            <div class="subtext">남은 시간 <span id="countdown">03:00</span></div>
-                            <div class="subtext" id="emailVerifyMsg"></div>
-                        </div>
-                        <div class="step-btns" id="step3-btns">
-                            <button type="button" class="prev-btn" id="manager-prev-btn"><iconify-icon icon="fa:arrow-left" width="28" height="28"></iconify-icon></button>
-                            <button type="button" class="next-btn"><iconify-icon icon="fa:arrow-right" width="28" height="28"></iconify-icon></button>
-                        </div>
-
-                        <!-- 보호자용 약관 동의 섹션 추가 -->
-                        <div class="terms-agreement" id="manager-terms" style="width: 100%; margin: 16px 0; display: none;">
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <input type="checkbox" id="agreeAllManager" style="margin-right: 8px;">
-                                <label for="agreeAllManager" style="font-weight: bold; margin: 0;">전체 동의</label>
-                            </div>
-                            <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
-                                <input type="checkbox" id="agreeTermsManager" class="agreement-checkbox-manager" style="margin-right: 8px;">
-                                <label for="agreeTermsManager" style="margin: 0;">이용약관 동의 (필수)</label>
-                                <button type="button" id="viewTermsManager" style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">보기</button>
-                            </div>
-                            <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
-                                <input type="checkbox" id="agreePrivacyManager" class="agreement-checkbox-manager" style="margin-right: 8px;">
-                                <label for="agreePrivacyManager" style="margin: 0;">개인정보 수집 및 이용 동의 (필수)</label>
-                                <button type="button" id="viewPrivacyManager" style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">보기</button>
-                            </div>
-                        </div>
-
-                        <!-- 회원가입 버튼 -->
-                        <div style="width: 100%; margin-top: 16px;">
-                            <button type="submit" class="submit-btn" id="manager-signup-btn" style="display:none;" onclick="submitForm()">
-                                회원가입
-                            </button>
-                        </div>
-                    </section>
-                    <!-- 4단계: 감지방식(환자만) -->
-                    <section class="step-section" id="step4" style="display:none;">
-                        <h2>어떤 방식으로 표현할까요?</h2>
-                        <div class="detect-btns" id="detectBtns">
-                            <div class="detect-btn active" data-value="hand"><iconify-icon icon="lucide:hand"></iconify-icon>손</div>
-                            <div class="detect-btn" data-value="face"><iconify-icon icon="lucide:scan-face"></iconify-icon>얼굴</div>
-                            <div class="detect-btn" data-value="both"><iconify-icon icon="lucide:scan-heart"></iconify-icon>손+얼굴</div>
-                        </div>
-                        <!-- 왼쪽 화살표 삭제하고 빈 div로 변경 -->
-                        <div class="step-btns">
-                            <!-- 왼쪽 화살표 버튼 삭제됨 -->
-                        </div>
-
-                        <!-- 약관 동의 섹션 추가 - 회원가입 버튼 위로 이동 -->
-                        <div class="terms-agreement" style="width: 100%; margin: 16px 0;">
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <input type="checkbox" id="agreeAll" style="margin-right: 8px;">
-                                <label for="agreeAll" style="font-weight: bold; margin: 0;">전체 동의</label>
-                            </div>
-                            <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
-                                <input type="checkbox" id="agreeTerms" class="agreement-checkbox" style="margin-right: 8px;">
-                                <label for="agreeTerms" style="margin: 0;">이용약관 동의 (필수)</label>
-                                <button type="button" id="viewTerms" style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">보기</button>
-                            </div>
-                            <div style="display: flex; align-items: center; margin-bottom: 8px; margin-left: 20px;">
-                                <input type="checkbox" id="agreePrivacy" class="agreement-checkbox" style="margin-right: 8px;">
-                                <label for="agreePrivacy" style="margin: 0;">개인정보 수집 및 이용 동의 (필수)</label>
-                                <button type="button" id="viewPrivacy" style="margin-left: 8px; border: none; background: none; color: #1976d2; cursor: pointer; font-size: 0.8rem;">보기</button>
-                            </div>
-                        </div>
-
-                        <!-- 회원가입 버튼을 별도 영역으로 분리 -->
-                        <div style="width: 100%; margin-top: 16px;">
-                            <button type="submit" class="submit-btn" onclick="submitForm()">회원가입</button>
-                        </div>
-                    </section>
-                </form>
-                <div class="msg" id="msg"></div>
-                <!-- 텍스트형 로그인/비밀번호 찾기 메뉴 (구분선 포함) -->
-                <ul class="login-text-menu">
-                    <li><a href="/user/sign-in.html">로그인</a></li>
-                    <li><a href="/user/find-password.html">PW 찾기</a></li>
-                </ul>
             </div>
-        </section>
+        </div>
     </div>
 </div>
 
 <!-- 페이지 끝에 모달 추가 -->
-<div id="termsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+<div id="termsModal"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
     <div style="background-color: white; width: 80%; max-width: 600px; margin: 10% auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.2); max-height: 70%; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <h3 id="modalTitle" style="margin: 0;">약관</h3>
-            <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">
+                &times;
+            </button>
         </div>
         <div id="modalContent" style="margin-bottom: 20px;"></div>
         <div style="text-align: right;">
-            <button onclick="closeModal()" style="background: #6FC8F8; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">확인</button>
+            <button onclick="closeModal()"
+                    style="background: #6FC8F8; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                확인
+            </button>
         </div>
     </div>
 </div>

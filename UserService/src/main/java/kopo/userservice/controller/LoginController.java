@@ -123,8 +123,11 @@ public class LoginController {
             }
     )
     @PostMapping(value = "/user/v1/logout")
-    public MsgDTO logout(HttpServletResponse response) {
+    public MsgDTO logout(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
         log.info(this.getClass().getName() + ".logout Start!");
+
+        // 토큰 블랙리스트 등록
+        userService.invalidateRefreshToken(request);
 
         // Access Token 쿠키 삭제
         ResponseCookie accessCookie = ResponseCookie.from(accessTokenName, "")
@@ -132,6 +135,8 @@ public class LoginController {
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
                 .build();
         response.addHeader("Set-Cookie", accessCookie.toString());
 
@@ -141,6 +146,8 @@ public class LoginController {
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
                 .build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
@@ -161,7 +168,7 @@ public class LoginController {
         Object userDto = userService.login(loginRequest.getUserId(), loginRequest.getPassword());
         if (userDto == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return MsgDTO.builder().result(0).msg("로그인 실패: 아이디 또는 비밀번호가 올바르지 않습니���.").build();
+            return MsgDTO.builder().result(0).msg("로그인 실패: 아이디 또는 비밀번호가 올바르지 않습니다.").build();
         }
         String userId = "";
         String userName = "";

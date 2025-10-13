@@ -36,6 +36,8 @@ function showStep(idx) {
     } else {
         if (step3NextBtn) step3NextBtn.style.display = '';
     }
+
+    updateProgressBar(idx + 1);
 }
 function nextStep() {
     if (currentStep === 0) { // 역할 선택
@@ -282,8 +284,15 @@ function submitForm() {
         .then(res => res.text())
         .then(text => {
             if (text.includes('1') || text.includes('회원가입 성공')) {
-                document.getElementById('msg').textContent = '회원가입 성공! 로그인 페이지로 이동합니다.';
-                setTimeout(function(){ window.location.href = '/user/sign-in.html'; }, 1200);
+                Swal.fire({
+                    icon: 'success',
+                    title: '회원가입이 완료되었습니다',
+                    confirmButtonText: '로그인',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/user/sign-in.html';
+                    }
+                });
             } else {
                 document.getElementById('msg').textContent = text;
             }
@@ -572,3 +581,35 @@ document.getElementById('goLoginBtn').onclick = function() {
 document.getElementById('goFindPwBtn').onclick = function() {
     window.location.href = '/find-password';
 };
+
+// 프로세싱 바 업데이트 함수
+function updateProgressBar(step) {
+    const steps = [
+        document.getElementById('step1-bar'),
+        document.getElementById('step2-bar'),
+        document.getElementById('step3-bar'),
+        document.getElementById('step4-bar')
+    ];
+    const lines = document.querySelectorAll('.progress-bar-line');
+    steps.forEach((el, idx) => {
+        if (el) {
+            if (idx === step - 1) {
+                el.classList.add('active');
+                el.querySelector('.circle').style.background = '#6FC8F8';
+                el.querySelector('.circle').style.color = '#fff';
+            } else {
+                el.classList.remove('active');
+                el.querySelector('.circle').style.background = '#e0e0e0';
+                el.querySelector('.circle').style.color = '#6FC8F8';
+            }
+        }
+    });
+    // 보호자일 때 4단계와 이메일 인증 오른쪽 라인(lines[2]) 숨김, 환자일 때 보임
+    if (role === 'manager') {
+        if (steps[3]) steps[3].style.display = 'none';
+        if (lines[2]) lines[2].style.display = 'none';
+    } else {
+        if (steps[3]) steps[3].style.display = '';
+        if (lines[2]) lines[2].style.display = '';
+    }
+}
