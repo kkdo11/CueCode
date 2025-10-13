@@ -560,17 +560,18 @@
     })
     .then(response => {
       if (response.ok) {
-        // 서버에서 JSON 응답을 기대하는 경우
         return response.text().then(text => {
             try {
                 return JSON.parse(text);
             } catch (e) {
-                // 응답이 JSON이 아닌 경우 (예: 단순 문자열 "성공")
                 return text;
             }
         });
+      } else if (response.status === 401) {
+        throw new Error('로그인 후 이용해주세요.');
+      } else {
+        throw new Error(`메시지 전송에 실패했습니다. (상태 코드: ${response.status})`);
       }
-      throw new Error('메시지 전송에 실패했습니다.');
     })
     .then(data => {
       alert('메시지가 성공적으로 전송되었습니다.');
@@ -578,7 +579,7 @@
     })
     .catch((error) => {
       console.error('Error:', error);
-      alert(error.message || '메시지 전송 중 오류가 발생했습니다.');
+      alert(error.message);
     });
   });
 </script>
