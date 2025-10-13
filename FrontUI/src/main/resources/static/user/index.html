@@ -448,7 +448,7 @@
               마음속 이야기를 들려주세요. 언제나 귀 기울여 듣겠습니다.</p>
           </div>
           <div class="col-xl-8">
-            <form class="d-flex flex-column gap-7" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
+            <form id="contact-form" class="d-flex flex-column gap-7" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
               <div>
                 <input type="text" class="form-control border-bottom border-dark" id="formGroupExampleInput"
                        placeholder="Name">
@@ -528,6 +528,60 @@
   </button>
 </div>
 
+
+<script>
+  document.getElementById('contact-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('formGroupExampleInput').value;
+    const email = document.getElementById('exampleInputEmail1').value;
+    const message = document.getElementById('exampleFormControlTextarea1').value;
+
+    if (!name || !email || !message) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    const formData = {
+      name: name,
+      email: email,
+      message: message
+    };
+
+    console.log("Sending contact form data to /api/users/contact:", JSON.stringify(formData));
+
+    fetch('http://localhost:13000/api/users/contact', {
+      method: 'POST',
+      credentials: 'include', // 인증 쿠키를 함께 보내기 위한 옵션
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    })
+    .then(response => {
+      if (response.ok) {
+        // 서버에서 JSON 응답을 기대하는 경우
+        return response.text().then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                // 응답이 JSON이 아닌 경우 (예: 단순 문자열 "성공")
+                return text;
+            }
+        });
+      }
+      throw new Error('메시지 전송에 실패했습니다.');
+    })
+    .then(data => {
+      alert('메시지가 성공적으로 전송되었습니다.');
+      document.getElementById('contact-form').reset();
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      alert(error.message || '메시지 전송 중 오류가 발생했습니다.');
+    });
+  });
+</script>
 
 <script src="../libs/jquery/dist/jquery.min.js"></script>
 <script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
