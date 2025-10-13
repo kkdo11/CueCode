@@ -25,6 +25,10 @@ spring:
           uri: http://localhost:11000
           predicates:
             - Path=/login
+        - id: user-service-login-all
+          uri: http://localhost:11000
+          predicates:
+            - Path=/login/**
         - id: user-service-api
           uri: http://localhost:11000
           predicates:
