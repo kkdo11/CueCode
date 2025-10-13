@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="../css/styles.css" />
   <!-- JWT 디코딩을 위한 라이브러리 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     .services-tab {
@@ -140,6 +142,10 @@
         height: 0.8rem;
       }
     }
+
+
+
+
   </style>
 </head>
 
@@ -538,50 +544,51 @@
     const message = document.getElementById('exampleFormControlTextarea1').value;
 
     if (!name || !email || !message) {
-      alert('모든 필드를 입력해주세요.');
+      Swal.fire({
+        icon: 'warning',
+        title: '입력 필요',
+        text: '모든 필드를 입력해주세요.',
+      });
       return;
     }
 
-    const formData = {
-      name: name,
-      email: email,
-      message: message
-    };
-
-    console.log("Sending contact form data to /api/users/contact:", JSON.stringify(formData));
+    const formData = { name, email, message };
 
     fetch('http://localhost:13000/api/users/contact', {
       method: 'POST',
-      credentials: 'include', // 인증 쿠키를 함께 보내기 위한 옵션
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     })
-    .then(response => {
-      if (response.ok) {
-        return response.text().then(text => {
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                return text;
-            }
-        });
-      } else if (response.status === 401) {
-        throw new Error('로그인 후 이용해주세요.');
-      } else {
-        throw new Error(`메시지 전송에 실패했습니다. (상태 코드: ${response.status})`);
-      }
-    })
-    .then(data => {
-      alert('메시지가 성공적으로 전송되었습니다.');
-      document.getElementById('contact-form').reset();
-    })
-    .catch((error) => {
-      console.error('Error:', error);
-      alert(error.message);
-    });
+            .then(response => {
+              if (response.ok) {
+                return response.text().then(text => {
+                  try { return JSON.parse(text); } catch (e) { return text; }
+                });
+              } else if (response.status === 401) {
+                throw new Error('로그인 후 이용해주세요.');
+              } else {
+                throw new Error(`메시지 전송에 실패했습니다. (상태 코드: ${response.status})`);
+              }
+            })
+            .then(data => {
+              Swal.fire({
+                icon: 'success',
+                title: '전송 완료',
+                text: '소중한 의견 감사합니다.',
+              });
+              document.getElementById('contact-form').reset();
+            })
+            .catch((error) => {
+              console.error('Error:', error);
+              Swal.fire({
+                icon: 'error',
+                title: '오류',
+                text: error.message,
+              });
+            });
   });
+
 </script>
 
 <script src="../libs/jquery/dist/jquery.min.js"></script>

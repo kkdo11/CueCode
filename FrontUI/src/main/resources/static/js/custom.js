@@ -3,11 +3,12 @@ $(function () {
     // Header Scroll
     $(window).scroll(function () {
         if ($(window).scrollTop() >= 60) {
-            $("header").addClass("fixed-header").hide().fadeIn(300);
+            $("header").addClass("fixed-header");
         } else {
             $("header").removeClass("fixed-header");
         }
     });
+
 
 
     // Featured Owl Carousel
