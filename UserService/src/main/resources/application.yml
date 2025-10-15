@@ -1,10 +1,6 @@
 spring:
   application:
     name: user   # Config repo 파일명(user-dev.yml)과 매칭
-  profiles:
-    active: dev  # 여기서 dev 활성화
-  config:
-    import: "optional:configserver:http://localhost:8888/"
+
 server:
   port: 11000
-  address: 0.0.0.0

@@ -1,0 +1,7 @@
+# 개발(로컬) 환경용 프로필
+spring:
+  config:
+    activate:
+      on-profile: dev
+    # 로컬에서 실행 시, localhost의 컨피그 서버를 바라봅니다.
+    import: "optional:configserver:http://localhost:8888/"
