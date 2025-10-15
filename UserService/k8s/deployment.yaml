@@ -16,8 +16,13 @@ spec:
       - name: user-service-app
         image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
         env:
-          - name: SPRING_PROFILES_ACTIVE
-            value: prod
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: prod
+                  - name: JWT_SECRET # user-prod.yml의 ${JWT_SECRET}에 주입될 값
+                    valueFrom:
+                      secretKeyRef:
+                        name: jwt-secret      # 시크릿 이름
+                        key: JWT_SECRET_KEY   # 시크릿 안의 키 이름        ports:
         ports:
         - containerPort: 11000
         envFrom:
