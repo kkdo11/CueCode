@@ -7,7 +7,7 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/chloe-soyeon/CueCode-Config
+          uri: https://devtools.ncloud.com/3067145/CueCode-Config.git
           default-label: master
           search-paths: msa
 

@@ -18,92 +18,35 @@ phases:
 
   pre_build:
     commands:
-      - echo "Detecting changed services..."
+      - echo "Setting image tag..."
       - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-8)
       - echo "Using Image Tag: $IMAGE_TAG"
-      - |
-        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-        echo "Changed files: $CHANGED_FILES"
-        if echo "$CHANGED_FILES" | grep -q "ApiGateway/"; then export BUILD_APIGATEWAY="true"; fi
-        if echo "$CHANGED_FILES" | grep -q "FrontUI/"; then export BUILD_FRONTUI="true"; fi
-        if echo "$CHANGED_FILES" | grep -q "MotionService/"; then export BUILD_MOTIONSERVICE="true"; fi
-        if echo "$CHANGED_FILES" | grep -q "SpringConfigServer/"; then export BUILD_CONFIGSERVER="true"; fi
-        if echo "$CHANGED_FILES" | grep -q "UserService/"; then export BUILD_USERSERVICE="true"; fi
-        if echo "$CHANGED_FILES" | grep -q "CueCodeMotion/"; then export BUILD_CUECODEMOTION="true"; fi
 
   build:
     commands:
-      - echo "Starting Docker builds and pushes for changed services..."
-      - |
-        if [ "$BUILD_APIGATEWAY" = "true" ]; then
-          echo "Building and pushing ApiGateway image..."
-          docker build -t ${NCP_CR_URL}/api-gateway:${IMAGE_TAG} ./ApiGateway
-          docker push ${NCP_CR_URL}/api-gateway:${IMAGE_TAG}
-        fi
-      - |
-        if [ "$BUILD_FRONTUI" = "true" ]; then
-          echo "Building and pushing FrontUI image..."
-          docker build -t ${NCP_CR_URL}/front-ui:${IMAGE_TAG} ./FrontUI
-          docker push ${NCP_CR_URL}/front-ui:${IMAGE_TAG}
-        fi
-      - |
-        if [ "$BUILD_MOTIONSERVICE" = "true" ]; then
-          echo "Building and pushing MotionService image..."
-          docker build -t ${NCP_CR_URL}/motion-service:${IMAGE_TAG} ./MotionService
-          docker push ${NCP_CR_URL}/motion-service:${IMAGE_TAG}
-        fi
-      - |
-        if [ "$BUILD_CONFIGSERVER" = "true" ]; then
-          echo "Building and pushing SpringConfigServer image..."
-          docker build -t ${NCP_CR_URL}/config-server:${IMAGE_TAG} ./SpringConfigServer
-          docker push ${NCP_CR_URL}/config-server:${IMAGE_TAG}
-        fi
-      - |
-        if [ "$BUILD_USERSERVICE" = "true" ]; then
-          echo "Building and pushing UserService image..."
-          docker build -t ${NCP_CR_URL}/user-service:${IMAGE_TAG} ./UserService
-          docker push ${NCP_CR_URL}/user-service:${IMAGE_TAG}
-        fi
-      - |
-        if [ "$BUILD_CUECODEMOTION" = "true" ]; then
-          echo "Building and pushing CueCodeMotion image..."
-          docker build -t ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG} ./CueCodeMotion
-          docker push ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG}
-        fi
+      - echo "Building and pushing all service images..."
+      - docker build -t ${NCP_CR_URL}/api-gateway:${IMAGE_TAG} ./ApiGateway
+      - docker push ${NCP_CR_URL}/api-gateway:${IMAGE_TAG}
+      - docker build -t ${NCP_CR_URL}/front-ui:${IMAGE_TAG} ./FrontUI
+      - docker push ${NCP_CR_URL}/front-ui:${IMAGE_TAG}
+      - docker build -t ${NCP_CR_URL}/motion-service:${IMAGE_TAG} ./MotionService
+      - docker push ${NCP_CR_URL}/motion-service:${IMAGE_TAG}
+      - docker build -t ${NCP_CR_URL}/config-server:${IMAGE_TAG} ./SpringConfigServer
+      - docker push ${NCP_CR_URL}/config-server:${IMAGE_TAG}
+      - docker build -t ${NCP_CR_URL}/user-service:${IMAGE_TAG} ./UserService
+      - docker push ${NCP_CR_URL}/user-service:${IMAGE_TAG}
+      - docker build -t ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG} ./CueCodeMotion
+      - docker push ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG}
 
   post_build:
     commands:
-      - echo "Updating deployment YAMLs for changed services..."
-      - |
-        if [ "$BUILD_APIGATEWAY" = "true" ]; then
-          echo "Updating ApiGateway deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/api-gateway:${IMAGE_TAG}|" ./ApiGateway/k8s/deployment.yaml
-        fi
-      - |
-        if [ "$BUILD_FRONTUI" = "true" ]; then
-          echo "Updating FrontUI deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/front-ui:${IMAGE_TAG}|" ./FrontUI/k8s/deployment.yaml
-        fi
-      - |
-        if [ "$BUILD_MOTIONSERVICE" = "true" ]; then
-          echo "Updating MotionService deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/motion-service:${IMAGE_TAG}|" ./MotionService/k8s/deployment.yaml
-        fi
-      - |
-        if [ "$BUILD_CONFIGSERVER" = "true" ]; then
-          echo "Updating SpringConfigServer deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/config-server:${IMAGE_TAG}|" ./SpringConfigServer/k8s/deployment.yaml
-        fi
-      - |
-        if [ "$BUILD_USERSERVICE" = "true" ]; then
-          echo "Updating UserService deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/user-service:${IMAGE_TAG}|" ./UserService/k8s/deployment.yaml
-        fi
-      - |
-        if [ "$BUILD_CUECODEMOTION" = "true" ]; then
-          echo "Updating CueCodeMotion deployment YAML..."
-          sed -i "s|image:.*|image: ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG}|" ./CueCodeMotion/k8s/deployment.yaml
-        fi
+      - echo "Updating all deployment YAMLs..."
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/api-gateway:${IMAGE_TAG}|" ./ApiGateway/k8s/deployment.yaml
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/front-ui:${IMAGE_TAG}|" ./FrontUI/k8s/deployment.yaml
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/motion-service:${IMAGE_TAG}|" ./MotionService/k8s/deployment.yaml
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/config-server:${IMAGE_TAG}|" ./SpringConfigServer/k8s/deployment.yaml
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/user-service:${IMAGE_TAG}|" ./UserService/k8s/deployment.yaml
+      - sed -i "s|image:.*|image: ${NCP_CR_URL}/cuecode-motion:${IMAGE_TAG}|" ./CueCodeMotion/k8s/deployment.yaml
 
 artifacts:
   files:
