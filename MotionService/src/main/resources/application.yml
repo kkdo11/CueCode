@@ -1,6 +1,6 @@
 spring:
   application:
-    name: motion-service   # Config repo 파일명(user-dev.yml)과 매칭
+    name: motion
 
   servlet:
     multipart:
