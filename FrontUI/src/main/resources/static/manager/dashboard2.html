@@ -314,9 +314,8 @@
             background-color: #f3f4f6; /* 호버 시 아주 연한 회색 */
         }
 
-        /* 모달 관련 Tailwind 클래스 대체 */
-        .modal-dialog-centered { /* Tailwind의 items-center, justify-center, bg-opacity-40 대체 */
-            /* 기본 모달은 이미 중앙 정렬되지만, 오버레이 스타일을 위한 별도 클래스 정의 */
+        /* 모달 위치 및 오버레이 스타일 */
+        .modal-dialog-centered {
             position: fixed;
             inset: 0;
             z-index: 1055;
@@ -326,33 +325,135 @@
             background-color: rgba(0, 0, 0, 0.4);
         }
 
-        .modal-content-custom {
-            /* w-full max-w-md mx-auto p-0 relative 대체 */
-            background-color: white;
-            border-radius: 1rem; /* rounded-2xl */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
-            width: 100%;
-            max-width: 448px; /* max-w-md */
+        /* ===== 새로운 병원용 모달 스타일 v2 ===== */
+        #patient-modal .modal-content-custom {
+            position: relative;
             margin: 1.75rem auto;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 16px;
+            overflow: hidden; /* 헤더의 둥근 모서리를 위해 */
+            border: 1px solid #dee2e6;
+        }
+
+        .modal-header-hospital {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background-color: #6ec6f6; /* 프로젝트 주요 파란색 */
+            color: white;
+            padding: 1rem 1.5rem;
             position: relative;
         }
 
-        .modal-header-custom {
-            /* flex items-center px-4 py-3 border-b border-gray-200 대체 */
+        .modal-header-hospital .header-icon .iconify-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        .modal-header-hospital .header-text h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .modal-header-hospital .header-text p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        #patient-modal #modal-close-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e5e7eb;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        #patient-modal #modal-close-btn svg {
+            stroke: white;
+        }
+        #patient-modal #modal-close-btn:hover {
+            background: rgba(0,0,0,0.3);
         }
 
-        .modal-body-custom {
-            /* px-6 py-5 대체 */
-            padding: 1.25rem 1.5rem;
+        #patient-modal .modal-body-custom {
+            padding: 1.5rem 2rem 2rem 2rem;
+            background-color: #f8f9fa; /* 부드러운 배경색 */
         }
 
-        .modal-footer-custom {
-            /* px-4 pb-6 대체 */
-            padding: 0 1rem 1.5rem 1rem;
+        #patient-modal .info-section h3 {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #05396b; /* 진한 파란색 */
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: .75rem;
+            margin-bottom: 1.25rem;
+        }
+        #patient-modal .info-section h3 .iconify-icon {
+            font-size: 1.5rem;
+            color: #57a8d8;
+        }
+
+        #patient-modal .info-group {
+            margin-bottom: 1rem;
+        }
+
+        #patient-modal .info-group label {
+            font-size: .8rem;
+            color: #6c757d; /* 차분한 회색 */
+            margin-bottom: .25rem;
+            display: block;
+            font-weight: 600;
+        }
+
+        #patient-modal .info-group .info-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #212529;
+            min-height: 1.5rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            background: #fff;
+            padding: .5rem .75rem;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+        }
+
+        /* 알러지 정보 특별 강조 */
+        #patient-modal .alert-info-group .info-text {
+            background-color: #fff3cd; /* 연한 노란색 */
+            border-color: #ffeeba;
+            color: #856404; /* 어두운 노란색 텍스트 */
+            font-weight: 600;
+        }
+        #patient-modal .alert-info-group label {
+            color: #856404;
+        }
+
+        #patient-modal .info-group .form-control {
+            background: #fff;
+            border-color: #ced4da;
+        }
+        #patient-modal .info-group .form-control:focus {
+            border-color: #6ec6f6;
+            box-shadow: 0 0 0 0.2rem rgba(110, 198, 246, 0.25);
+        }
+
+        #patient-modal .modal-footer-custom {
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            padding: 1rem 2rem;
         }
 
         /*소연추가*/
@@ -855,77 +956,74 @@
     </div>
 
     <div id="patient-modal" class="modal-dialog-centered d-none">
-        <div class="modal-content-custom">
-            <header class="modal-header-custom">
-                <button id="modal-close-btn" class="btn-close-custom me-2" aria-label="Close">
-                    <svg width="24" height="24" fill="none" stroke="#333" stroke-width="2" viewBox="0 0 24 24">
+        <div class="modal-content-custom hospital-modal">
+            <header class="modal-header-hospital">
+                <div class="header-icon">
+                    <iconify-icon icon="solar:user-bold-duotone"></iconify-icon>
+                </div>
+                <div class="header-text">
+                    <h2 id="modal-patient-name-title">환자 이름</h2>
+                    <p id="modal-patient-id-subtitle">ID: P00000</p>
+                </div>
+                <button id="modal-close-btn" aria-label="Close">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path d="M6 6l12 12M6 18L18 6"/>
                     </svg>
                 </button>
-                <h1 class="flex-grow-1 text-center fs-5 fw-bold text-dark mb-0">환자 정보</h1>
-                <div style="width:24px"></div>
             </header>
             <main class="modal-body-custom">
                 <div class="d-flex flex-column gap-4">
-
-                    <div class="d-flex gap-5">
-                        <div class="flex-fill">
-                            <div class="fs-6 fw-semibold text-secondary">Patient ID</div>
-                            <div id="modal-patient-id" class="mt-1 fs-5 fw-bold text-dark"></div>
-                        </div>
-                        <div class="flex-fill">
-                            <div class="fs-6 fw-semibold text-secondary">이름</div>
-                            <div id="modal-patient-name-wrapper" class="mt-1 fs-5 fw-bold text-dark">
-                                <span id="modal-patient-name"></span>
+                    <section class="info-section">
+                        <h3><iconify-icon icon="solar:document-text-linear"></iconify-icon> 기본 정보</h3>
+                        <div class="row g-3">
+                            <div class="col-md-6 info-group">
+                                <label>이름</label>
+                                <p id="modal-patient-name" class="info-text"></p>
+                            </div>
+                            <div class="col-md-6 info-group">
+                                <label>이메일</label>
+                                <p id="modal-patient-email" class="info-text"></p>
+                            </div>
+                            <div class="col-12 info-group">
+                                <label>담당 매니저</label>
+                                <p id="modal-patient-managers" class="info-text"></p>
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div>
-                        <div class="fs-6 fw-semibold text-secondary">이메일</div>
-                        <div id="modal-patient-email" class="mt-1 fs-5 text-dark"></div>
-                    </div>
-
-                    <div>
-                        <div class="fs-6 fw-semibold text-secondary">담당 매니저 ID</div>
-                        <div id="modal-patient-managers" class="mt-1 fs-5 text-dark"></div>
-                    </div>
-
-                    <hr class="my-3"/>
-
-                    <div class="d-flex flex-column gap-3">
-                        <div>
-                            <div class="fs-6 fw-semibold text-secondary">진료 이력</div>
-                            <span id="modal-patient-history" class="mt-1 d-block fs-5 text-dark"></span>
-                            <textarea id="modal-patient-history-input" class="d-none form-control mt-1"
-                                      rows="2"></textarea>
+                    <section class="info-section">
+                        <h3><iconify-icon icon="solar:medical-kit-bold-duotone"></iconify-icon> 의료 정보</h3>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="info-group">
+                                <label>진료 이력</label>
+                                <p id="modal-patient-history" class="info-text"></p>
+                                <textarea id="modal-patient-history-input" class="d-none form-control" rows="3"></textarea>
+                            </div>
+                            <div class="info-group">
+                                <label>복용약</label>
+                                <p id="modal-patient-medications" class="info-text"></p>
+                                <input id="modal-patient-medications-input" type="text" class="d-none form-control"/>
+                            </div>
+                            <div class="info-group alert-info-group">
+                                <label>알레르기</label>
+                                <p id="modal-patient-allergies" class="info-text"></p>
+                                <input id="modal-patient-allergies-input" type="text" class="d-none form-control"/>
+                            </div>
                         </div>
-                        <div>
-                            <div class="fs-6 fw-semibold text-secondary">복용약 (콤마로 구분)</div>
-                            <span id="modal-patient-medications" class="mt-1 d-block fs-5 text-dark"></span>
-                            <input id="modal-patient-medications-input" type="text" class="d-none form-control mt-1"/>
-                        </div>
-                        <div>
-                            <div class="fs-6 fw-semibold text-secondary">알레르기 (콤마로 구분)</div>
-                            <span id="modal-patient-allergies" class="mt-1 d-block fs-5 text-dark"></span>
-                            <input id="modal-patient-allergies-input" type="text" class="d-none form-control mt-1"/>
-                        </div>
-                    </div>
-
+                    </section>
                 </div>
             </main>
             <footer class="modal-footer-custom" id="modal-footer-btns">
-                <button id="modal-edit-btn" class="w-100 btn btn-light rounded-3 py-3 fs-5 fw-bold text-dark">수정하기
-                </button>
-                <button id="modal-delete-btn" class="w-100 btn btn-danger text-white rounded-3 py-3 fs-5 fw-bold mt-2">
-                    연결 해제
-                </button>
+                <div class="d-flex w-100 gap-2">
+                    <button id="modal-edit-btn" class="btn btn-light fw-bold w-100 py-2">수정하기</button>
+                    <button id="modal-delete-btn" class="btn btn-danger fw-bold w-100 py-2">연결 해제</button>
+                </div>
             </footer>
             <footer class="modal-footer-custom d-none" id="modal-footer-edit">
-                <button id="modal-save-btn" class="btn btn-primary text-white rounded-3 py-3 fs-5 fw-bold w-50">저장
-                </button>
-                <button id="modal-cancel-btn" class="btn btn-secondary text-dark rounded-3 py-3 fs-5 fw-bold w-50">취소
-                </button>
+                <div class="d-flex w-100 gap-2">
+                    <button id="modal-save-btn" class="btn btn-primary fw-bold w-100 py-2">저장</button>
+                    <button id="modal-cancel-btn" class="btn btn-secondary fw-bold w-100 py-2">취소</button>
+                </div>
             </footer>
         </div>
     </div>
@@ -1346,13 +1444,32 @@
 
         window.openPatientModal = function openPatientModal(patient) {
             currentPatient = patient;
-            text('modal-patient-id', patient?.id ?? '정보 없음');
-            text('modal-patient-name', patient?.name ?? '');
-            text('modal-patient-history', patient?.medicalHistory ?? '');
-            text('modal-patient-medications', (patient?.medications ?? []).join(', '));
-            text('modal-patient-allergies', (patient?.allergies ?? []).join(', '));
-            text('modal-patient-managers', (patient?.managerIds ?? []).join(', '));
+
+            // --- 새 모달 UI에 데이터 채우기 ---
+            // 헤더
+            text('modal-patient-name-title', patient?.name ?? '환자 정보');
+            text('modal-patient-id-subtitle', `ID: ${patient?.id ?? '정보 없음'}`);
+
+            // 기본 정보
+            text('modal-patient-name', patient?.name ?? '미등록');
             text('modal-patient-email', patient?.email ?? '정보 없음');
+            text('modal-patient-managers', (patient?.managerIds ?? []).join(', ') || '없음');
+
+            // 의료 정보 (읽기 모드)
+            text('modal-patient-history', patient?.medicalHistory || '기록 없음');
+            text('modal-patient-medications', (patient?.medications ?? []).join(', ') || '해당 없음');
+            text('modal-patient-allergies', (patient?.allergies ?? []).join(', ') || '해당 없음');
+
+            // 의료 정보 (편집 모드용 입력 필드)
+            const historyInput = qid('modal-patient-history-input');
+            if(historyInput) historyInput.value = patient?.medicalHistory ?? '';
+
+            const medicationsInput = qid('modal-patient-medications-input');
+            if(medicationsInput) medicationsInput.value = (patient?.medications ?? []).join(', ');
+
+            const allergiesInput = qid('modal-patient-allergies-input');
+            if(allergiesInput) allergiesInput.value = (patient?.allergies ?? []).join(', ');
+            // --- 데이터 채우기 끝 ---
 
             setEditMode(false);
             qid('patient-modal')?.classList.remove('d-none');
