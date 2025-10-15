@@ -94,4 +94,15 @@ public class JwtTokenProvider {
         }
         return "";
     }
+
+    /** JWT에서 sub claim(userId) 추출 */
+    public String getUserIdFromToken(String token) {
+        System.out.println("[DEBUG] secretKeyBase64: " + secretKeyBase64);
+        SecretKey secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyBase64));
+        System.out.println("[DEBUG] SecretKey: " + secret);
+        Claims claims = Jwts.parserBuilder().setSigningKey(secret).build()
+            .parseClaimsJws(token).getBody();
+        System.out.println("[DEBUG] Claims: " + claims);
+        return claims.getSubject();
+    }
 }

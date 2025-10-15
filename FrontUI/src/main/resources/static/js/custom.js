@@ -1,9 +1,9 @@
 $(function () {
 
-    // Header Scroll
+    // Header Scroll 복원
     $(window).scroll(function () {
         if ($(window).scrollTop() >= 60) {
-            $("header").addClass("fixed-header").hide().fadeIn(300);
+            $("header").addClass("fixed-header");
         } else {
             $("header").removeClass("fixed-header");
         }
@@ -77,5 +77,37 @@ $(function () {
 	AOS.init({
 		once: true,
 	});
+
+
+    function removeCookie(name) {
+      document.cookie = name + '=; Max-Age=0; path=/; domain=localhost; Secure; SameSite=Strict';
+    }
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.onclick = function() {
+        console.log('[프런트] 로그아웃 버튼 클릭됨');
+        fetch('http://localhost:13000/login/user/v1/logout', { method: 'POST', credentials: 'include' })
+          .then(res => {
+            console.log('[프런트] 로그아웃 fetch 응답:', res);
+            return res.text();
+          })
+          .then(data => {
+            console.log('[프런트] 로그아웃 fetch 응답 데이터:', data);
+            removeCookie('jwtAccessToken');
+            removeCookie('jwtRefreshToken');
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 100); // 2초 후 이동
+          })
+          .catch(err => {
+            console.error('[프런트] 로그아웃 fetch 에러:', err);
+            alert('로그아웃 요청 에러: ' + err);
+            setTimeout(() => {
+              window.location.href = 'sign-in.html';
+            }, 2000); // 2초 후 이동
+          });
+      };
+    }
 
 });

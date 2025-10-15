@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="../css/styles.css" />
   <!-- JWT 디코딩을 위한 라이브러리 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     .services-tab {
@@ -140,6 +142,10 @@
         height: 0.8rem;
       }
     }
+
+
+
+
   </style>
 </head>
 
@@ -180,14 +186,14 @@
                             class="img-fluid animate-spin">홈</a>
                   </li>
                   <li class="header-item">
-                    <a href="about-us.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
+                    <a href="../patient/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                             src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                             class="img-fluid animate-spin">환자 대시보드</a>
                   </li>
                   <li class="header-item">
-                    <a href="projects.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
+                    <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                             src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
-                            class="img-fluid animate-spin">보호자 대시보드</a>
+                            class="img-fluid animate-spin">관리자 대시보드</a>
                   </li>
                   <li class="header-item" id="myPageMenuItem">
                     <a href="mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
@@ -398,7 +404,7 @@
                       <div class="col-lg-6 col-xxl-5">
                         <button class="nav-link fs-10 fw-bold py-1 px-0 border-0 rounded-0 flex-shrink-0"
                                 id="four-tab" data-bs-toggle="tab" data-bs-target="#four" type="button" role="tab"
-                                aria-controls="four" aria-selected="false">보호자·기관 대시보드</button>
+                                aria-controls="four" aria-selected="false">관리자·기관 대시보드</button>
                       </div>
                       <div class="col-lg-6 col-xxl-7">
                         <p class=" text-opacity-70 mb-0">
@@ -444,11 +450,11 @@
         </div>
         <div class="row justify-content-between gap-7 gap-xl-0">
           <div class="col-xl-3">
-            <p class="mb-0 fs-5" data-aos="fade-right" data-aos-delay="100" data-aos-duration="1000"> CueCode는 작은 ���빛과 손짓도 <b>소중한 목소리</b>가 될 수 있다고 믿습니다.
+            <p class="mb-0 fs-5" data-aos="fade-right" data-aos-delay="100" data-aos-duration="1000"> CueCode는 작은 눈빛과 손짓도 <b>소중한 목소리</b>가 될 수 있다고 믿습니다.
               마음속 이야기를 들려주세요. 언제나 귀 기울여 듣겠습니다.</p>
           </div>
           <div class="col-xl-8">
-            <form class="d-flex flex-column gap-7" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
+            <form id="contact-form" class="d-flex flex-column gap-7" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
               <div>
                 <input type="text" class="form-control border-bottom border-dark" id="formGroupExampleInput"
                        placeholder="Name">
@@ -499,7 +505,7 @@
         <ul class="footer-menu list-unstyled mb-0 d-flex flex-column gap-2">
           <li><a class="link-hover fs-5 text-white" href="index.html">홈</a></li>
           <li><a class="link-hover fs-5 text-white" href="about-us.html">환자 대시보드</a></li>
-          <li><a class="link-hover fs-5 text-white" id="services" href="#services">보호자 대시보드</a></li>
+          <li><a class="link-hover fs-5 text-white" id="services" href="#services">관리자 대시보드</a></li>
 <!--          <li><a class="link-hover fs-5 text-white" href="projects.html">마이 페이지</a></li>-->
 <!--          <li><a class="link-hover fs-5 text-white" href="terms-and-conditions.html">Terms</a></li>-->
 <!--          <li><a class="link-hover fs-5 text-white" href="privacy-policy.html">Privacy Policy</a></li>-->
@@ -529,6 +535,62 @@
 </div>
 
 
+<script>
+  document.getElementById('contact-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('formGroupExampleInput').value;
+    const email = document.getElementById('exampleInputEmail1').value;
+    const message = document.getElementById('exampleFormControlTextarea1').value;
+
+    if (!name || !email || !message) {
+      Swal.fire({
+        icon: 'warning',
+        title: '입력 필요',
+        text: '모든 필드를 입력해주세요.',
+      });
+      return;
+    }
+
+    const formData = { name, email, message };
+
+    fetch('http://localhost:13000/api/users/contact', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+            .then(response => {
+              if (response.ok) {
+                return response.text().then(text => {
+                  try { return JSON.parse(text); } catch (e) { return text; }
+                });
+              } else if (response.status === 401) {
+                throw new Error('로그인 후 이용해주세요.');
+              } else {
+                throw new Error(`메시지 전송에 실패했습니다. (상태 코드: ${response.status})`);
+              }
+            })
+            .then(data => {
+              Swal.fire({
+                icon: 'success',
+                title: '전송 완료',
+                text: '소중한 의견 감사합니다.',
+              });
+              document.getElementById('contact-form').reset();
+            })
+            .catch((error) => {
+              console.error('Error:', error);
+              Swal.fire({
+                icon: 'error',
+                title: '오류',
+                text: error.message,
+              });
+            });
+  });
+
+</script>
+
 <script src="../libs/jquery/dist/jquery.min.js"></script>
 <script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
@@ -547,7 +609,8 @@
   }
 
   function removeCookie(name) {
-    document.cookie = `${name}=; path=/; max-age=0;`;
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+    document.cookie = `${name}=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
   }
 
   // --- [2] 로그아웃 버튼 노출 함수 정의 ---
@@ -558,10 +621,13 @@
       authBtnGroup.innerHTML = `<span class="me-3 fw-bold text-dark">${userName ? userName + '님' : ''} 환영합니다!</span>
             <button id="logoutBtn" class="btn btn-outline-danger px-4 py-2">로그아웃</button>`; // ✅ px-3 -> px-4 수정
       document.getElementById('logoutBtn').onclick = function() {
-        console.log('로그아웃 버튼 클릭: 토큰 삭제 및 로그인 페이지 이동');
-        removeCookie('jwtAccessToken');
-        removeCookie('jwtRefreshToken');
-        window.location.href = 'sign-in.html';
+        // 서버 로그아웃 API 호출
+        fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
+          .finally(() => {
+            removeCookie('jwtAccessToken');
+            removeCookie('jwtRefreshToken');
+            window.location.href = 'index.html';
+          });
       };
       console.log('로그아웃 버튼 노출 완료');
     }
@@ -634,13 +700,13 @@
       }
 
       // 환자 및 관리자 메뉴 링크 초기화 (나중에 링크를 사용할 수 있도록)
-      if (patientMenuLink) patientMenuLink.href = 'patient-dashboard.html';
+      if (patientMenuLink) patientMenuLink.href = '../patient/dashboard.html';
       if (managerMenuLink) managerMenuLink.href = '../manager/dashboard.html';
 
 
       if (decoded.role === 'ROLE_USER') {
         // 환자 역할
-        linkHref = 'patient-dashboard.html';
+        linkHref = '../patient/dashboard.html';
         linkText = '환자 대시보드';
         if (patientMenuItem) {
           patientMenuItem.style.display = 'list-item'; // <li> 표시
@@ -648,7 +714,7 @@
       } else if (decoded.role === 'ROLE_USER_MANAGER') {
         // 관리자(보호자) 역할
         linkHref = '../manager/dashboard.html'; // ✅ 수정된 올바른 상대 경로
-        linkText = '보호자/관리자 대시보드';
+        linkText = '관리자 대시보드';
         if (managerMenuItem) {
           managerMenuItem.style.display = 'list-item'; // <li> 표시
         }

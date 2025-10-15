@@ -4,3 +4,6 @@ spring:
 
 server:
   port: 11000
+  address: 0.0.0.0
+
+

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>관리자 대시보드</title>
+  <title>CueCode | 관리자 대시보드</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -124,6 +125,7 @@
       </main>
       <footer class="px-4 pb-6" id="modal-footer-btns">
         <button id="modal-edit-btn" class="w-full bg-gray-100 rounded-xl py-3 text-base font-semibold text-gray-900">수정하기</button>
+        <button id="modal-delete-btn" class="w-full bg-red-500 text-white rounded-xl py-3 text-base font-semibold mt-2">연결 해제</button>
       </footer>
       <footer class="px-4 pb-6 hidden" id="modal-footer-edit">
         <button id="modal-save-btn" class="w-1/2 bg-indigo-600 text-white rounded-xl py-3 text-base font-semibold mr-2">저장</button>
@@ -404,6 +406,37 @@
         }
       } catch (e) {
         alert('서버 오류로 수정 실패');
+      }
+    });
+
+    document.getElementById('modal-delete-btn').addEventListener('click', async function() {
+      if (!currentPatient || !currentPatient.id) {
+        alert('환자 정보가 올바르지 않습니다.');
+        return;
+      }
+
+      if (confirm(`정말로 환자(${currentPatient.name})와의 연결을 해제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+        try {
+          const res = await fetch(`http://localhost:13000/patient/unlink-manager`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ patientId: currentPatient.id })
+          });
+
+          if (res.ok) {
+            alert('환자와의 연결이 성공적으로 해제되었습니다.');
+            document.getElementById('patient-modal').classList.add('hidden');
+            fetchPatients(); // 환자 목록 새로고침
+          } else {
+            const errorData = await res.json();
+            alert(`연결 해제 실패: ${errorData.message || '알 수 없는 오류'}`);
+          }
+        } catch (e) {
+          console.error('연결 해제 API 호출 오류:', e);
+          alert('서버 오류로 연결 해제에 실패했습니다.');
+        }
       }
     });
 

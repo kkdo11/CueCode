@@ -12,7 +12,29 @@ spring:
       max-request-size: 100MB
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:14000"
+            allowedMethods:
+              - GET
+              - POST
+            allowedHeaders: "*"
       routes:
+        - id: user-service-login
+          uri: http://localhost:11000
+          predicates:
+            - Path=/login
+        - id: user-service-login-all
+          uri: http://localhost:11000
+          predicates:
+            - Path=/login/**
+        - id: user-service-api
+          uri: http://localhost:11000
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
         - id: user-service-user-reg
           uri: http://localhost:11000
           predicates:

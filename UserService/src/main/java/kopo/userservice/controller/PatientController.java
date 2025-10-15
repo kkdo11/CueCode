@@ -3,13 +3,16 @@ package kopo.userservice.controller;
 import kopo.userservice.dto.PatientDTO;
 import kopo.userservice.model.PatientDocument;
 import kopo.userservice.repository.PatientRepository;
+import kopo.userservice.service.PatientManagerService;
 import kopo.userservice.util.EncryptUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -18,6 +21,9 @@ import java.util.Optional;
 public class PatientController {
     @Autowired
     private PatientRepository patientRepository;
+
+    @Autowired
+    private PatientManagerService patientManagerService;
 
     @GetMapping("/list")
     public List<PatientDocument> getPatientsByManager(@RequestParam String managerId) {
@@ -68,5 +74,23 @@ public class PatientController {
         // 필요시 다른 필드도 추가
         patientRepository.save(patient);
         return ResponseEntity.ok("수정 완료");
+    }
+
+    @PostMapping("/unlink-manager")
+    public ResponseEntity<?> unlinkManager(@RequestBody Map<String, String> request, Principal principal) {
+        String patientId = request.get("patientId");
+        String managerId = principal.getName(); // JWT 토큰에서 managerId 추출
+
+        if (patientId == null || patientId.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "환자 ID가 필요합니다."));
+        }
+
+        try {
+            patientManagerService.unlinkManagerFromPatient(patientId, managerId);
+            return ResponseEntity.ok(Map.of("message", "환자와의 연결이 성공적으로 해제되었습니다."));
+        } catch (Exception e) {
+            log.error("Error unlinking manager {} from patient {}: {}", managerId, patientId, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("message", "연결 해제 중 오류가 발생했습니다: " + e.getMessage()));
+        }
     }
 }

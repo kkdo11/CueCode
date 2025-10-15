@@ -1,5 +1,6 @@
 package kopo.userservice.service.impl;
 
+import kopo.userservice.auth.JwtTokenProvider;
 import kopo.userservice.dto.PatientDTO;
 import kopo.userservice.dto.ManagerDTO;
 import kopo.userservice.dto.MailDTO;
@@ -20,6 +21,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import kopo.userservice.auth.JwtTokenType;
+import jakarta.servlet.http.HttpServletRequest;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -31,6 +36,8 @@ public class UserService implements IUserService {
     private final DetectionAreaRepository detectionAreaRepository;
     private final IMailService mailService;
     private final RedisUtil redisUtil;
+    private final JwtTokenProvider jwtTokenProvider;
+
 
     @Override
     public Object login(String userId, String password) {
@@ -230,7 +237,7 @@ public class UserService implements IUserService {
 
         // 이메일 발송 로직 (이전과 동일하게 MailService 사용)
         MailDTO dto = new MailDTO();
-        dto.setTitle("CueCode 이메일 인증번호");
+        dto.setTitle("[CueCode] 이메일 인증번호");
         String contents = "<div style='max-width:600px; margin:0 auto; padding:40px 30px; font-family:Arial, sans-serif; border:1px solid #e0e0e0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);'>";
         contents += "    <div style='text-align:center;'>";
         contents += "        <h2 style='color:#1976d2; margin-bottom:10px;'>CueCode 이메일 인증</h2>";
@@ -243,5 +250,45 @@ public class UserService implements IUserService {
         mailService.doSendMail(dto);
         log.info("sendEmailAuthCode End!");
         return authCode;
+    }
+    /**
+     * 로그아웃 시 Access Token과 Refresh Token을 블랙리스트에 등록합니다.
+     */
+    @Override
+    public void invalidateRefreshToken(HttpServletRequest request) {
+        log.info("[invalidateRefreshToken] 토큰 삭제 시도");
+
+        // Access Token 추출 및 삭제
+        String accessToken = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
+        log.info("[invalidateRefreshToken] accessToken: {}", accessToken);
+        if (accessToken != null) {
+            redisUtil.delete("access:" + jwtTokenProvider.getUserIdFromToken(accessToken));
+            log.info("[invalidateRefreshToken] Access Token 삭제 완료.");
+        } else {
+            log.warn("[invalidateRefreshToken] Access Token 추출 실패.");
+        }
+
+        // Refresh Token 추출 및 삭제
+        String refreshToken = jwtTokenProvider.resolveToken(request, JwtTokenType.REFRESH_TOKEN);
+        log.info("[invalidateRefreshToken] refreshToken: {}", refreshToken);
+        if (refreshToken != null) {
+            redisUtil.delete("refresh:" + jwtTokenProvider.getUserIdFromToken(refreshToken));
+            log.info("[invalidateRefreshToken] Refresh Token 삭제 완료.");
+        } else {
+            log.warn("[invalidateRefreshToken] Refresh Token 추출 실패.");
+        }
+    }
+
+    /**
+     * JWT에서 만료시간(초)을 추출하는 유틸 함수
+     */
+    private long getExpiration(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        long expMillis = claims.getExpiration().getTime();
+        long nowMillis = System.currentTimeMillis();
+        return (expMillis - nowMillis) / 1000;
     }
 }

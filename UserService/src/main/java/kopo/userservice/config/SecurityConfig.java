@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod; // HttpMethod 임포트
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,6 +25,7 @@ import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -58,6 +60,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**", // Swagger API docs
                                 "/actuator/**" // actuator
                                 , "/user/**" // 정적 리소스 및 회원가입 페이지
+                                , "/users/**" // 메서드 레벨 보안을 위해 일단 허용
                                 , "/patient/**"
                                 , "/manager/**"
                         ).permitAll()

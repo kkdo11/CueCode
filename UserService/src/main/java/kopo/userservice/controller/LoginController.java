@@ -40,6 +40,7 @@ public class LoginController {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final kopo.userservice.service.IUserService userService;
+    private final kopo.userservice.util.RedisUtil redisUtil;
 
     @Operation(summary = "로그인 성공처리  API", description = "로그인 성공처리 API",
             responses = {
@@ -76,6 +77,8 @@ public class LoginController {
         // Access Token 생성
         String accessToken = jwtTokenProvider.createToken(userId, userName, userRoles, managerId, JwtTokenType.ACCESS_TOKEN);
         log.info("accessToken : {}", accessToken);
+        log.info("[Redis] access 저장 시도: key={}, value={}, ttl={}", "access:" + userId, accessToken, accessTokenValidTime);
+        redisUtil.set("access:" + userId, accessToken, accessTokenValidTime);
 
         ResponseCookie cookie = ResponseCookie.from(accessTokenName, accessToken)
                 .domain("localhost")
@@ -88,6 +91,9 @@ public class LoginController {
         // Refresh Token 생성
         String refreshToken = jwtTokenProvider.createToken(userId, userName, userRoles, managerId, JwtTokenType.REFRESH_TOKEN);
         log.info("refreshToken : {}", refreshToken);
+        log.info("[Redis] refresh 저장 시도: key={}, value={}, ttl={}", "refresh:" + userId, refreshToken, refreshTokenValidTime);
+        redisUtil.set("refresh:" + userId, refreshToken, refreshTokenValidTime);
+
         cookie = ResponseCookie.from(refreshTokenName, refreshToken)
                 .domain("localhost")
                 .path("/")
@@ -123,8 +129,35 @@ public class LoginController {
             }
     )
     @PostMapping(value = "/user/v1/logout")
-    public MsgDTO logout(HttpServletResponse response) {
+    public MsgDTO logout(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
         log.info(this.getClass().getName() + ".logout Start!");
+
+        // accessToken 쿠키에서 추출
+        String accessToken = null;
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if (cookie.getName().equals(accessTokenName)) {
+                    accessToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        log.info("[Logout] accessToken 추출 결과: {}", accessToken);
+        String userId = null;
+        if (accessToken != null && !accessToken.isEmpty()) {
+            userId = jwtTokenProvider.getUserIdFromToken(accessToken);
+        }
+        log.info("[Logout] userId 추출 결과: {}", userId);
+        if (userId != null) {
+            log.info("[Logout] Redis 삭제 시도: access:{}, refresh:{}", "access:" + userId, "refresh:" + userId);
+            redisUtil.delete("access:" + userId);
+            redisUtil.delete("refresh:" + userId);
+            log.info("[Redis] 로그아웃: access:{} refresh:{} 삭제 시도 완료", userId, userId);
+        } else {
+            log.warn("[Logout] userId가 null이므로 Redis 삭제를 수행하지 않음");
+        }
+
+        userService.invalidateRefreshToken(request);
 
         // Access Token 쿠키 삭제
         ResponseCookie accessCookie = ResponseCookie.from(accessTokenName, "")
@@ -132,6 +165,8 @@ public class LoginController {
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
                 .build();
         response.addHeader("Set-Cookie", accessCookie.toString());
 
@@ -141,6 +176,8 @@ public class LoginController {
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
                 .build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
@@ -161,7 +198,7 @@ public class LoginController {
         Object userDto = userService.login(loginRequest.getUserId(), loginRequest.getPassword());
         if (userDto == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return MsgDTO.builder().result(0).msg("로그인 실패: 아이디 또는 비밀번호가 올바르지 않습니���.").build();
+            return MsgDTO.builder().result(0).msg("로그인 실패: 아이디 또는 비밀번호가 올바르지 않습니다.").build();
         }
         String userId = "";
         String userName = "";
@@ -195,6 +232,10 @@ public class LoginController {
                 .httpOnly(true)
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
+        log.info("[Redis] access 저장 시도: key={}, value={}, ttl={}", "access:" + userId, accessToken, accessTokenValidTime);
+        redisUtil.set("access:" + userId, accessToken, accessTokenValidTime);
+        log.info("[Redis] refresh 저장 시도: key={}, value={}, ttl={}", "refresh:" + userId, refreshToken, refreshTokenValidTime);
+        redisUtil.set("refresh:" + userId, refreshToken, refreshTokenValidTime);
         // accessToken을 응답 JSON에 포함
         return MsgDTO.builder().result(1).msg(userName + "님 로그인이 성공하였습니다.").accessToken(accessToken).build();
     }
