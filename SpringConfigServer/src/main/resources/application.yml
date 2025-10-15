@@ -10,6 +10,8 @@ spring:
           uri: https://devtools.ncloud.com/3067145/CueCode-Config.git
           default-label: master
           search-paths: msa
+          username: contest73
+          password: qlrepdlxjrhk!@12
 
 management:
   endpoints:
