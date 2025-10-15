@@ -97,7 +97,7 @@ $(function () {
             removeCookie('jwtAccessToken');
             removeCookie('jwtRefreshToken');
             setTimeout(() => {
-              window.location.href = 'sign-in.html';
+              window.location.href = 'index.html';
             }, 100); // 2초 후 이동
           })
           .catch(err => {
