@@ -186,12 +186,12 @@
                             class="img-fluid animate-spin">홈</a>
                   </li>
                   <li class="header-item">
-                    <a href="about-us.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
+                    <a href="../patient/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                             src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                             class="img-fluid animate-spin">환자 대시보드</a>
                   </li>
                   <li class="header-item">
-                    <a href="projects.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
+                    <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                             src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                             class="img-fluid animate-spin">관리자 대시보드</a>
                   </li>
@@ -626,7 +626,7 @@
           .finally(() => {
             removeCookie('jwtAccessToken');
             removeCookie('jwtRefreshToken');
-            window.location.href = 'sign-in.html';
+            window.location.href = 'index.html';
           });
       };
       console.log('로그아웃 버튼 노출 완료');
@@ -700,13 +700,13 @@
       }
 
       // 환자 및 관리자 메뉴 링크 초기화 (나중에 링크를 사용할 수 있도록)
-      if (patientMenuLink) patientMenuLink.href = 'patient-dashboard.html';
+      if (patientMenuLink) patientMenuLink.href = '../patient/dashboard.html';
       if (managerMenuLink) managerMenuLink.href = '../manager/dashboard.html';
 
 
       if (decoded.role === 'ROLE_USER') {
         // 환자 역할
-        linkHref = 'patient-dashboard.html';
+        linkHref = '../patient/dashboard.html';
         linkText = '환자 대시보드';
         if (patientMenuItem) {
           patientMenuItem.style.display = 'list-item'; // <li> 표시

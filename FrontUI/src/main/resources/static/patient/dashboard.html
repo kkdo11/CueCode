@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CueCode | 환자 대시보드</title>
+    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg" />
+    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
+    <link rel="stylesheet" href="../css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* ---------------------------------------------------- */
+        /* 사용자 정의 변수 (Bootstrap 변수 최소화 원칙 유지) */
+        /* ---------------------------------------------------- */
+        :root {
+            /* Bootstrap Primary Color: #6fc8f8 (파란색)을 활용 */
+
+            /* 튜토리얼 바 호버 색상 */
+            --bs-primary-hover: #5AB1E3;
+
+            /* 카드 디자인을 위한 세련된 파란색 계열 정의 (보라색 대신 통일성 강조) */
+            --card-blue-1: #6ec6f6; /* Primary Blue */
+            --card-blue-2: #0EA5E9; /* Cyan Blue */
+            --card-blue-3: #1E40AF; /* Dark Blue */
+
+            /* 카드 섀도우 및 경계 정의 */
+            --card-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05); /* 기본 섀도우 가볍게 */
+            --card-shadow-hover: 0 15px 30px rgba(59, 130, 246, 0.3); /* 깊고 넓은 호버 섀도우 */
+            --card-border-radius: 12px; /* 모던한 둥근 모서리 */
+        }
+
+        body {
+            padding-top: 80px;
+            background-color: #f9fafb; /* 배경색을 아주 밝은 회색으로 변경 */
+        }
+
+        /* ---------------------------------------------------- */
+        /* 튜토리얼 바 개선 (모던한 투명/파란색 강조) */
+        /* ---------------------------------------------------- */
+        .tutorial-bar {
+            border-radius: var(--card-border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #1F2A2E; /* 텍스트 색상 변경 */
+            background-color: #ffffff;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2.5rem; /* 아래 간격 늘림 */
+            transition: all 0.3s ease;
+        }
+
+        .tutorial-bar:hover {
+            box-shadow: 0 6px 12px rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px); /* 살짝 떠오르는 효과 */
+        }
+
+        .tutorial-content {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .tutorial-icon {
+            font-size: 2rem;
+            color: var(--card-blue-1); /* 강조색 사용 */
+        }
+
+        .tutorial-bar h5 {
+            font-size: 1.25rem;
+            margin-bottom: 0.2rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .tutorial-bar p {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+
+        .btn-outline-light {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            background-color: var(--card-blue-1);
+            color: white !important;
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-light:hover {
+            background-color: var(--card-blue-3);
+            color: #222 !important; /* 텍스트를 어두운 톤으로 변경 */
+            transform: translateY(-1px);
+        }
+
+
+        /* ---------------------------------------------------- */
+        /* 카드 디자인 */
+        /* ---------------------------------------------------- */
+        .card {
+            width: 100%;
+            background: #ffffff;
+            border-radius: var(--card-border-radius);
+            padding: 3rem 2rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow: var(--card-shadow-light);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            text-align: center;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            /* min-height를 설정하지 않음. 부모 .row의 align-items-stretch를 활용 */
+            min-height: 280px;
+            z-index: 0;
+        }
+
+        /* !!! 중요 수정 부분: 왼쪽 카드의 고정 높이를 제거합니다. !!! */
+        /* Flexbox의 align-items-stretch 속성이 오른쪽 카드의 높이 합과 동일하게 맞춰줄 것입니다. */
+        .action-recognition-card {
+            min-height: initial; /* min-height를 제거하거나 초기화 */
+        }
+
+        /* 오른쪽 두 카드의 높이를 정확히 동일하게 맞춤 */
+        .col-lg-6 .card {
+            min-height: 280px;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--card-shadow-hover);
+            background: linear-gradient(135deg, #04A9E2, #18C57B); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+        }
+
+        /* 콘텐츠 (아이콘, 텍스트)는 배경보다 위에 있어야 함 */
+        .icon-container, .heading, .content {
+            position: relative;
+            z-index: 5;
+            transition: all 0.5s;
+        }
+
+        .icon-container {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            /* 아이콘에 그라데이션 효과 적용 */
+            background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 카드별 아이콘 그라데이션 */
+        .icon-container {
+            background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .col-lg-6 div:nth-of-type(1) .card .icon-container {
+            background: linear-gradient(135deg, var(--card-blue-2), #22C55E);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .col-lg-6 div:nth-of-type(2) .card .icon-container {
+            background: linear-gradient(135deg, var(--card-blue-3), #F97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .heading {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+
+        .content {
+            color: #6b7280;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* 텍스트가 hover 시 색상 변경 유지 */
+        .card:hover .icon-container,
+        .card:hover .heading,
+        .card:hover .content {
+            color: white !important;
+            -webkit-text-fill-color: white !important;
+        }
+
+        /* 카드 hover 시 배경색 변경 - 모든 카드에 동일한 그라데이션 적용 */
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--card-shadow-hover);
+            background: linear-gradient(135deg, #59aedc, #97cfb9); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+        }
+
+
+        /* ---------------------------------------------------- */
+        /* 푸터 및 기타 요소 스타일 조정 */
+        /* ---------------------------------------------------- */
+        .footer {
+            background-color: var(--bs-dark) !important;
+        }
+
+        .fs-7.text-primary {
+            color: var(--bs-primary) !important;
+        }
+
+        .get-template .btn {
+            background-color: var(--bs-primary) !important;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            /* !!! 중요 수정 부분: 모바일 환경에서도 고정 높이를 제거하여 Flexbox가 작동하도록 함 !!! */
+            .action-recognition-card {
+                min-height: initial;
+            }
+            .card {
+                padding: 2rem 1rem;
+            }
+            .icon-container {
+                font-size: 3rem;
+            }
+            .number {
+                top: -60px;
+                right: -60px;
+                width: 120px;
+                height: 120px;
+                padding-left: 25px;
+                padding-bottom: 25px;
+            }
+            .number .text {
+                font-size: 20px;
+            }
+            .heading {
+                font-size: 1.4rem;
+            }
+            .tutorial-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .card:hover .number::after {
+                width: 600px;
+                height: 600px;
+            }
+        }
+
+        /* 애니메이션 - 부드러운 cubic-bezier 적용 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .fade-in-up-delay-1 {
+            animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+        }
+
+        .fade-in-up-delay-2 {
+            animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+        }
+
+        .fade-in-up-delay-3 {
+            animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+        }
+    </style>
+</head>
+<body>
+
+<header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100 fixed-header">
+    <div class="container">
+        <div class="header-wrapper d-flex align-items-center justify-content-between">
+            <div class="logo">
+                <a href="index.html" class="logo-white">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+                <a href="index.html" class="logo-dark">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-4">
+
+                <div class="btn-group">
+                    <button
+                            class="btn btn-secondary toggle-menu round-45 p-2 d-flex align-items-center justify-content-center bg-white rounded-circle"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
+                        <iconify-icon icon="solar:hamburger-menu-line-duotone" class="menu-icon fs-8 text-dark"></iconify-icon>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-4">
+                        <div class="d-flex flex-column gap-6">
+                            <div class="hstack justify-content-between border-bottom pb-6">
+                                <p class="mb-0 fs-5 text-dark">Menu</p>
+                                <button type="button" class="btn-close opacity-75" aria-label="Close"></button>
+                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                <ul class="header-menu list-unstyled mb-0 d-flex flex-column gap-2">
+                                    <li class="header-item">
+                                        <a href="index.html" aria-current="true"
+                                           class="header-link active hstack gap-2 fs-7 fw-bold text-dark"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">홈</a>
+                                    </li>
+                                    <li class="header-item" id="patientMenuItem">
+                                        <a href="patient-dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="patientMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">환자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="managerMenuItem">
+                                        <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="managerMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">관리자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="myPageMenuItem">
+                                        <a href="mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">마이 페이지</a>
+                                    </li>
+                                </ul>
+                                <div class="hstack gap-3" id="auth-btn-group">
+                                    <a href="sign-in.html"
+                                       class="btn btn-outline-light fs-6 bg-white px-3 py-2 text-dark w-50 hstack justify-content-center">로그인</a>
+                                    <a href="sign-up.html"
+                                       class="btn btn-dark text-white fs-6 bg-dark px-3 py-2 w-50 hstack justify-content-center">회원가입</a>
+                                </div>
+                            </div>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-12 fade-in-up">
+            <div class="tutorial-bar">
+                <div class="tutorial-content">
+                    <iconify-icon icon="mdi:lightbulb" class="tutorial-icon"></iconify-icon>
+                    <div class="tutorial-text">
+                        <h5>CueCode 시작하기</h5>
+                        <p>CueCode를 처음 사용하시나요? 단계별 튜토리얼로 쉽게 시작해보세요🤗 </p>
+                    </div>
+                </div>
+                <button class="btn btn-outline-light btn-sm">
+                    <iconify-icon icon="mdi:play-circle" class="me-1"></iconify-icon>시작하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
+
+        <div class="col-lg-6 fade-in-up-delay-1">
+            <a href="#" class="text-decoration-none h-100">
+                <div class="card action-recognition-card h-100">
+                    <div class="icon-container">
+                        <iconify-icon icon="mdi:video-vintage"></iconify-icon>
+                    </div>
+                    <p class="heading">실시간 동작 인식</p>
+                    <p class="content">
+                        웹캠을 연결하여 AI가 실시간으로 환자의 움직임을 분석하고 위험 동작을 감지합니다.
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-6 d-flex flex-column gap-4">
+
+            <div class="fade-in-up-delay-2">
+                <a href="#" class="text-decoration-none">
+                    <div class="card">
+                        <div class="icon-container">
+                            <iconify-icon icon="mdi:cloud-upload"></iconify-icon>
+                        </div>
+                        <p class="heading">동작 업로드</p>
+                        <p class="content">
+                            영상을 업로드하여 나만의 언어로 변환해보세요
+                        </p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="fade-in-up-delay-3">
+                <a href="#" class="text-decoration-none">
+                    <div class="card">
+                        <div class="icon-container">
+                            <iconify-icon icon="mdi:cog"></iconify-icon>
+                        </div>
+                        <p class="heading">환경 설정</p>
+                        <p class="content">
+                            사용자 환경을 세밀하게 조정할 수 있습니다.
+                        </p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer bg-dark py-5 py-lg-11 py-xl-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-5 mb-8 mb-xl-0">
+                <div class="d-flex flex-column gap-8 pe-xl-5">
+                    <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용
+                        <br>공모전 출품작입니다</h4>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="https://www.wrappixel.com/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
+                            <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>
+                            https://contest.k-paas.org/
+                        </a>
+                        <a href="https://maps.app.goo.gl/hpDp81fqzGt5y4bC8" target="_blank"
+                           class="link-hover hstack gap-3 text-white fs-5">
+                            <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>
+                            우징산 산신령들
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-xl-2 mb-8 mb-xl-0">
+                <ul class="footer-menu list-unstyled mb-0 d-flex flex-column gap-2">
+                    <li><a class="link-hover fs-5 text-white" href="index.html">홈</a></li>
+                    <li><a class="link-hover fs-5 text-white" href="about-us.html">환자 대시보드</a></li>
+                    <li><a class="link-hover fs-5 text-white" id="services" href="#services">관리자 대시보드</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4 col-xl-3 mb-8 mb-xl-0">
+                <p class="mb-0 text-white text-opacity-70 text-md-end">© CueCode copyright 2025</p>
+            </div>
+        </div>
+    </div>
+    <p class="mb-0 text-white text-opacity-70 text-md-center mt-10">Distributed by <a class="text-white"  target="_blank">Team Ujangsan Spirit</a></p>
+</footer>
+
+<div class="get-template hstack gap-2">
+    <button class="btn bg-primary p-2 round-52 rounded-circle hstack justify-content-center flex-shrink-0"
+            id="scrollToTopBtn">
+        <iconify-icon icon="lucide:arrow-up" class="fs-7 text-dark"></iconify-icon>
+    </button>
+</div>
+
+
+<script>
+    // --- [1] 유틸리티 함수 정의 ---
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    function removeCookie(name) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+        document.cookie = `${name}=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+    }
+
+    // --- [2] 로그아웃 버튼 노출 함수 정의 ---
+    function showLogoutButton(userName) {
+        const authBtnGroup = document.getElementById('auth-btn-group');
+        if (authBtnGroup) {
+            authBtnGroup.innerHTML = `<span class="me-3 fw-bold text-dark">${userName ? userName + '님' : ''} 환영합니다!</span>
+                <button id="logoutBtn" class="btn btn-outline-danger px-4 py-2">로그아웃</button>`;
+            document.getElementById('logoutBtn').onclick = function() {
+                // 서버 로그아웃 API 호출
+                fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
+                    .finally(() => {
+                        removeCookie('jwtAccessToken');
+                        removeCookie('jwtRefreshToken');
+                        window.location.href = 'sign-in.html';
+                    });
+            };
+            console.log('로그아웃 버튼 노출 완료');
+        }
+    }
+
+    // --- [3] DOMContentLoaded 메인 로직 (헤더 버튼 변경) ---
+    window.addEventListener('DOMContentLoaded', function() {
+        const token = getCookie('jwtAccessToken');
+
+        // 헤더 메뉴 링크 요소
+        const patientMenuItem = document.getElementById('patientMenuItem');
+        const managerMenuItem = document.getElementById('managerMenuItem');
+        const myPageMenuItem = document.getElementById('myPageMenuItem');
+
+        // <a> 태그 자체 (링크 변경을 위해 필요)
+        const patientMenuLink = document.getElementById('patientMenuLink');
+        const managerMenuLink = document.getElementById('managerMenuLink');
+        const myPageMenuLinkAnchor = document.getElementById('myPageMenuLinkAnchor');
+
+        console.log('쿠키에서 jwtAccessToken:', token ? '토큰 존재' : '토큰 없음');
+
+        // 1. 미로그인 상태 처리
+        if (!token) {
+            console.log('미로그인 상태: 대시보드 및 마이페이지 메뉴 숨김');
+            if (patientMenuItem) patientMenuItem.style.display = 'none';
+            if (managerMenuItem) managerMenuItem.style.display = 'none';
+            if (myPageMenuItem) myPageMenuItem.style.display = 'none';
+            return;
+        }
+
+        // 2. 로그인 상태 처리 (토큰 존재)
+        let decoded = null;
+        try {
+            decoded = jwt_decode(token);
+            console.log('토큰 디코딩 결과:', decoded);
+
+            // 역할 클레임 병합: 'roles' 키의 값을 'role' 키로 사용
+            decoded.role = decoded.role || decoded.roles;
+
+        } catch (e) {
+            console.error('토큰 디코딩 실패. 토큰 만료 또는 오류:', e);
+            removeCookie('jwtAccessToken');
+            window.location.reload();
+            return;
+        }
+
+        // 3. 역할(ROLE)에 따른 헤더 UI 변경
+        if (decoded && decoded.role) {
+
+            // 모든 메뉴를 일단 숨기고, 역할에 맞는 메뉴만 표시
+            if (patientMenuItem) patientMenuItem.style.display = 'none';
+            if (managerMenuItem) managerMenuItem.style.display = 'none';
+            if (myPageMenuItem) myPageMenuItem.style.display = 'none';
+
+            // 마이페이지는 로그인 시 항상 보이도록 설정
+            if (myPageMenuItem && myPageMenuLinkAnchor) {
+                myPageMenuLinkAnchor.href = 'mypage.html';
+                myPageMenuItem.style.display = 'list-item'; // <li> 표시
+            }
+
+            if (decoded.role === 'ROLE_USER' && patientMenuItem) {
+                // 환자 역할
+                patientMenuItem.style.display = 'list-item'; // <li> 표시
+            } else if (decoded.role === 'ROLE_USER_MANAGER' && managerMenuItem) {
+                // 관리자(보호자) 역할
+                managerMenuItem.style.display = 'list-item'; // <li> 표시
+            }
+
+            // 헤더의 로그인/로그아웃 버튼 업데이트
+            showLogoutButton(decoded.userName);
+
+
+        } else {
+            console.log('로그인 상태지만 역할(role) 정보가 불분명함. 로그아웃 버튼과 마이페이지 버튼만 노출.');
+
+            // 역할 정보가 없어도 로그인 상태이므로 로그아웃 버튼은 보여줍니다.
+            if (decoded && decoded.userName) {
+                showLogoutButton(decoded.userName);
+                // 마이페이지는 보이게 설정
+                if (myPageMenuItem) myPageMenuItem.style.display = 'list-item';
+            }
+        }
+    });
+</script>
+
+<script src="../libs/jquery/dist/jquery.min.js"></script>
+<script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
+<script src="../libs/aos-master/dist/aos.js"></script>
+<script src="../js/custom.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+
+</body>
+</html>
+
