@@ -63,6 +63,8 @@ public class SecurityConfig {
                                 , "/users/**" // 메서드 레벨 보안을 위해 일단 허용
                                 , "/patient/**"
                                 , "/manager/**"
+                                , "/patient/detection-area" // 감지 범위 조회/변경 허용
+                                , "/user/info" // 사용자 정보 조회 허용
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/reg/**").permitAll() // 아이디 중복확인 등 GET도 허용
                         .requestMatchers(HttpMethod.POST, "/reg/**").permitAll() // 기존 코드 유지
