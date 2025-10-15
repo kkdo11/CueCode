@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: user-service-deployment
 spec:
-  replicas: 2 # 핵심 서비스이므로 2개의 파드를 실행하여 안정성을 높입니다.
+  replicas: 1
   selector:
     matchLabels:
       app: user-service
@@ -15,6 +15,9 @@ spec:
       containers:
       - name: user-service-app
         image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
+        env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: prod
         ports:
         - containerPort: 11000
         envFrom:
