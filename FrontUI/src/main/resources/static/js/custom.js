@@ -97,14 +97,14 @@ $(function () {
             removeCookie('jwtAccessToken');
             removeCookie('jwtRefreshToken');
             setTimeout(() => {
-              window.location.href = 'index.html';
+              window.location.href = '/index.html';
             }, 100); // 2초 후 이동
           })
           .catch(err => {
             console.error('[프런트] 로그아웃 fetch 에러:', err);
             alert('로그아웃 요청 에러: ' + err);
             setTimeout(() => {
-              window.location.href = 'sign-in.html';
+              window.location.href = '/user/sign-in.html';
             }, 2000); // 2초 후 이동
           });
       };
