@@ -1,0 +1,775 @@
+/* ---------------------------------------------------- */
+/* 사용자 정의 변수 (Bootstrap 변수 최소화 원칙 유지) */
+/* ---------------------------------------------------- */
+:root {
+    /* Bootstrap Primary Color: #6fc8f8 (파란색)을 활용 */
+
+    /* 튜토리얼 바 호버 색상 */
+    --bs-primary-hover: #5AB1E3;
+
+    /* 카드 디자인을 위한 세련된 파란색 계열 정의 (보라색 대신 통일성 강조) */
+    --card-blue-1: #6ec6f6; /* Primary Blue */
+    --card-blue-2: #0EA5E9; /* Cyan Blue */
+    --card-blue-3: #1E40AF; /* Dark Blue */
+
+    /* 카드 섀도우 및 경계 정의 */
+    --card-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05); /* 기본 섀도우 가볍게 */
+    --card-shadow-hover: 0 15px 30px rgba(59, 130, 246, 0.3); /* 깊고 넓은 호버 섀도우 */
+    --card-border-radius: 12px; /* 모던한 둥근 모서리 */
+}
+
+body {
+    padding-top: 80px;
+    background-color: #f9fafb; /* 배경색을 아주 밝은 회색으로 변경 */
+}
+
+/* ---------------------------------------------------- */
+/* 튜토리얼 바 개선 (모던한 투명/파란색 강조) */
+/* ---------------------------------------------------- */
+.tutorial-bar {
+    border-radius: var(--card-border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #1F2A2E; /* 텍스트 색상 변경 */
+    background-color: #ffffff;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2.5rem; /* 아래 간격 늘림 */
+    transition: all 0.3s ease;
+}
+
+.tutorial-bar:hover {
+    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px); /* 살짝 떠오르는 효과 */
+}
+
+.tutorial-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.tutorial-icon {
+    font-size: 2rem;
+    color: var(--card-blue-1); /* 강조색 사용 */
+}
+
+.tutorial-bar h5 {
+    font-size: 1.25rem;
+    margin-bottom: 0.2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.tutorial-bar p {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.btn-outline-light {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    background-color: var(--card-blue-1);
+    color: white !important;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--card-blue-3);
+    color: #222 !important; /* 텍스트를 어두운 톤으로 변경 */
+    transform: translateY(-1px);
+}
+
+
+/* ---------------------------------------------------- */
+/* 카드 디자인 */
+/* ---------------------------------------------------- */
+.card {
+    width: 100%;
+    background: #ffffff;
+    border-radius: var(--card-border-radius);
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    box-shadow: var(--card-shadow-light);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    /* min-height를 설정하지 않음. 부모 .row의 align-items-stretch를 활용 */
+    min-height: 280px;
+    z-index: 0;
+}
+
+/* !!! 중요 수정 부분: 왼쪽 카드의 고정 높이를 제거합니다. !!! */
+/* Flexbox의 align-items-stretch 속성이 오른쪽 카드의 높이 합과 동일하게 맞춰줄 것입니다. */
+.action-recognition-card {
+    min-height: initial; /* min-height를 제거하거나 초기화 */
+}
+
+/* 오른쪽 두 카드의 높이를 정확히 동일하게 맞춤 */
+.col-lg-6 .card {
+    min-height: 280px;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--card-shadow-hover);
+    background: linear-gradient(135deg, #04A9E2, #18C57B); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+}
+
+/* 콘텐츠 (아이콘, 텍스트)는 배경보다 위에 있어야 함 */
+.icon-container, .heading, .content {
+    position: relative;
+    z-index: 5;
+    transition: all 0.5s;
+}
+
+.icon-container {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    /* 아이콘에 그라데이션 효과 적용 */
+    background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    justify-content: center;
+}
+
+/* 카드별 아이콘 그라데이션 */
+.icon-container {
+    background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.col-lg-6 div:nth-of-type(1) .card .icon-container {
+    background: linear-gradient(135deg, var(--card-blue-2), #22C55E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.col-lg-6 div:nth-of-type(2) .card .icon-container {
+    background: linear-gradient(135deg, var(--card-blue-3), #F97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.heading {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #111827;
+}
+
+.content {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* 텍스트가 hover 시 색상 변경 유지 */
+.card:hover .icon-container,
+.card:hover .heading,
+.card:hover .content {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* 카드 hover 시 배경색 변경 - 모든 카드에 동일한 그라데이션 적용 */
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--card-shadow-hover);
+    background: linear-gradient(135deg, #59aedc, #97cfb9); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+}
+
+
+/* ---------------------------------------------------- */
+/* 푸터 및 기타 요소 스타일 조정 */
+/* ---------------------------------------------------- */
+.footer {
+    background-color: var(--bs-dark) !important;
+}
+
+.fs-7.text-primary {
+    color: var(--bs-primary) !important;
+}
+
+.get-template .btn {
+    background-color: var(--bs-primary) !important;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    /* !!! 중요 수정 부분: 모바일 환경에서도 고정 높이를 제거하여 Flexbox가 작동하도록 함 !!! */
+    .action-recognition-card {
+        min-height: initial;
+    }
+
+    .card {
+        padding: 2rem 1rem;
+    }
+
+    .icon-container {
+        font-size: 3rem;
+    }
+
+    .number {
+        top: -60px;
+        right: -60px;
+        width: 120px;
+        height: 120px;
+        padding-left: 25px;
+        padding-bottom: 25px;
+    }
+
+    .number .text {
+        font-size: 20px;
+    }
+
+    .heading {
+        font-size: 1.4rem;
+    }
+
+    .tutorial-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .card:hover .number::after {
+        width: 600px;
+        height: 600px;
+    }
+}
+
+/* 애니메이션 - 부드러운 cubic-bezier 적용 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fade-in-up-delay-1 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.fade-in-up-delay-2 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+.fade-in-up-delay-3 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+/* 환자 목록 테이블 스타일 (Bootstrap에 맞게 추가) */
+.patient-table th {
+    background-color: var(--card-blue-1); /* 밝은 파란색 배경 */
+    color: white; /* 흰색 텍스트 */
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.patient-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb; /* 연한 회색 구분선 */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.patient-table tbody tr:hover {
+    background-color: #f3f4f6; /* 호버 시 아주 연한 회색 */
+}
+
+/* 모달 위치 및 오버레이 스타일 */
+.modal-dialog-centered {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* ===== 새로운 병원용 모달 스타일 v2 ===== */
+#patient-modal .modal-content-custom {
+    position: relative;
+    margin: 1.75rem auto;
+    width: 100%;
+    max-width: 560px;
+    border-radius: 16px;
+    overflow: hidden; /* 헤더의 둥근 모서리를 위해 */
+    border: 1px solid #dee2e6;
+}
+
+.modal-header-hospital {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: #6ec6f6; /* 프로젝트 주요 파란색 */
+    color: white;
+    padding: 1rem 1.5rem;
+    position: relative;
+}
+
+.modal-header-hospital .header-icon .iconify-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.modal-header-hospital .header-text h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.modal-header-hospital .header-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+#patient-modal #modal-close-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+#patient-modal #modal-close-btn svg {
+    stroke: white;
+}
+#patient-modal #modal-close-btn:hover {
+    background: rgba(0,0,0,0.3);
+}
+
+#patient-modal .modal-body-custom {
+    padding: 1.5rem 2rem 2rem 2rem;
+    background-color: #f8f9fa; /* 부드러운 배경색 */
+}
+
+#patient-modal .info-section h3 {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #05396b; /* 진한 파란색 */
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: .75rem;
+    margin-bottom: 1.25rem;
+}
+#patient-modal .info-section h3 .iconify-icon {
+    font-size: 1.5rem;
+    color: #57a8d8;
+}
+
+#patient-modal .info-group {
+    margin-bottom: 1rem;
+}
+
+#patient-modal .info-group label {
+    font-size: .8rem;
+    color: #6c757d; /* 차분한 회색 */
+    margin-bottom: .25rem;
+    display: block;
+    font-weight: 600;
+}
+
+#patient-modal .info-group .info-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #212529;
+    min-height: 1.5rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    background: #fff;
+    padding: .5rem .75rem;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+}
+
+/* 알러지 정보 특별 강조 */
+#patient-modal .alert-info-group .info-text {
+    background-color: #fff3cd; /* 연한 노란색 */
+    border-color: #ffeeba;
+    color: #856404; /* 어두운 노란색 텍스트 */
+    font-weight: 600;
+}
+#patient-modal .alert-info-group label {
+    color: #856404;
+}
+
+#patient-modal .info-group .form-control {
+    background: #fff;
+    border-color: #ced4da;
+}
+#patient-modal .info-group .form-control:focus {
+    border-color: #6ec6f6;
+    box-shadow: 0 0 0 0.2rem rgba(110, 198, 246, 0.25);
+}
+
+#patient-modal .modal-footer-custom {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 2rem;
+}
+
+/* 모달 푸터 버튼 텍스트 가운데 정렬 */
+#patient-modal .modal-footer-custom .btn {
+    justify-content: center;
+}
+
+/*소연추가*/
+/* 환자 추가 입력 라인 보조 스타일 */
+.add-field-wrapper .form-control {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .02);
+}
+
+.add-field-wrapper .input-group-text,
+.add-field-wrapper .form-control,
+.add-field-wrapper .btn {
+    border-width: 2px !important;
+    border-color: rgba(59, 130, 246, .25) !important;
+}
+
+.add-field-wrapper .form-control:focus {
+    border-color: #6ec6f6 !important;
+    box-shadow: 0 0 0 .2rem rgba(110, 198, 246, .15);
+}
+
+/* ===== 환자 추가 라인 정렬 & 가독성 향상 ===== */
+#add-patient-card {
+    border-radius: 20px;
+}
+
+/* 입력줄: 모두 같은 높이/라운드/테두리로 */
+.add-field-wrapper .input-group-text,
+.add-field-wrapper .form-control,
+.add-field-wrapper .btn {
+    height: 56px;
+    border-width: 2px !important;
+    border-color: rgba(59, 130, 246, .25) !important; /* 파란 계열 얇은 테두리 */
+    box-shadow: none !important;
+}
+
+.add-field-wrapper .input-group-text {
+    border-right: 0 !important;
+    background: #fff !important;
+}
+
+.add-field-wrapper .form-control {
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding-left: .25rem;
+    padding-right: .25rem;
+}
+
+/* 버튼 두 개가 붙을 때 경계선 겹치는 문제 제거 */
+.add-field-wrapper .btn {
+    border-left: 0 !important;
+}
+
+.add-field-wrapper .btn:first-of-type {
+    border-left: 2px solid rgba(59, 130, 246, .25) !important;
+}
+
+/* 둥근 모서리(왼쪽 아이콘 ~ 오른쪽 버튼까지 “필”처럼) */
+.add-field-wrapper .input-group-text {
+    border-top-left-radius: 28px !important;
+    border-bottom-left-radius: 28px !important;
+}
+
+.add-field-wrapper .btn:last-of-type {
+    border-top-right-radius: 28px !important;
+    border-bottom-right-radius: 28px !important;
+}
+
+/* 포커스 링: 은은한 파란 그림자 */
+.add-field-wrapper .form-control:focus {
+    border-color: #6ec6f6 !important;
+    box-shadow: 0 0 0 .22rem rgba(110, 198, 246, .18) !important;
+}
+
+/* 조회/지우기 버튼 톤 */
+#btn-check {
+    background: #6ec6f6;
+    color: #fff;
+    border-color: #6ec6f6 !important;
+}
+
+#btn-check:hover {
+    filter: brightness(.96);
+}
+
+#btn-clear {
+    background: #e8f4fd;
+    color: #1f2a2e;
+}
+
+/* 추가 버튼(우측 큰 버튼) Pill 스타일 & 높이 통일 */
+#add-patient-btn {
+    height: 56px;
+    border-radius: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    font-weight: 700;
+    box-shadow: 0 10px 24px rgba(16, 185, 129, .18);
+}
+
+#add-patient-btn:not(:disabled) {
+    background: #BBF7D0;
+    color: #063;
+    border: 0;
+}
+
+#add-patient-btn:disabled {
+    background: #e9ecef;
+    color: #8c8c8c;
+    box-shadow: none;
+}
+
+/* 조회 결과 카드 */
+#check-result {
+    border-color: rgba(59, 130, 246, .25) !important;
+    background: #fafcff;
+}
+
+/* ===== 테이블 가독성 ===== */
+.patient-table {
+    border-collapse: separate !important;
+    border-spacing: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+.patient-table thead th {
+    background: #6ec6f6 !important;
+    color: #fff !important;
+    font-weight: 700;
+    border: 0 !important;
+    padding: 14px 16px;
+}
+
+.patient-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.patient-table tbody tr:nth-child(even) {
+    background: #fbfdff;
+}
+
+.patient-table tbody tr:hover {
+    background: #f3f7fb;
+}
+
+/* 테이블 첫/끝 컬럼 라운드 처리 */
+.patient-table thead th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.patient-table thead th:last-child {
+    border-top-right-radius: 12px;
+}
+
+.patient-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+
+.patient-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
+}
+
+/* ===== 카드 자체 그림자 균일화 ===== */
+.bg-white.shadow-lg.rounded-3 {
+    border-radius: 20px !important;
+    box-shadow: 0 24px 60px rgba(2, 8, 20, .06), 0 8px 24px rgba(2, 8, 20, .06) !important;
+}
+
+/* ===== 작은 화면 최적화 ===== */
+@media (max-width: 992px) {
+    .add-field-wrapper .input-group-text,
+    .add-field-wrapper .form-control,
+    .add-field-wrapper .btn,
+    #add-patient-btn {
+        height: 52px;
+    }
+
+    #add-patient-btn {
+        margin-top: .25rem;
+    }
+}
+
+/* ===== CueCode 블루 테두리 스타일 ===== */
+.add-field-wrapper .form-control {
+    border: 2px solid #6ec6f6 !important; /* 항상 파란색 테두리 표시 */
+    border-left: 0 !important;
+    border-right: 0 !important;
+    background-color: #fff !important;
+    color: #111827 !important;
+    transition: all 0.2s ease-in-out;
+    box-shadow: none !important;
+}
+
+/* hover 시 조금 더 진한 파란색 */
+.add-field-wrapper .form-control:hover {
+    border-color: #43b0f3 !important;
+}
+
+/* focus 시 밝은 하이라이트 효과 */
+.add-field-wrapper .form-control:focus {
+    border-color: #43b0f3 !important;
+    box-shadow: 0 0 0 0.18rem rgba(110, 198, 246, 0.25) !important;
+}
+
+/* placeholder 색상 */
+.add-field-wrapper .form-control::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+/* 왼쪽 아이콘 */
+.add-field-wrapper .input-group-text {
+    border: 2px solid #6ec6f6 !important;
+    border-right: 0 !important;
+    background: #fff !important;
+    color: #6ec6f6 !important;
+}
+
+/* 오른쪽 버튼들 */
+.add-field-wrapper .btn {
+    border-top: 2px solid #6ec6f6 !important;
+    border-bottom: 2px solid #6ec6f6 !important;
+    border-left: 0 !important;
+    background-color: #e8f6fd !important;
+    color: #1e40af !important;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.add-field-wrapper .btn:hover {
+    background-color: #6ec6f6 !important;
+    color: #fff !important;
+}
+
+.add-field-wrapper .btn:last-of-type {
+    border-right: 2px solid #6ec6f6 !important;
+}
+
+/* 라운드 처리 */
+.add-field-wrapper .input-group-text {
+    border-top-left-radius: 28px !important;
+    border-bottom-left-radius: 28px !important;
+}
+
+.add-field-wrapper .btn:last-of-type {
+    border-top-right-radius: 28px !important;
+    border-bottom-right-radius: 28px !important;
+}
+
+/* 추가 버튼 */
+#add-patient-btn {
+    height: 56px;
+    border-radius: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    font-weight: 700;
+    background: #6ec6f6 !important;
+    color: #fff !important;
+    border: 2px solid #6ec6f6 !important;
+    box-shadow: 0 10px 24px rgba(110, 198, 246, .25);
+    transition: all .25s ease-in-out;
+}
+
+#add-patient-btn:hover:not(:disabled) {
+    background: #43b0f3 !important;
+    box-shadow: 0 12px 28px rgba(67, 176, 243, .25);
+}
+
+#add-patient-btn:disabled {
+    background: #dbeafe !important;
+    border-color: #dbeafe !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+
+/* 모달 안 버튼 기본 초기화 */
+#patient-modal .btn {
+    box-shadow: none !important;
+}
+
+/* 수정하기: 연한 회색 버튼 */
+#patient-modal #modal-edit-btn {
+    background-color: #f3f4f6 !important;  /* 연회색 */
+    color: #111827 !important;             /* 진회색 텍스트 */
+    border: 1px solid #e5e7eb !important;  /* 연한 경계 */
+}
+#patient-modal #modal-edit-btn:hover {
+    background-color: #e5e7eb !important;
+}
+
+/* 연결 해제: 레드 톤 버튼 */
+#patient-modal #modal-delete-btn {
+    background-color: #ef4444 !important;  /* 테일윈드의 red-500 톤 */
+    border-color: #ef4444 !important;
+    color: #fff !important;
+}
+#patient-modal #modal-delete-btn:hover {
+    filter: brightness(0.95);
+}
+
+/* 편집 모드 하단 버튼(저장/취소)도 명확하게 */
+#patient-modal #modal-save-btn {
+    background-color: #60a5fa !important;  /* 파랑(blue-400 느낌) */
+    border-color: #60a5fa !important;
+}
+#patient-modal #modal-save-btn:hover {
+    filter: brightness(0.95);
+}
+#patient-modal #modal-cancel-btn {
+    background-color: #e5e7eb !important;
+    color: #111827 !important;
+    border: 1px solid #e5e7eb !important;
+}
+#patient-modal #modal-cancel-btn:hover {
+    background-color: #d1d5db !important;
+}
+
+/* 혹시 모달 내부에 어두운 배경(검은 긴 바) 보이면 강제 화이트로 */
+#patient-modal .form-control {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}

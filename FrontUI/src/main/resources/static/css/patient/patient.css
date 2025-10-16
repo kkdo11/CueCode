@@ -1,0 +1,274 @@
+/* ---------------------------------------------------- */
+/* 사용자 정의 변수 (Bootstrap 변수 최소화 원칙 유지) */
+/* ---------------------------------------------------- */
+:root {
+    /* Bootstrap Primary Color: #6fc8f8 (파란색)을 활용 */
+
+    /* 튜토리얼 바 호버 색상 */
+    --bs-primary-hover: #5AB1E3;
+
+    /* 카드 디자인을 위한 세련된 파란색 계열 정의 (보라색 대신 통일성 강조) */
+    --card-blue-1: #6ec6f6; /* Primary Blue */
+    --card-blue-2: #0EA5E9; /* Cyan Blue */
+    --card-blue-3: #1E40AF; /* Dark Blue */
+
+    /* 카드 섀도우 및 경계 정의 */
+    --card-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05); /* 기본 섀도우 가볍게 */
+    --card-shadow-hover: 0 15px 30px rgba(59, 130, 246, 0.3); /* 깊고 넓은 호버 섀도우 */
+    --card-border-radius: 12px; /* 모던한 둥근 모서리 */
+}
+
+body {
+    padding-top: 80px;
+    background-color: #f9fafb; /* 배경색을 아주 밝은 회색으로 변경 */
+}
+
+/* ---------------------------------------------------- */
+/* 튜토리얼 바 개선 (모던한 투명/파란색 강조) */
+/* ---------------------------------------------------- */
+.tutorial-bar {
+    border-radius: var(--card-border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #1F2A2E; /* 텍스트 색상 변경 */
+    background-color: #ffffff;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2.5rem; /* 아래 간격 늘림 */
+    transition: all 0.3s ease;
+}
+
+.tutorial-bar:hover {
+    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px); /* 살짝 떠오르는 효과 */
+}
+
+.tutorial-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.tutorial-icon {
+    font-size: 2rem;
+    color: var(--card-blue-1); /* 강조색 사용 */
+}
+
+.tutorial-bar h5 {
+    font-size: 1.25rem;
+    margin-bottom: 0.2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.tutorial-bar p {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.btn-outline-light {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    background-color: var(--card-blue-1);
+    color: white !important;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--card-blue-3);
+    color: #222 !important; /* 텍스트를 어두운 톤으로 변경 */
+    transform: translateY(-1px);
+}
+
+
+/* ---------------------------------------------------- */
+/* 카드 디자인 */
+/* ---------------------------------------------------- */
+.card {
+    width: 100%;
+    background: #ffffff;
+    border-radius: var(--card-border-radius);
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    box-shadow: var(--card-shadow-light);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    /* min-height를 설정하지 않음. 부모 .row의 align-items-stretch를 활용 */
+    min-height: 280px;
+    z-index: 0;
+}
+
+/* !!! 중요 수정 부분: 왼쪽 카드의 고정 높이를 제거합니다. !!! */
+/* Flexbox의 align-items-stretch 속성이 오른쪽 카드의 높이 합과 동일하게 맞춰줄 것입니다. */
+.action-recognition-card {
+    min-height: initial; /* min-height를 제거하거나 초기화 */
+}
+
+/* 오른쪽 두 카드의 높이를 정확히 동일하게 맞춤 */
+.col-lg-6 .card {
+    min-height: 280px;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--card-shadow-hover);
+    background: linear-gradient(135deg, #04A9E2, #18C57B); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+}
+
+/* 콘텐츠 (아이콘, 텍스트)는 배경보다 위에 있어야 함 */
+.icon-container, .heading, .content {
+    position: relative;
+    z-index: 5;
+    transition: all 0.5s;
+}
+
+.icon-container {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    /* 아이콘에 그라데이션 효과 적용 */
+    background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    justify-content: center;
+}
+
+/* 카드별 아이콘 그라데이션 */
+.icon-container {
+    background: linear-gradient(135deg, var(--card-blue-1), #0EA5E9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.col-lg-6 div:nth-of-type(1) .card .icon-container {
+    background: linear-gradient(135deg, var(--card-blue-2), #22C55E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.col-lg-6 div:nth-of-type(2) .card .icon-container {
+    background: linear-gradient(135deg, var(--card-blue-3), #F97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.heading {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #111827;
+}
+
+.content {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* 텍스트가 hover 시 색상 변경 유지 */
+.card:hover .icon-container,
+.card:hover .heading,
+.card:hover .content {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* 카드 hover 시 배경색 변경 - 모든 카드에 동일한 그라데이션 적용 */
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--card-shadow-hover);
+    background: linear-gradient(135deg, #59aedc, #97cfb9); /* 모든 카드에 동일한 파란색 그라데이션 적용 */
+}
+
+
+/* ---------------------------------------------------- */
+/* 푸터 및 기타 요소 스타일 조정 */
+/* ---------------------------------------------------- */
+.footer {
+    background-color: var(--bs-dark) !important;
+}
+
+.fs-7.text-primary {
+    color: var(--bs-primary) !important;
+}
+
+.get-template .btn {
+    background-color: var(--bs-primary) !important;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    /* !!! 중요 수정 부분: 모바일 환경에서도 고정 높이를 제거하여 Flexbox가 작동하도록 함 !!! */
+    .action-recognition-card {
+        min-height: initial;
+    }
+    .card {
+        padding: 2rem 1rem;
+    }
+    .icon-container {
+        font-size: 3rem;
+    }
+    .number {
+        top: -60px;
+        right: -60px;
+        width: 120px;
+        height: 120px;
+        padding-left: 25px;
+        padding-bottom: 25px;
+    }
+    .number .text {
+        font-size: 20px;
+    }
+    .heading {
+        font-size: 1.4rem;
+    }
+    .tutorial-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .card:hover .number::after {
+        width: 600px;
+        height: 600px;
+    }
+}
+
+/* 애니메이션 - 부드러운 cubic-bezier 적용 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fade-in-up-delay-1 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.fade-in-up-delay-2 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+.fade-in-up-delay-3 {
+    animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}

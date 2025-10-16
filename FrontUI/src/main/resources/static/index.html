@@ -196,7 +196,7 @@
                                                 class="img-fluid animate-spin">관리자 대시보드</a>
                                     </li>
                                     <li class="header-item" id="myPageMenuItem">
-                                        <a href="mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
+                                        <a href="../user/mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
                                                 src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                                                 class="img-fluid animate-spin">마이 페이지</a>
                                     </li>
@@ -368,10 +368,10 @@
                                         menuBar.innerHTML = '';
                                         if (role === 'ROLE_USER') {
                                             menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='/patient/dashboard'>환자 대시보드</a></li>`;
-                                            menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='/mypage'>마이페이지</a></li>`;
+                                            menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='../user/mypage'>마이페이지</a></li>`;
                                         } else if (role === 'ROLE_USER_MANAGER') {
                                             menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='/admin/dashboard'>관리자 대시보드</a></li>`;
-                                            menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='/mypage'>마이페이지</a></li>`;
+                                            menuBar.innerHTML += `<li class='nav-item'><a class='nav-link dashboard-link' href='../user/mypage'>마이페이지</a></li>`;
                                         } else {
                                             // 비로그인 또는 역할 없음: 메뉴 미표시 또는 기본 메뉴
                                         }
@@ -452,11 +452,11 @@
                     <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용
                         <br>공모전 출품작입니다</h4>
                     <div class="d-flex flex-column gap-2">
-                        <a href="https://www.wrappixel.com/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
+                        <a href="https://contest.k-paas.org/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
                             <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>
                             https://contest.k-paas.org/
                         </a>
-                        <a href="https://maps.app.goo.gl/hpDp81fqzGt5y4bC8" target="_blank"
+                        <a href="https://buly.kr/Awg81rV" target="_blank"
                            class="link-hover hstack gap-3 text-white fs-5">
                             <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>
                             우징산 산신령들
@@ -659,7 +659,7 @@
 
             // 마이페이지는 로그인 시 항상 보이도록 설정
             if (myPageMenuItem && myPageMenuLinkAnchor) {
-                myPageMenuLinkAnchor.href = 'mypage.html';
+                myPageMenuLinkAnchor.href = '../user/mypage.html';
                 myPageMenuItem.style.display = 'list-item'; // <li> 표시
             }
 
