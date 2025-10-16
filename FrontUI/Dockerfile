@@ -1,7 +1,11 @@
 # STAGE 1: Build the application using Gradle
 FROM gradle:8.4-jdk17-alpine AS build
 WORKDIR /app
-COPY . .
+COPY FrontUI/gradlew .
+COPY FrontUI/gradle ./gradle
+COPY FrontUI/build.gradle .
+COPY FrontUI/settings.gradle .
+COPY FrontUI/src ./src
 RUN chmod +x ./gradlew && ./gradlew build -x test
 # Find the executable jar and rename it to a predictable name
 RUN find /app/build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} /app/build/libs/app.jar \;
