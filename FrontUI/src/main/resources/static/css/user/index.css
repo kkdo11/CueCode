@@ -1,0 +1,127 @@
+.services-tab {
+    .nav-tabs {
+        .nav-item {
+            .nav-link {
+                color: #423c3c;
+
+                &.active {
+                    background-color: transparent;
+                    color: #6FC8F8;
+                }
+            }
+        }
+    }
+}
+
+.text-primary {
+    --bs-text-opacity: 1;
+    color: rgb(111, 200, 248) !important;
+}
+
+.bg-primary {
+    --bs-bg-opacity: 1;
+    background-color: rgba(var(--bs-primary-rgb), var(--bs-bg-opacity)) !important;
+}
+
+/* 대시보드 링크 호버 효과 */
+.dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 2rem;
+    background: #6FC8F8;
+    min-width: 120px;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-decoration: none;
+    transition: background 0.3s, box-shadow 0.3s;
+    overflow: hidden;
+}
+
+.dashboard-link:hover {
+    background: #5AB1E3;
+    box-shadow: 0 5px 15px rgba(111, 200, 248, 0.4);
+}
+
+.dashboard-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.dashboard-link:hover .dashboard-text {
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.dashboard-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(111, 200, 248, 0.15);
+    transition: background 0.3s, transform 0.3s;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.dashboard-link:hover .dashboard-icon {
+    background: #ffeb3b;
+    transform: translateX(5px);
+}
+
+.dashboard-icon iconify-icon {
+    font-size: 1.3rem;
+    color: #222;
+    width: 1.3rem;
+    height: 1.3rem;
+    display: block;
+    margin: 0 auto;
+}
+
+.dashboard-link:hover .dashboard-icon iconify-icon {
+    color: #ff6b00;
+    transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+    .dashboard-link {
+        padding: 0.4rem 0.8rem;
+        min-width: 90px;
+    }
+
+    .dashboard-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+    }
+
+    .dashboard-icon iconify-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-link {
+        padding: 0.3rem 0.5rem;
+        min-width: 70px;
+    }
+
+    .dashboard-icon {
+        width: 1.2rem;
+        height: 1.2rem;
+    }
+
+    .dashboard-icon iconify-icon {
+        font-size: 0.8rem;
+        width: 0.8rem;
+        height: 0.8rem;
+    }
+}
