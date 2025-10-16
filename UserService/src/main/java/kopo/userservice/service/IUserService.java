@@ -28,4 +28,20 @@ public interface IUserService {
      * 로그아웃 시 Access/Refresh Token 블랙리스트 등록
      */
     void invalidateRefreshToken(HttpServletRequest request);
+    /**
+     * 비밀번호 본인 확인 (마이페이지 등)
+     */
+    boolean verifyPassword(String userId, String password);
+    // 사용자 정보 조회
+    kopo.userservice.dto.UserInfoDTO getUserInfo(String userId);
+    // 이름 변경
+    boolean updateName(String userId, String newName);
+    // 이메일 변경
+    boolean updateEmail(String userId, String newEmail);
+    // 아이디 변경
+    boolean updateId(String userId, String newId);
+    // 비밀번호 변경
+    boolean updatePassword(String userId, String currentPassword, String newPassword);
+    // 회원 탈퇴
+    kopo.userservice.dto.MsgDTO withdrawalUser(String userId);
 }

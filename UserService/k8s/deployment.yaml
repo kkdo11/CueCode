@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-service-deployment
+  name: user-service
 spec:
   replicas: 1
   selector:
@@ -13,38 +13,44 @@ spec:
         app: user-service
     spec:
       containers:
-      - name: user-service-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
-        env:
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: prod
-                  - name: JWT_SECRET # user-prod.yml의 ${JWT_SECRET}에 주입될 값
-                    valueFrom:
-                      secretKeyRef:
-                        name: jwt-secret      # 시크릿 이름
-                        key: JWT_SECRET_KEY   # 시크릿 안의 키 이름        ports:
-        ports:
-        - containerPort: 11000
-        envFrom:
-        - secretRef:
-            # UserService의 데이터베이스 접속 정보를 담은 Secret
-            name: user-db-secret
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "500m"
-            memory: "1Gi"
-        readinessProbe:
-          httpGet:
-            path: /actuator/health/readiness
-            port: 11000
-          initialDelaySeconds: 20
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /actuator/health/liveness
-            port: 11000
-          initialDelaySeconds: 40
-          periodSeconds: 15
+        - name: user-service-app
+          # [개선] :latest 대신 특정 버전 태그 사용 (예: git-commit-hash)
+          image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
+          imagePullPolicy: Always
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: JWT_SECRET # user-prod.yml의 ${JWT_SECRET}에 주입될 값
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret      # 시크릿 이름
+                  key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
+          # [수정] 올바른 위치와 들여쓰기 적용
+          ports:
+            - containerPort: 11000
+            - containerPort: 11001 # 관리 포트 추가
+          envFrom:
+            - secretRef:
+                # UserService의 데이터베이스 접속 정보를 담은 Secret
+                name: user-db-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 11001
+            # [개선] Spring Boot 구동 시간을 고려하여 대기 시간 증가
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 11001
+            # [개선] ReadinessProbe보다 길게 설정하여 안정성 확보
+            initialDelaySeconds: 90
+            periodSeconds: 15

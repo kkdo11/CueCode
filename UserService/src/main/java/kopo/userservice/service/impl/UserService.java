@@ -4,6 +4,7 @@ import kopo.userservice.auth.JwtTokenProvider;
 import kopo.userservice.dto.PatientDTO;
 import kopo.userservice.dto.ManagerDTO;
 import kopo.userservice.dto.MailDTO;
+import kopo.userservice.dto.MsgDTO;
 import kopo.userservice.repository.PatientRepository;
 import kopo.userservice.repository.ManagerRepository;
 import kopo.userservice.repository.DetectionAreaRepository;
@@ -118,17 +119,26 @@ public class UserService implements IUserService {
                 .build();
         patientRepository.save(entity);
         log.info("insertPatient 저장 결과: 성공");
-        // detection_area 저장 로직 추가
+        // detection_area 저장 로직 개선
         boolean hand = false, face = false, both = false;
         if ("hand".equalsIgnoreCase(detectionAreaType)) hand = true;
         else if ("face".equalsIgnoreCase(detectionAreaType)) face = true;
         else if ("both".equalsIgnoreCase(detectionAreaType)) both = true;
-        DetectionAreaDocument detectionArea = DetectionAreaDocument.builder()
+        Optional<DetectionAreaDocument> existing = detectionAreaRepository.findByPatientId(id);
+        DetectionAreaDocument detectionArea;
+        if (existing.isPresent()) {
+            detectionArea = existing.get();
+            detectionArea.setHand(hand);
+            detectionArea.setFace(face);
+            detectionArea.setBoth(both);
+        } else {
+            detectionArea = DetectionAreaDocument.builder()
                 .patientId(id)
                 .hand(hand)
                 .face(face)
                 .both(both)
                 .build();
+        }
         detectionAreaRepository.save(detectionArea);
         log.info("detection_area 저장 결과: patientId={}, hand={}, face={}, both={}", id, hand, face, both);
         return 1;
@@ -279,16 +289,219 @@ public class UserService implements IUserService {
         }
     }
 
-    /**
-     * JWT에서 만료시간(초)을 추출하는 유틸 함수
-     */
-    private long getExpiration(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        long expMillis = claims.getExpiration().getTime();
-        long nowMillis = System.currentTimeMillis();
-        return (expMillis - nowMillis) / 1000;
+
+    @Override
+    public boolean verifyPassword(String userId, String password) {
+        // 환자 먼저 조회
+        PatientDocument patient = null;
+        try {
+            patient = patientRepository.findById(userId).orElse(null);
+        } catch (Exception e) {
+            log.warn("verifyPassword: 환자 조회 중 예외", e);
+        }
+        if (patient != null && patient.getPw() != null) {
+            if (passwordEncoder.matches(password, patient.getPw())) {
+                return true;
+            }
+        }
+        // 관리자 조회
+        ManagerDocument manager = null;
+        try {
+            manager = managerRepository.findById(userId).orElse(null);
+        } catch (Exception e) {
+            log.warn("verifyPassword: 관리자 조회 중 예외", e);
+        }
+        if (manager != null && manager.getPw() != null) {
+            if (passwordEncoder.matches(password, manager.getPw())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public kopo.userservice.dto.UserInfoDTO getUserInfo(String userId) {
+        log.info("getUserInfo 호출: userId={}", userId);
+        if (userId == null || userId.isBlank()) {
+            log.warn("getUserInfo: userId가 null 또는 빈 문자열입니다.");
+            return null;
+        }
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            String decryptedEmail = null;
+            try {
+                decryptedEmail = kopo.userservice.util.EncryptUtil.decAES128CBC(patient.getEmail());
+            } catch (Exception e) {
+                log.error("이메일 복호화 실패", e);
+                decryptedEmail = patient.getEmail();
+            }
+            return kopo.userservice.dto.UserInfoDTO.builder()
+                    .id(patient.getId())
+                    .email(decryptedEmail)
+                    .name(patient.getName())
+                    .userType("patient")
+                    .build();
+        }
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            String decryptedEmail = null;
+            try {
+                decryptedEmail = kopo.userservice.util.EncryptUtil.decAES128CBC(manager.getEmail());
+            } catch (Exception e) {
+                log.error("이메일 복호화 실패", e);
+                decryptedEmail = manager.getEmail();
+            }
+            return kopo.userservice.dto.UserInfoDTO.builder()
+                    .id(manager.getId())
+                    .email(decryptedEmail)
+                    .name(manager.getName())
+                    .userType("manager")
+                    .build();
+        }
+        log.info("getUserInfo: userId={}에 해당하는 사용자 없음", userId);
+        return null;
+    }
+
+    @Override
+    public boolean updateName(String userId, String newName) {
+        if (userId == null || userId.isBlank() || newName == null || newName.isBlank()) {
+            log.warn("updateName: userId 또는 newName이 비어 있습니다.");
+            return false;
+        }
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            patient.setName(newName);
+            patientRepository.save(patient);
+            log.info("updateName: 환자 이름 변경 성공 userId={}, newName={}", userId, newName);
+            return true;
+        }
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            manager.setName(newName);
+            managerRepository.save(manager);
+            log.info("updateName: 관리자 이름 변경 성공 userId={}, newName={}", userId, newName);
+            return true;
+        }
+        log.warn("updateName: userId={}에 해당하는 사용자 없음", userId);
+        return false;
+    }
+
+    @Override
+    public boolean updateEmail(String userId, String newEmail) {
+        if (userId == null || userId.isBlank() || newEmail == null || newEmail.isBlank()) {
+            log.warn("updateEmail: userId 또는 newEmail이 비어 있습니다.");
+            return false;
+        }
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            patient.setEmail(newEmail);
+            patientRepository.save(patient);
+            log.info("updateEmail: 환자 이메일 변경 성공 userId={}, newEmail={}", userId, newEmail);
+            return true;
+        }
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            manager.setEmail(newEmail);
+            managerRepository.save(manager);
+            log.info("updateEmail: 관리자 이메일 변경 성공 userId={}, newEmail={}", userId, newEmail);
+            return true;
+        }
+        log.warn("updateEmail: userId={}에 해당하는 사용자 없음", userId);
+        return false;
+    }
+
+    @Override
+    public boolean updateId(String userId, String newId) {
+        if (userId == null || userId.isBlank() || newId == null || newId.isBlank()) {
+            log.warn("updateId: userId 또는 newId가 비어 있습니다.");
+            return false;
+        }
+        // 이미 newId가 존재하는지 확인
+        if (patientRepository.findById(newId).isPresent() || managerRepository.findById(newId).isPresent()) {
+            log.warn("updateId: newId={} 이미 존재함", newId);
+            return false;
+        }
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            patientRepository.deleteById(userId);
+            patient.setId(newId);
+            patientRepository.save(patient);
+            log.info("updateId: 환자 아이디 변경 성공 userId={}, newId={}", userId, newId);
+            return true;
+        }
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            managerRepository.deleteById(userId);
+            manager.setId(newId);
+            managerRepository.save(manager);
+            log.info("updateId: 관리자 아이디 변경 성공 userId={}, newId={}", userId, newId);
+            return true;
+        }
+        log.warn("updateId: userId={}에 해당하는 사용자 없음", userId);
+        return false;
+    }
+
+    @Override
+    public boolean updatePassword(String userId, String currentPassword, String newPassword) {
+        if (userId == null || userId.isBlank() || currentPassword == null || currentPassword.isBlank() || newPassword == null || newPassword.isBlank()) {
+            log.warn("updatePassword: 파라미터가 비어 있습니다.");
+            return false;
+        }
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            if (patient.getPw() != null && passwordEncoder.matches(currentPassword, patient.getPw())) {
+                patient.setPw(passwordEncoder.encode(newPassword));
+                patientRepository.save(patient);
+                log.info("updatePassword: 환자 비밀번호 변경 성공 userId={}", userId);
+                return true;
+            } else {
+                log.warn("updatePassword: 환자 현재 비밀번호 불일치 userId={}", userId);
+                return false;
+            }
+        }
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            if (manager.getPw() != null && passwordEncoder.matches(currentPassword, manager.getPw())) {
+                manager.setPw(passwordEncoder.encode(newPassword));
+                managerRepository.save(manager);
+                log.info("updatePassword: 관리자 비밀번호 변경 성공 userId={}", userId);
+                return true;
+            } else {
+                log.warn("updatePassword: 관리자 현재 비밀번호 불일치 userId={}", userId);
+                return false;
+            }
+        }
+        log.warn("updatePassword: userId={}에 해당하는 사용자 없음", userId);
+        return false;
+    }
+
+    public MsgDTO withdrawalUser(String userId) {
+        log.info("[UserService] 회원탈퇴 요청: {}", userId);
+        try {
+            Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+            if (patientOpt.isPresent()) {
+                patientRepository.deleteById(userId);
+                return MsgDTO.builder().result(1).msg("환자 회원 탈퇴 성공").build();
+            }
+            Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+            if (managerOpt.isPresent()) {
+                managerRepository.deleteById(userId);
+                return MsgDTO.builder().result(1).msg("관리자 회원 탈퇴 성공").build();
+            }
+            return MsgDTO.builder().result(0).msg("해당 회원을 찾을 수 없습니다.").build();
+        } catch (Exception e) {
+            log.error("회원탈퇴 중 오류", e);
+            return MsgDTO.builder().result(0).msg("회원탈퇴 처리 중 오류 발생").build();
+        }
     }
 }
