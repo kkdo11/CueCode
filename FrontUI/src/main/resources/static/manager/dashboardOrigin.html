@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CueCode | 관리자 대시보드</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .patient-table th, .patient-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .patient-table th {
+            font-weight: 600;
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-100">
+<header class="bg-indigo-600 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+        <h1 class="text-2xl font-bold">환자 관리 대시보드</h1>
+        <nav>
+            <a href="#" id="logout-btn" class="px-4 py-2 rounded-lg hover:bg-indigo-700 transition duration-200">로그아웃</a>
+        </nav>
+    </div>
+</header>
+
+<main class="flex-grow container mx-auto p-4 sm:p-8">
+    <div class="bg-white shadow-xl rounded-2xl p-6 sm:p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">환자 추가</h2>
+        <div class="flex gap-2 mb-2">
+            <input type="text" id="add-patient-id" class="border rounded px-3 py-2 w-48" placeholder="환자 ID 입력">
+            <button id="add-patient-btn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">추가</button>
+        </div>
+        <div id="add-patient-result" class="text-sm text-red-600"></div>
+    </div>
+
+    <div class="bg-white shadow-xl rounded-2xl p-6 sm:p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">환자 목록</h2>
+        <div id="patient-list" class="overflow-x-auto">
+            <table class="patient-table w-full border-collapse">
+                <thead>
+                <tr>
+                    <th class="rounded-tl-lg">환자 ID</th>
+                    <th class="rounded-tr-lg">이름</th>
+                </tr>
+                </thead>
+                <tbody id="patient-list-tbody">
+                <!-- 환자 목록이 동적으로 여기에 로드됩니다. -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 환자 상세정보 모달 -->
+    <div id="patient-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto p-0 relative">
+            <!-- 모달 헤더 -->
+            <header class="flex items-center px-4 py-3 border-b border-gray-200">
+                <button id="modal-close-btn" class="mr-2">
+                    <svg width="24" height="24" fill="none" stroke="#333" stroke-width="2" viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg>
+                </button>
+                <h1 class="flex-1 text-center text-lg font-bold text-gray-900">환자 정보</h1>
+                <div style="width:24px"></div>
+            </header>
+            <main class="px-6 py-5">
+                <div class="space-y-5">
+
+                    <!-- 기본 정보 -->
+                    <div class="flex space-x-8">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-500">Patient ID</div>
+                            <div id="modal-patient-id" class="mt-1 text-base font-semibold text-gray-900"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-500">이름</div>
+                            <div id="modal-patient-name-wrapper" class="mt-1 text-base font-semibold text-gray-900">
+                                <span id="modal-patient-name"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm font-medium text-gray-500">이메일</div>
+                        <div id="modal-patient-email" class="mt-1 text-base text-gray-900"></div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm font-medium text-gray-500">담당 매니저 ID</div>
+                        <div id="modal-patient-managers" class="mt-1 text-base text-gray-900"></div>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <hr class="my-3"/>
+
+                    <!-- 의료 정보 -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">진료 이력</div>
+                            <span id="modal-patient-history" class="mt-1 block text-base text-gray-900"></span>
+                            <textarea id="modal-patient-history-input" class="hidden border rounded px-2 py-1 mt-1 w-full" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">복용약 (콤마로 구분)</div>
+                            <span id="modal-patient-medications" class="mt-1 block text-base text-gray-900"></span>
+                            <input id="modal-patient-medications-input" type="text" class="hidden border rounded px-2 py-1 mt-1 w-full" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">알레르기 (콤마로 구분)</div>
+                            <span id="modal-patient-allergies" class="mt-1 block text-base text-gray-900"></span>
+                            <input id="modal-patient-allergies-input" type="text" class="hidden border rounded px-2 py-1 mt-1 w-full" />
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+            <footer class="px-4 pb-6" id="modal-footer-btns">
+                <button id="modal-edit-btn" class="w-full bg-gray-100 rounded-xl py-3 text-center font-semibold text-gray-900">수정하기</button>
+                <button id="modal-delete-btn" class="w-full bg-red-500 text-white rounded-xl py-3 text-center font-semibold mt-2">연결 해제</button>
+            </footer>
+            <footer class="px-4 pb-6 hidden" id="modal-footer-edit">
+                <button id="modal-save-btn" class="w-1/2 bg-indigo-600 text-white rounded-xl py-3 text-center font-semibold mr-2">저장</button>
+                <button id="modal-cancel-btn" class="w-1/2 bg-gray-200 text-gray-700 rounded-xl py-3 text-base font-semibold">취소</button>
+            </footer>
+        </div>
+    </div>
+</main>
+
+<footer class="bg-gray-800 text-white text-center p-4 mt-8">
+    <p>&copy; 2025 K-PaaS 프로젝트. 모든 권리 보유.</p>
+</footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const patientListBody = document.getElementById('patient-list-tbody');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- 사용자 역할 정보 가져오기 ---
+        window.userRole = null;
+        async function fetchUserRole() {
+            try {
+                const res = await fetch('http://localhost:13000/user/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                console.log('/user/me API 응답:', data);
+                // 실제 role 값이 없으므로 임시로 보호자 권한 부여
+                window.userRole = 'ROLE_USER_MANAGER';
+            } catch (e) {
+                window.userRole = 'ROLE_USER_MANAGER';
+            }
+        }
+        await fetchUserRole();
+        console.log('window.userRole:', window.userRole); // 실제 역할 값 확인
+
+        // --- 로그아웃 기능 ---
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch('http://localhost:13000/user/v1/logout', {
+                    method: 'POST'
+                });
+                if (res.ok) {
+                    alert('로그아웃되었습니다.');
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('로그아웃 실패:', error);
+                alert('로그아웃 중 오류가 발생했습니다.');
+            }
+        });
+
+        async function getManagerIdFromAPI() {
+            try {
+                const res = await fetch('http://localhost:13000/user/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.managerId;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // --- 환자 목록 불러오기 (API 호출) ---
+        const fetchPatients = async () => {
+            try {
+                const managerId = await getManagerIdFromAPI();
+                console.log('대시보드에서 API로 추출한 managerId:', managerId);
+                if (!managerId) {
+                    patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-red-600">관리자 정보 없음</td></tr>`;
+                    return;
+                }
+                const res = await fetch(`http://localhost:13000/patient/list?managerId=${managerId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (res.status === 403) {
+                    alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('API 호출에 실패했습니다.');
+                }
+
+                const patientData = await res.json();
+                console.log('API에서 받아온 patientData:', patientData);
+
+                // 기존 목록 초기화
+                patientListBody.innerHTML = '';
+
+                // patientData가 배열이 아니거나 비어 있으면 안내 메시지 표시
+                if (!Array.isArray(patientData) || patientData.length === 0) {
+                    patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-gray-500">표시할 환자가 없습니다.</td></tr>`;
+                    return;
+                }
+
+                // 받은 데이터를 화면에 렌더링
+                patientData.forEach(patient => {
+                    if (!patient.id) return; // id가 없으면 건너뜀
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                            <td class="whitespace-nowrap">${patient.id}</td>
+                            <td class="whitespace-nowrap">${patient.name}</td>
+                        `;
+                    // 환자 row 클릭 이벤트 추가
+                    row.addEventListener('click', async () => {
+                        if (!patient.id) {
+                            alert('환자 정보에 ID가 없습니다.');
+                            return;
+                        }
+
+                        try {
+                            const res = await fetch(`http://localhost:13000/patient/detail?id=${patient.id}`, {
+                                method: 'GET',
+                                credentials: 'include'
+                            });
+
+                            if (res.ok) {
+                                const data = await res.json();
+                                openPatientModal(data);
+                            } else {
+                                console.error('환자 상세 정보 로딩 실패:', res.status);
+                                alert(`환자 상세 정보를 불러오는 데 실패했습니다. (HTTP 상태: ${res.status})`);
+                            }
+                        } catch (error) {
+                            console.error('환자 상세 정보 요청 중 오류 발생:', error);
+                            alert('환자 상세 정보를 요청하는 중 오류가 발생했습니다.');
+                        }
+                    });
+                    patientListBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("환자 목록 로딩 실패:", error);
+                patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-gray-500">환자 목록을 불러오지 못했습니다.</td></tr>`;
+            }
+        };
+
+        // --- 환자 추가 기능 ---
+        const addPatientBtn = document.getElementById('add-patient-btn');
+        const addPatientIdInput = document.getElementById('add-patient-id');
+        const addPatientResult = document.getElementById('add-patient-result');
+
+        addPatientBtn.addEventListener('click', async () => {
+            const patientId = addPatientIdInput.value.trim();
+            if (!patientId) {
+                addPatientResult.textContent = '환자 ID를 입력하세요.';
+                return;
+            }
+            addPatientResult.textContent = '';
+            try {
+                const res = await fetch('http://localhost:13000/manager/addPatient', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ patientId })
+                });
+                if (res.ok) {
+                    addPatientResult.textContent = '환자 추가 성공!';
+                    addPatientResult.className = 'text-sm text-green-600';
+                    addPatientIdInput.value = '';
+                    fetchPatients(); // 목록 갱신
+                } else {
+                    const data = await res.json();
+                    addPatientResult.textContent = data.msg || '환자 추가 실패';
+                    addPatientResult.className = 'text-sm text-red-600';
+                }
+            } catch (err) {
+                addPatientResult.textContent = '서버 오류: 환자 추가 실패';
+                addPatientResult.className = 'text-sm text-red-600';
+            }
+        });
+
+        // 모달 탭 전환
+        function showModalTab(tab) {
+            document.querySelectorAll('#modal-tab-content .tab-pane').forEach(el => el.classList.add('hidden'));
+            const tabEl = document.getElementById(tab);
+            if (tabEl) {
+                tabEl.classList.remove('hidden');
+            } else {
+                console.warn('탭 요소를 찾을 수 없습니다:', tab);
+            }
+        }
+        window.showModalTab = showModalTab;
+        // 모달 열기/닫기
+        let isEditMode = false;
+        let currentPatient = null;
+
+        function setEditMode(on) {
+            isEditMode = on;
+            // 이름 필드는 더 이상 수정할 수 없습니다.
+            // document.getElementById('modal-patient-name').style.display = on ? 'none' : '';
+            // document.getElementById('modal-patient-name-input').classList.toggle('hidden', !on);
+            document.getElementById('modal-patient-history').style.display = on ? 'none' : '';
+            document.getElementById('modal-patient-history-input').classList.toggle('hidden', !on);
+            document.getElementById('modal-patient-medications').style.display = on ? 'none' : '';
+            document.getElementById('modal-patient-medications-input').classList.toggle('hidden', !on);
+            document.getElementById('modal-patient-allergies').style.display = on ? 'none' : '';
+            document.getElementById('modal-patient-allergies-input').classList.toggle('hidden', !on);
+            document.getElementById('modal-footer-btns').classList.toggle('hidden', on);
+            document.getElementById('modal-footer-edit').classList.toggle('hidden', !on);
+            if (on) {
+                // document.getElementById('modal-patient-name-input').value = document.getElementById('modal-patient-name').textContent;
+                document.getElementById('modal-patient-history-input').value = document.getElementById('modal-patient-history').textContent;
+                document.getElementById('modal-patient-medications-input').value = document.getElementById('modal-patient-medications').textContent;
+                document.getElementById('modal-patient-allergies-input').value = document.getElementById('modal-patient-allergies').textContent;
+                document.getElementById('modal-patient-history-input').focus(); // 이름 다음 필드에 포커스
+            }
+        }
+
+        function openPatientModal(patient) {
+            currentPatient = patient;
+            document.getElementById('modal-patient-id').textContent = patient.id || '정보 없음';
+            document.getElementById('modal-patient-name').textContent = patient.name || '';
+            document.getElementById('modal-patient-history').textContent = patient.medicalHistory || '';
+            document.getElementById('modal-patient-medications').textContent = (patient.medications || []).join(', ');
+            document.getElementById('modal-patient-allergies').textContent = (patient.allergies || []).join(', ');
+            document.getElementById('modal-patient-managers').textContent = (patient.managerIds || []).join(', '); // 담당 매니저 ID 추가
+            document.getElementById('modal-patient-email').textContent = patient.email || '정보 없음'; // 이메일 추가
+            setEditMode(false);
+            showModalTab('modal-history');
+            document.getElementById('patient-modal').classList.remove('hidden');
+            // 보호자(ROLE_USER_MANAGER, ROLE_MANAGER)만 수정 버튼 활성화
+            const editBtn = document.getElementById('modal-edit-btn');
+            const isManager = window.userRole === 'ROLE_USER_MANAGER' || window.userRole === 'ROLE_MANAGER';
+            editBtn.disabled = !isManager;
+            if (!isManager) {
+                editBtn.textContent = '수정 권한 없음';
+                editBtn.classList.add('bg-gray-200', 'text-gray-400');
+            } else {
+                editBtn.textContent = '수정하기';
+                editBtn.classList.remove('bg-gray-200', 'text-gray-400');
+            }
+        }
+        document.getElementById('modal-close-btn').onclick = function() {
+            document.getElementById('patient-modal').classList.add('hidden');
+        };
+        document.getElementById('modal-edit-btn').addEventListener('click', function() {
+            setEditMode(true);
+        });
+        document.getElementById('modal-cancel-btn').addEventListener('click', function() {
+            setEditMode(false);
+        });
+        document.getElementById('modal-save-btn').addEventListener('click', async function() {
+            const newHistory = document.getElementById('modal-patient-history-input').value.trim();
+            const newMedications = document.getElementById('modal-patient-medications-input').value.split(',').map(s => s.trim()).filter(Boolean);
+            const newAllergies = document.getElementById('modal-patient-allergies-input').value.split(',').map(s => s.trim()).filter(Boolean);
+
+            try {
+                const res = await fetch(`http://localhost:13000/patient/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        id: currentPatient.id,
+                        medicalHistory: newHistory,
+                        medications: newMedications,
+                        allergies: newAllergies
+                    })
+                });
+                if (res.ok) {
+                    document.getElementById('modal-patient-history').textContent = newHistory;
+                    document.getElementById('modal-patient-medications').textContent = newMedications.join(', ');
+                    document.getElementById('modal-patient-allergies').textContent = newAllergies.join(', ');
+                    setEditMode(false);
+                    fetchPatients();
+                    alert('수정이 완료되었습니다.');
+                } else {
+                    alert('수정 실패');
+                }
+            } catch (e) {
+                alert('서버 오류로 수정 실패');
+            }
+        });
+
+        document.getElementById('modal-delete-btn').addEventListener('click', async function() {
+            if (!currentPatient || !currentPatient.id) {
+                alert('환자 정보가 올바르지 않습니다.');
+                return;
+            }
+
+            if (confirm(`정말로 환자(${currentPatient.name})와의 연결을 해제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+                try {
+                    const res = await fetch(`http://localhost:13000/patient/unlink-manager`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ patientId: currentPatient.id })
+                        });
+
+                    if (res.ok) {
+                        alert('환자와의 연결이 성공적으로 해제되었습니다.');
+                        document.getElementById('patient-modal').classList.add('hidden');
+                        fetchPatients(); // 환자 목록 새로고침
+                    } else {
+                        const errorData = await res.json();
+                        alert(`연결 해제 실패: ${errorData.message || '알 수 없는 오류'}`);
+                    }
+                } catch (e) {
+                    console.error('연결 해제 API 호출 오류:', e);
+                    alert('서버 오류로 연결 해제에 실패했습니다.');
+                }
+            }
+        });
+
+        fetchPatients();
+    });
+</script>
+</body>
+</html>
