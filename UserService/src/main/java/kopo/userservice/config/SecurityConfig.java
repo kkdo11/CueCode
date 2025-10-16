@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -15,19 +16,130 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.core.authority.SimpleGrantedAuthority; // SimpleGrantedAuthority 명시적 임포트
+
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
+
+@Configuration
+@EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    @Value("${jwt.secret.key}")
+    private String secretKeyBase64;
+    @Value("${jwt.token.access.name}")
+    private String accessTokenName;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
+    }
+
+    // --- [추가] 1. 공개 경로용 보안 필터 체인 ---
+    // 가장 먼저 실행되도록 @Order(1) 설정
+    @Bean
+    @Order(1)
+    public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
+        http
+                // 이 필터 체인이 처리할 경로를 명시적으로 지정
+                .securityMatcher(
+                        "/", "/index.html", "/css/**", "/js/**", "/images/**",
+                        "/auth/login", "/auth/refresh", "/health", "/login",
+                        "/swagger-ui/**", "/v3/api-docs/**",
+                        "/actuator/**" // actuator 경로 포함
+                )
+                // 위 경로들에 대해서는 모든 보안 기능을 비활성화하고 모두 허용
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(fl -> fl.disable())
+                .httpBasic(b -> b.disable());
+
+        return http.build();
+    }
+
+    // --- [수정] 2. JWT 인증이 필요한 API용 보안 필터 체인 ---
+    // 공개 경로용 필터 다음에 실행되도록 @Order(2) 설정
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+        http
+                // 이 필터 체인은 위에서 지정한 공개 경로를 제외한 모든 경로를 처리
+                .securityMatcher("/**")
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // 위에서 이미 처리된 공개 경로는 여기서 다시 설정할 필요 없음
+                        // 모든 요청은 인증을 요구하도록 간단하게 설정
+                        .anyRequest().authenticated()
+                )
+                // JWT 검증 로직은 이 필터 체인에만 적용
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .bearerTokenResolver(cookieFirstBearerTokenResolver())
+                        .jwt(jwt -> jwt.decoder(jwtDecoder()))
+                );
+
+        return http.build();
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        byte[] secret = Base64.getDecoder().decode(secretKeyBase64);
+        SecretKey key = new SecretKeySpec(secret, "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key).build();
+    }
+
+    @Bean
+    public BearerTokenResolver cookieFirstBearerTokenResolver() {
+        return request -> {
+            var cookies = request.getCookies();
+            if (cookies != null) {
+                for (var c : cookies) {
+                    if (accessTokenName.equals(c.getName())) {
+                        var v = c.getValue();
+                        if (v != null && !v.isBlank()) return v;
+                    }
+                }
+            }
+            return new DefaultBearerTokenResolver().resolve(request);
+        };
+    }
+}/*
+package kopo.userservice.config;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // HttpMethod 임포트
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.web.SecurityFilterChain;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
@@ -57,8 +169,6 @@ public class SecurityConfig {
                 .httpBasic(b -> b.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 핵심 수정: /user/verify-password에 접근 권한 부여
-                        .requestMatchers(HttpMethod.POST, "/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER", "ROLE_ADMIN")
                         .requestMatchers(
                                 "/", "/index.html",
                                 "/css/**", "/js/**", "/images/**",
@@ -81,9 +191,7 @@ public class SecurityConfig {
                 // ✅ 커스텀 필터 없이 JWT 검증
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(cookieFirstBearerTokenResolver()) // 쿠키 우선
-                        .jwt(jwt -> jwt.decoder(jwtDecoder())                 // HS256 검증
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter()) // roles -> authorities 매핑 추가
-                        )
+                        .jwt(jwt -> jwt.decoder(jwtDecoder()))                 // HS256 검증
                 );
 
         return http.build();
@@ -113,37 +221,4 @@ public class SecurityConfig {
             return new DefaultBearerTokenResolver().resolve(request);
         };
     }
-
-    /**
-     * JWT에서 권한(roles) 클레임을 추출하고 Spring Security 권한(Authorities)으로 변환하는 컨버터.
-     * roles 클레임이 단일 문자열(String) 또는 문자열 컬렉션(List/Array)인 경우를 모두 처리합니다.
-     */
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Object rolesObj = jwt.getClaims().get("roles");
-            List<String> rolesList = new ArrayList<>();
-
-            // 1. 단일 문자열인 경우 처리 (로그에서 발견된 문제)
-            if (rolesObj instanceof String) {
-                // 단일 문자열을 리스트에 추가
-                rolesList.add((String) rolesObj);
-                // 2. 표준 컬렉션(배열)인 경우 처리
-            } else if (rolesObj instanceof Collection) {
-                // 컬렉션의 모든 요소를 문자열로 변환하여 리스트에 추가
-                for (Object r : (Collection<?>) rolesObj) {
-                    rolesList.add(String.valueOf(r));
-                }
-            }
-
-            // 3. 권한(Authority) 객체로 변환
-            return rolesList.stream()
-                    // "ROLE_" 접두사 확인 및 추가 (hasAnyRole 사용을 위해 필요)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-        });
-        return converter;
-    }
-}
+}*/

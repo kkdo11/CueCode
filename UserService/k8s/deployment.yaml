@@ -16,6 +16,7 @@ spec:
         - name: user-service-app
           # [개선] :latest 대신 특정 버전 태그 사용 (예: git-commit-hash)
           image: cuecode.kr.ncr.ntruss.com/cuecode:user-service-latest
+          imagePullPolicy: Always
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
@@ -27,6 +28,7 @@ spec:
           # [수정] 올바른 위치와 들여쓰기 적용
           ports:
             - containerPort: 11000
+            - containerPort: 11001 # 관리 포트 추가
           envFrom:
             - secretRef:
                 # UserService의 데이터베이스 접속 정보를 담은 Secret
@@ -41,14 +43,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 11000
+              port: 11001
             # [개선] Spring Boot 구동 시간을 고려하여 대기 시간 증가
             initialDelaySeconds: 60
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 11000
+              port: 11001
             # [개선] ReadinessProbe보다 길게 설정하여 안정성 확보
             initialDelaySeconds: 90
             periodSeconds: 15
