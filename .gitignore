@@ -47,8 +47,6 @@ Thumbs.db
 *.rar
 
 # 로컬 설정 파일
-!**/gradle-wrapper.properties
-*.properties
 *.bak
 *.swp
 *.swo
