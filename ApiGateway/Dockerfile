@@ -1,19 +1,28 @@
-# STAGE 1: Build the application using Gradle
+# ================= STAGE 1: Build =================
 FROM gradle:8.4-jdk17-alpine AS build
 WORKDIR /app
-COPY gradlew .
-COPY gradle ./gradle
-COPY build.gradle .
-COPY settings.gradle .
-COPY src ./src
-RUN chmod +x ./gradlew && ./gradlew build -x test
-# Find the executable jar and rename it to a predictable name
-RUN find /app/build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} /app/build/libs/app.jar \;
 
-# STAGE 2: Create the final, lightweight image
+# --- [핵심 수정] 모든 공용 파일 경로 앞에 상위 폴더를 의미하는 '../' 추가 ---
+COPY ../gradlew .
+COPY ../gradle ./gradle
+COPY ../build.gradle .
+COPY ../settings.gradle .
+
+# ApiGateway의 소스 코드는 현재 폴더(.)를 기준으로 복사
+COPY src ./src
+# ApiGateway 모듈의 build.gradle도 복사 (필요한 경우)
+COPY build.gradle ./
+
+# --- [핵심 수정] Gradle이 ApiGateway 모듈을 빌드하도록 경로 수정 불필요 ---
+# 이제 상위 settings.gradle을 복사했으므로, Gradle이 ':ApiGateway' 모듈을 올바르게 인식함
+RUN chmod +x ./gradlew && ./gradlew :ApiGateway:build -x test
+
+# ================= STAGE 2: Final Image =================
 FROM openjdk:17-jdk-slim
 WORKDIR /app
-# Copy the renamed jar from the build stage
-COPY --from=build /app/build/libs/app.jar /app/app.jar
+
+# [핵심 수정] 빌드된 jar 파일의 정확한 경로를 지정
+COPY --from=build /app/ApiGateway/build/libs/*.jar app.jar
+
 EXPOSE 13000
 ENTRYPOINT ["java","-jar","/app/app.jar"]
