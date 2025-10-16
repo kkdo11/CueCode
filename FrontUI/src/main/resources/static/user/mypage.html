@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CueCode | 로그인</title>
+    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg" />
+    <!-- 부트스트랩 CSS -->
+    <link rel="stylesheet" href="../css/bootstrap.css" />
+    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
+    <link rel="stylesheet" href="../css/styles.css" />
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- iconify -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <!-- JWT 디코딩을 위한 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <!-- 사용자 정의 CSS -->
+    <link rel="stylesheet" href="../css/user/sign-in.css">
+</head>
+<body>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="login-container">
+                <div class="row g-0">
+                    <!-- 좌측 Hero 섹션 -->
+                    <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5 position-relative">
+                        <a href="/user/index.html" class="home-icon-link position-absolute" style="top:24px;left:24px;z-index:10;">
+                            <iconify-icon icon="mingcute:home-3-fill" width="32" height="32" style="color: #e9ecef"></iconify-icon>
+                        </a>
+                        <img src="/images/logos/logo-white-clean.svg" alt="CueCode Logo" class="img-fluid mb-4" style="max-width:350px;">
+                        <h3 class="mb-3 display-6 fw-bold">Subtle Gestures, Deep Connections</h3>
+                        <p class="fs-5">CueCode와 함께라면<br>당신의 표현이 언제나 닿을 수 있어요.</p>
+                    </div>
+                    <!-- 우측 본인 확인 폼 -->
+                    <div class="col-md-6 d-flex flex-column justify-content-center p-5">
+                        <div class="w-100">
+                            <h1 class="text-center display-6 fw-bold mb-4">마이 페이지</h1>
+                            <p class="text-center text-secondary mb-5">소중한 CueCode 회원님의 정보에 접근하기 위해 본인확인이 필요합니다.</p>
+                            <form id="verifyForm">
+                                <div class="mb-4">
+                                    <label for="verifyPassword" class="form-label">비밀번호</label>
+                                    <input type="password" class="form-control form-control-lg" id="verifyPassword"
+                                           name="verifyPassword" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required />
+                                    <div class="form-text text-danger mt-2" id="verifyPwMsg"></div>
+                                </div>
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="submit"  class="btn btn-primary btn-lg py-3 login-btn">본인 확인</button>
+                                </div>
+                            </form>
+                            <ul class="login-text-menu mt-5">
+                                <li><a href="/user/sign-up.html">회원가입</a></li>
+                                <li><a href="/user/find-password.html">PW 찾기</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 본인 확인 폼 제출 이벤트
+        const verifyForm = document.getElementById('verifyForm');
+        verifyForm.onsubmit = async function(e) {
+            e.preventDefault();
+            // JWT에서 사용자 아이디 추출
+            let userId = '';
+            const token = document.cookie.split('; ').find(row => row.startsWith('jwtAccessToken='));
+            if (token) {
+                try {
+                    const decoded = jwt_decode(token.split('=')[1]);
+                    userId = decoded.sub || decoded.userId || '';
+                } catch (e) {
+                    userId = '';
+                }
+            }
+            const password = document.getElementById('verifyPassword').value;
+            const verifyPwMsg = document.getElementById('verifyPwMsg');
+            verifyPwMsg.textContent = '';
+            if (!password) {
+                verifyPwMsg.textContent = '비밀번호를 입력하세요.';
+                return;
+            }
+            try {
+                const res = await fetch('http://localhost:13000/user/verify-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, password }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                if (res.ok && data.result === 1) {
+                    Swal.fire({
+                        icon: 'success',
+                        text: '본인 확인이 완료되었습니다.',
+                        timer: 1200,
+                        showConfirmButton: false
+                    });
+                    setTimeout(function() {
+                        window.location.href = '/user/myinfo.html';
+                    }, 1200);
+                    // TODO: 사용자 정보 수정 폼 활성화 코드 추가
+                } else {
+                    verifyPwMsg.textContent = data.msg || '비밀번호가 올바르지 않습니다.';
+                }
+            } catch (err) {
+                verifyPwMsg.textContent = '서버 오류: 본인 확인 실패';
+            }
+        };
+    });
+</script>
+</body>
+</html>

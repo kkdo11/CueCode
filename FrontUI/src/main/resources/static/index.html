@@ -13,145 +13,13 @@
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="../css/user/index.css" />
 
-    <style>
-        .services-tab {
-            .nav-tabs {
-                .nav-item {
-                    .nav-link {
-                        color: #423c3c;
-
-                        &.active {
-                            background-color: transparent;
-                            color: #6FC8F8;
-                        }
-                    }
-                }
-            }
-        }
-
-        .text-primary {
-            --bs-text-opacity: 1;
-            color: rgb(111, 200, 248) !important;
-        }
-
-        .bg-primary {
-            --bs-bg-opacity: 1;
-            background-color: rgba(var(--bs-primary-rgb), var(--bs-bg-opacity)) !important;
-        }
-
-        /* 대시보드 링크 호버 효과 */
-        .dashboard-link {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.5rem 1.2rem;
-            border-radius: 2rem;
-            background: #6FC8F8;
-            min-width: 120px;
-            max-width: 100%;
-            box-sizing: border-box;
-            text-decoration: none;
-            transition: background 0.3s, box-shadow 0.3s;
-            overflow: hidden;
-        }
-
-        .dashboard-link:hover {
-            background: #5AB1E3;
-            box-shadow: 0 5px 15px rgba(111, 200, 248, 0.4);
-        }
-
-        .dashboard-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            white-space: nowrap;
-            flex: 1 1 auto;
-            transition: color 0.3s, transform 0.3s;
-        }
-
-        .dashboard-link:hover .dashboard-text {
-            color: #fff;
-            transform: scale(1.05);
-        }
-
-        .dashboard-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.2rem;
-            height: 2.2rem;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(111, 200, 248, 0.15);
-            transition: background 0.3s, transform 0.3s;
-            flex-shrink: 0;
-            margin-left: auto;
-        }
-
-        .dashboard-link:hover .dashboard-icon {
-            background: #ffeb3b;
-            transform: translateX(5px);
-        }
-
-        .dashboard-icon iconify-icon {
-            font-size: 1.3rem;
-            color: #222;
-            width: 1.3rem;
-            height: 1.3rem;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .dashboard-link:hover .dashboard-icon iconify-icon {
-            color: #ff6b00;
-            transform: rotate(45deg);
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-link {
-                padding: 0.4rem 0.8rem;
-                min-width: 90px;
-            }
-
-            .dashboard-icon {
-                width: 1.7rem;
-                height: 1.7rem;
-            }
-
-            .dashboard-icon iconify-icon {
-                font-size: 1rem;
-                width: 1rem;
-                height: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .dashboard-link {
-                padding: 0.3rem 0.5rem;
-                min-width: 70px;
-            }
-
-            .dashboard-icon {
-                width: 1.2rem;
-                height: 1.2rem;
-            }
-
-            .dashboard-icon iconify-icon {
-                font-size: 0.8rem;
-                width: 0.8rem;
-                height: 0.8rem;
-            }
-        }
-
-
-
-
-    </style>
 </head>
 
 <body>
 
-<!-- Header -->
+<!-- Header Start! -->
 <header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100">
     <div class="container">
         <div class="header-wrapper d-flex align-items-center justify-content-between">
@@ -179,40 +47,36 @@
                             </div>
                             <div class="d-flex flex-column gap-3">
                                 <ul class="header-menu list-unstyled mb-0 d-flex flex-column gap-2">
-                                    <li class="header-item">
+                                    <li class="header-item" id="homeMenuItem">
                                         <a href="index.html" aria-current="true"
                                            class="header-link active hstack gap-2 fs-7 fw-bold text-dark"><img
                                                 src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                                                 class="img-fluid animate-spin">홈</a>
                                     </li>
-                                    <li class="header-item">
+                                    <li class="header-item" id="patientMenuItem">
                                         <a href="../patient/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                                                 src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                                                 class="img-fluid animate-spin">환자 대시보드</a>
                                     </li>
-                                    <li class="header-item">
+                                    <li class="header-item" id="managerMenuItem">
                                         <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark"><img
                                                 src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                                                 class="img-fluid animate-spin">관리자 대시보드</a>
                                     </li>
                                     <li class="header-item" id="myPageMenuItem">
-                                        <a href="mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
+                                        <a href="../user/mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
                                                 src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
                                                 class="img-fluid animate-spin">마이 페이지</a>
                                     </li>
 
                                 </ul>
                                 <div class="hstack gap-3" id="auth-btn-group">
-                                    <a href="sign-in.html"
+                                    <a href="user/sign-in.html"
                                        class="btn btn-outline-light fs-6 bg-white px-3 py-2 text-dark w-50 hstack justify-content-center">로그인</a>
-                                    <a href="sign-up.html"
+                                    <a href="user/sign-up.html"
                                        class="btn btn-dark text-white fs-6 bg-dark px-3 py-2 w-50 hstack justify-content-center">회원가입</a>
                                 </div>
                             </div>
-                            <!--              <div>-->
-                            <!--                <a class="text-dark" href="tel:+1-212-456-7890">+1-212-456-7890</a>-->
-                            <!--                <a class="fs-8 text-dark fw-bold" href="mailto:info@wrappixel.com">info@wrappixel.com</a>-->
-                            <!--              </div>-->
                         </div>
                     </ul>
                 </div>
@@ -220,12 +84,12 @@
         </div>
     </div>
 </header>
-<!--  </header>-->
+<!-- Header End! -->
 
-<!--  Page Wrapper -->
+<!--  Page Wrapper Start!-->
 <div class="page-wrapper overflow-hidden">
 
-    <!--  Banner Section -->
+    <!--  Banner Section Start!-->
     <section class="banner-section position-relative d-flex align-items-end min-vh-100">
         <video class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover" autoplay muted loop playsinline>
             <source src="../images/backgrounds/cuecode-video1.mp4" type="video/mp4" />
@@ -254,8 +118,9 @@
             </div>
         </div>
     </section>
+    <!--  Banner Section End!-->
 
-    <!--  Stats & Facts Section -->
+    <!--  Stats & Facts Section Start! -->
     <section class="stats-facts py-5 py-lg-11 py-xl-12 position-relative overflow-hidden">
         <div class="container">
             <div class="row gap-7 gap-xl-0">
@@ -308,12 +173,11 @@
             </div>
         </div>
         <div class="position-absolute bottom-0 start-0" data-aos="zoom-in" data-aos-delay="100" data-aos-duration="1000">
-            <!-- 존재하지 않는 이미지 참조를 제거하고 대체 이미지 사용 -->
-            <!--      <img src="../images/svgs/primary-leaf.svg" alt="" class="img-fluid">-->
         </div>
     </section>
+    <!--  Stats & Facts Section End! -->
 
-    <!--  Services Section -->
+    <!--  Services Section Start!-->
     <section class="services py-5 py-lg-11 py-xl-12 bg-light-gray" >
         <div class="container">
             <div class="d-flex flex-column gap-5 gap-xl-10">
@@ -416,14 +280,16 @@
                                     </li>
                                 </ul>
 
-                            </div> <!-- .d-flex flex-column gap-5 -->
-                        </div> <!-- .col-xl-8 -->
-                    </div> <!-- .row gap-5 gap-xl-0 -->
-                </div> <!-- .services-tab -->
-            </div> <!-- .d-flex flex-column gap-5 gap-xl-10 -->
-        </div> <!-- .container -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
-    <!--  Get in touch Section -->
+    <!--  Services Section End!-->
+
+    <!--  Get in touch Section Start! -->
     <section class="get-in-touch py-5 py-lg-11 py-xl-12">
         <div class="container">
             <div class="d-flex flex-column gap-5 gap-xl-10">
@@ -478,9 +344,12 @@
             </div>
         </div>
     </section>
+    <!--  Get in touch Section End! -->
 
 </div>
+<!--  Page Wrapper End!-->
 
+<!-- Footer Start! -->
 <footer class="footer bg-dark py-5 py-lg-11 py-xl-10">
     <div class="container">
         <div class="row">
@@ -489,11 +358,11 @@
                     <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용
                         <br>공모전 출품작입니다</h4>
                     <div class="d-flex flex-column gap-2">
-                        <a href="https://www.wrappixel.com/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
+                        <a href="https://contest.k-paas.org/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
                             <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>
                             https://contest.k-paas.org/
                         </a>
-                        <a href="https://maps.app.goo.gl/hpDp81fqzGt5y4bC8" target="_blank"
+                        <a href="https://buly.kr/Awg81rV" target="_blank"
                            class="link-hover hstack gap-3 text-white fs-5">
                             <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>
                             우징산 산신령들
@@ -506,19 +375,8 @@
                     <li><a class="link-hover fs-5 text-white" href="index.html">홈</a></li>
                     <li><a class="link-hover fs-5 text-white" href="about-us.html">환자 대시보드</a></li>
                     <li><a class="link-hover fs-5 text-white" id="services" href="#services">관리자 대시보드</a></li>
-                    <!--          <li><a class="link-hover fs-5 text-white" href="projects.html">마이 페이지</a></li>-->
-                    <!--          <li><a class="link-hover fs-5 text-white" href="terms-and-conditions.html">Terms</a></li>-->
-                    <!--          <li><a class="link-hover fs-5 text-white" href="privacy-policy.html">Privacy Policy</a></li>-->
-                    <!--          <li><a class="link-hover fs-5 text-white" href="404.html">Error 404</a></li>-->
                 </ul>
             </div>
-            <!--      <div class="col-md-4 col-xl-2 mb-8 mb-xl-0">-->
-            <!--        <ul class="footer-menu list-unstyled mb-0 d-flex flex-column gap-2">-->
-            <!--          <li><a class="link-hover fs-5 text-white" href="#!">Facebook</a></li>-->
-            <!--          <li><a class="link-hover fs-5 text-white" href="#!">Instagram</a></li>-->
-            <!--          <li><a class="link-hover fs-5 text-white" href="#!">Twitter</a></li>-->
-            <!--        </ul>-->
-            <!--      </div>-->
             <div class="col-md-4 col-xl-3 mb-8 mb-xl-0">
                 <p class="mb-0 text-white text-opacity-70 text-md-end">© CueCode copyright 2025</p>
             </div>
@@ -526,6 +384,7 @@
     </div>
     <p class="mb-0 text-white text-opacity-70 text-md-center mt-10">Distributed by <a class="text-white"  target="_blank">Team Ujangsan Spirit</a></p>
 </footer>
+<!-- Footer End! -->
 
 <div class="get-template hstack gap-2">
     <button class="btn bg-primary p-2 round-52 rounded-circle hstack justify-content-center flex-shrink-0"
@@ -533,63 +392,7 @@
         <iconify-icon icon="lucide:arrow-up" class="fs-7 text-dark"></iconify-icon>
     </button>
 </div>
-
-
-<script>
-    document.getElementById('contact-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const name = document.getElementById('formGroupExampleInput').value;
-        const email = document.getElementById('exampleInputEmail1').value;
-        const message = document.getElementById('exampleFormControlTextarea1').value;
-
-        if (!name || !email || !message) {
-            Swal.fire({
-                icon: 'warning',
-                title: '입력 필요',
-                text: '모든 필드를 입력해주세요.',
-            });
-            return;
-        }
-
-        const formData = { name, email, message };
-
-        fetch('http://localhost:13000/api/users/contact', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
-        })
-            .then(response => {
-                if (response.ok) {
-                    return response.text().then(text => {
-                        try { return JSON.parse(text); } catch (e) { return text; }
-                    });
-                } else if (response.status === 401) {
-                    throw new Error('로그인 후 이용해주세요.');
-                } else {
-                    throw new Error(`메시지 전송에 실패했습니다. (상태 코드: ${response.status})`);
-                }
-            })
-            .then(data => {
-                Swal.fire({
-                    icon: 'success',
-                    title: '전송 완료',
-                    text: '소중한 의견 감사합니다.',
-                });
-                document.getElementById('contact-form').reset();
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: '오류',
-                    text: error.message,
-                });
-            });
-    });
-
-</script>
+<script src="../js/user/index.js"></script>
 
 <script src="../libs/jquery/dist/jquery.min.js"></script>
 <script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -599,148 +402,7 @@
 <!-- solar icons -->
 <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
-<script>
-    // --- [1] 유틸리티 함수 정의 ---
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
 
-    function removeCookie(name) {
-        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-        document.cookie = `${name}=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-    }
-
-    // --- [2] 로그아웃 버튼 노출 함수 정의 ---
-    function showLogoutButton(userName) {
-        const authBtnGroup = document.getElementById('auth-btn-group');
-        if (authBtnGroup) {
-            // 이 부분을 dark 텍스트로 수정하여 헤더 토글 메뉴에서도 잘 보이게 조정합니다.
-            authBtnGroup.innerHTML = `<span class="me-3 fw-bold text-dark">${userName ? userName + '님' : ''} 환영합니다!</span>
-            <button id="logoutBtn" class="btn btn-outline-danger px-4 py-2">로그아웃</button>`; // ✅ px-3 -> px-4 수정
-            document.getElementById('logoutBtn').onclick = function() {
-                // 서버 로그아웃 API 호출
-                fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
-                    .finally(() => {
-                        removeCookie('jwtAccessToken');
-                        removeCookie('jwtRefreshToken');
-                        window.location.href = 'index.html';
-                    });
-            };
-            console.log('로그아웃 버튼 노출 완료');
-        }
-    }
-
-    // --- [3] DOMContentLoaded 메인 로직 (배너 버튼 및 헤더 버튼 변경) ---
-    window.addEventListener('DOMContentLoaded', function() {
-        const token = getCookie('jwtAccessToken');
-        const dashboardLink = document.getElementById('dashboardLink');
-        const dashboardText = document.getElementById('dashboardText');
-
-        // 헤더 메뉴 링크 요소
-        // ID 기반으로 다시 찾도록 수정: HTML에 ID를 추가했기 때문에 정확한 접근이 가능합니다.
-        const patientMenuItem = document.getElementById('patientMenuItem');
-        const managerMenuItem = document.getElementById('managerMenuItem');
-        const myPageMenuItem = document.getElementById('myPageMenuItem');
-
-        // <a> 태그 자체 (링크 변경을 위해 필요)
-        const patientMenuLink = document.getElementById('patientMenuLink');
-        const managerMenuLink = document.getElementById('managerMenuLink');
-        const myPageMenuLinkAnchor = document.getElementById('myPageMenuLinkAnchor');
-
-        console.log('쿠키에서 jwtAccessToken:', token ? '토큰 존재' : '토큰 없음');
-
-        // 1. 미로그인 상태 처리
-        if (!token) {
-            console.log('미로그인 상태: 서비스 시작 버튼 설정');
-            if (dashboardText) dashboardText.textContent = " "; // 텍스트를 " "에서 "서비스 시작"으로 복구
-            if (dashboardLink) dashboardLink.href = 'sign-in.html';
-
-            // 미로그인 상태에서는 대시보드와 마이페이지 메뉴를 숨김 (<li> 요소 숨김)
-            if (patientMenuItem) patientMenuItem.style.display = 'none';
-            if (managerMenuItem) managerMenuItem.style.display = 'none';
-            if (myPageMenuItem) myPageMenuItem.style.display = 'none';
-
-            return;
-        }
-
-        // 2. 로그인 상태 처리 (토큰 존재)
-        let decoded = null;
-        try {
-            decoded = jwt_decode(token);
-            console.log('토큰 디코딩 결과:', decoded);
-
-            // ✅ 역할 클레임 병합: 'roles' 키의 값을 'role' 키로 사용
-            decoded.role = decoded.role || decoded.roles;
-
-        } catch (e) {
-            console.error('토큰 디코딩 실패. 토큰 만료 또는 오류:', e);
-            // 토큰 문제 발생 시 쿠키를 지우고 미로그인 상태로 복귀
-            removeCookie('jwtAccessToken');
-            window.location.reload();
-            return;
-        }
-
-        // 3. 역할(ROLE)에 따른 배너/헤더 UI 변경
-        if (decoded && decoded.role) { // 👈 이제 decoded.role을 사용하여 정상 분기
-            let linkHref = 'index.html';
-            let linkText = `${decoded.userName}님 대시보드`;
-
-            // 모든 메뉴를 일단 숨기고, 역할에 맞는 메뉴만 표시 (<li> 요소 초기화)
-            if (patientMenuItem) patientMenuItem.style.display = 'none';
-            if (managerMenuItem) managerMenuItem.style.display = 'none';
-            if (myPageMenuItem) myPageMenuItem.style.display = 'none';
-
-            // 마이페이지는 로그인 시 항상 보이도록 설정
-            if (myPageMenuItem && myPageMenuLinkAnchor) {
-                myPageMenuLinkAnchor.href = 'mypage.html';
-                myPageMenuItem.style.display = 'list-item'; // <li> 표시
-            }
-
-            // 환자 및 관리자 메뉴 링크 초기화 (나중에 링크를 사용할 수 있도록)
-            if (patientMenuLink) patientMenuLink.href = '../patient/dashboard.html';
-            if (managerMenuLink) managerMenuLink.href = '../manager/dashboard.html';
-
-
-            if (decoded.role === 'ROLE_USER') {
-                // 환자 역할
-                linkHref = '../patient/dashboard.html';
-                linkText = '환자 대시보드';
-                if (patientMenuItem) {
-                    patientMenuItem.style.display = 'list-item'; // <li> 표시
-                }
-            } else if (decoded.role === 'ROLE_USER_MANAGER') {
-                // 관리자(보호자) 역할
-                linkHref = '../manager/dashboard.html'; // ✅ 수정된 올바른 상대 경로
-                linkText = '관리자 대시보드';
-                if (managerMenuItem) {
-                    managerMenuItem.style.display = 'list-item'; // <li> 표시
-                }
-            }
-
-            // 배너 버튼 UI 업데이트
-            if (dashboardLink) dashboardLink.href = linkHref;
-            if (dashboardText) dashboardText.textContent = linkText;
-
-            // 헤더의 로그인/로그아웃 버튼 업데이트
-            showLogoutButton(decoded.userName);
-
-
-        } else {
-            console.log('로그인 상태지만 역할(role) 정보가 불분명함. 로그아웃 버튼만 노출.');
-            if (dashboardText) dashboardText.textContent = " ";
-
-            // 역할 정보가 없어도 로그인 상태이므로 로그아웃 버튼은 보여줍니다.
-            if (decoded && decoded.userName) {
-                showLogoutButton(decoded.userName);
-                // 역할이 불분명해도 마이페이지는 보이게 설정 (선택 사항)
-                if (myPageMenuItem) myPageMenuItem.style.display = 'list-item';
-            }
-        }
-    });
-</script>
 </body>
 
 </html>
