@@ -8,6 +8,9 @@ COPY ApiGateway/build.gradle .
 COPY ApiGateway/settings.gradle .
 COPY ApiGateway/src ./src
 
+# 디버깅을 위한 파일 목록 출력
+RUN ls -lR
+
 RUN chmod +x ./gradlew && ./gradlew build -x test
 
 # ================= STAGE 2: Final Image =================
