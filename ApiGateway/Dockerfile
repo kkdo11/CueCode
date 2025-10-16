@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY ApiGateway/gradlew .
 COPY ApiGateway/gradle ./gradle
+COPY ApiGateway/gradle/wrapper/gradle-wrapper.properties ./gradle/wrapper/
 COPY ApiGateway/build.gradle .
 COPY ApiGateway/settings.gradle .
 COPY ApiGateway/src ./src
