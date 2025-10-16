@@ -2,11 +2,10 @@
 FROM gradle:8.4-jdk17-alpine AS build
 WORKDIR /app
 
-# --- [핵심 수정] 모든 공용 파일 경로 앞에 상위 폴더를 의미하는 '../' 추가 ---
-COPY ../gradlew .
-COPY ../gradle ./gradle
-COPY ../build.gradle .
-COPY ../settings.gradle .
+COPY gradlew .
+COPY gradle ./gradle
+COPY build.gradle .
+COPY settings.gradle .
 
 # ApiGateway의 소스 코드는 현재 폴더(.)를 기준으로 복사
 COPY src ./src
