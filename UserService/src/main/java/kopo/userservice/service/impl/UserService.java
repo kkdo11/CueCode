@@ -292,30 +292,19 @@ public class UserService implements IUserService {
 
     @Override
     public boolean verifyPassword(String userId, String password) {
-        // 환자 먼저 조회
-        PatientDocument patient = null;
-        try {
-            patient = patientRepository.findById(userId).orElse(null);
-        } catch (Exception e) {
-            log.warn("verifyPassword: 환자 조회 중 예외", e);
+        // 환자 인증
+        Optional<PatientDocument> patientOpt = patientRepository.findById(userId);
+        if (patientOpt.isPresent()) {
+            PatientDocument patient = patientOpt.get();
+            return patient.getPw() != null && passwordEncoder.matches(password, patient.getPw());
         }
-        if (patient != null && patient.getPw() != null) {
-            if (passwordEncoder.matches(password, patient.getPw())) {
-                return true;
-            }
+        // 관리자 인증
+        Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
+        if (managerOpt.isPresent()) {
+            ManagerDocument manager = managerOpt.get();
+            return manager.getPw() != null && passwordEncoder.matches(password, manager.getPw());
         }
-        // 관리자 조회
-        ManagerDocument manager = null;
-        try {
-            manager = managerRepository.findById(userId).orElse(null);
-        } catch (Exception e) {
-            log.warn("verifyPassword: 관리자 조회 중 예외", e);
-        }
-        if (manager != null && manager.getPw() != null) {
-            if (passwordEncoder.matches(password, manager.getPw())) {
-                return true;
-            }
-        }
+        // 해당 userId가 없으면 false
         return false;
     }
 

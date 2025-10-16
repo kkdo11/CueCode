@@ -16,6 +16,8 @@ import kopo.userservice.dto.MsgDTO;
 import kopo.userservice.service.IUserService;
 import org.springframework.web.bind.annotation.RequestParam;
 import kopo.userservice.dto.UserInfoDTO;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/user")
@@ -58,6 +60,8 @@ public class UserInfoController {
     }
     @PostMapping("/verify-password")
     public MsgDTO verifyPassword(@RequestBody UserLoginRequestDTO dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("[로그] 현재 인증된 사용자 권한: " + auth.getAuthorities());
         boolean result = userService.verifyPassword(dto.getUserId(), dto.getPassword());
         if (result) {
             return MsgDTO.builder().result(1).msg("본인 확인 성공").build();
