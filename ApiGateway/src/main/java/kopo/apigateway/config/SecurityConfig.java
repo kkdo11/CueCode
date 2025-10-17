@@ -49,8 +49,14 @@ public class SecurityConfig {
                 .pathMatchers("/user/dashboard").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
                 .pathMatchers("/patient/list").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
                 .pathMatchers("/patient/dashboard.html").hasAuthority("ROLE_USER") // 환자만 접근
-                .pathMatchers("/user/me").hasAnyAuthority("ROLE_USER_MANAGER", "ROLE_USER") // 보호자와 환자 모두 접근
+                .pathMatchers("/user/me").hasAuthority( "ROLE_USER") // 환자 모두 접근
+                .pathMatchers("/patient/detection-area/update").hasAuthority("ROLE_USER") // 보호자와 환자 모두 접근
+                .pathMatchers("/user/info").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 정보조회
+                .pathMatchers("/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 본인확인
+                        .pathMatchers("/user/update-name").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
                 .pathMatchers("/user/**").hasAuthority("ROLE_USER")         // 환자만 접근
+
+
                 .anyExchange().permitAll()
 //                .anyExchange().denyAll()
 
