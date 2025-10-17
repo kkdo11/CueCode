@@ -25,4 +25,4 @@ spec:
           service:
             name: front-ui-service
             port:
-              number: 8080
+              number: 14000
