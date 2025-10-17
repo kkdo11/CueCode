@@ -57,6 +57,7 @@ public class SecurityConfig {
                         "/", "/index.html", "/css/**", "/js/**", "/images/**",
                         "/auth/login", "/auth/refresh", "/health", "/login",
                         "/swagger-ui/**", "/v3/api-docs/**",
+                        "/reg/**", // 회원가입(ID 중복 체크 등)
                         "/actuator/**" // actuator 경로 포함
                 )
                 // 위 경로들에 대해서는 모든 보안 기능을 비활성화하고 모두 허용
