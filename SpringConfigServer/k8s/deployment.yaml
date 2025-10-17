@@ -16,6 +16,8 @@ spec:
       - name: config-server-app
         image: cuecode.kr.ncr.ntruss.com/cuecode:config-server-latest
         env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: git
         - name: GIT_USERNAME
           valueFrom:
             secretKeyRef:

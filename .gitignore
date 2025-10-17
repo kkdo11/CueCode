@@ -47,7 +47,6 @@ Thumbs.db
 *.rar
 
 # 로컬 설정 파일
-*.properties
 *.bak
 *.swp
 *.swo
