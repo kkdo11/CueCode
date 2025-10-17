@@ -14,12 +14,22 @@ function maskEmail(email) {
     if (!local || !domain) return email;
     return local.slice(0,2) + '***@' + domain;
 }
+
+// JWT 토큰을 쿠키에서 꺼내는 함수 추가
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     let userId = '';
     let currentPatientId = '';
     const token = document.cookie.split('; ').find(row => row.startsWith('jwtAccessToken='));
     if (token) {
         try {
+            // jwt_decode 함수가 전역에 정의되어 있다고 가정
             const decoded = jwt_decode(token.split('=')[1]);
             userId = decoded.sub || decoded.userId || '';
         } catch (e) {
@@ -44,10 +54,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const detectionAreaParent = detectionAreaRow;
                 if (data.userType === 'patient') {
                     console.log('[프론트] 감지 범위 조회 요청 body:', { patientId: userId });
+
+                    // 감지 범위 조회 요청도 credentials: 'include'를 사용하도록 수정
                     fetch('http://localhost:13000/patient/detection-area/read', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ patientId: userId })
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ patientId: userId }),
+                        credentials: 'include' // ✅ 수정: 쿠키 인증 방식 통일
                     })
                         .then(res => res.json())
                         .then(area => {
@@ -271,6 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('saveDetectionAreaBtnMain').onclick = function() {
         window.location.href = 'http://localhost:14000/index.html';
     };
+
+    // 🌟🌟🌟 감지 범위 변경 로직 수정: credentials: 'include' 사용 및 오류 처리 보강 🌟🌟🌟
     document.getElementById('saveDetectionAreaBtnModal').onclick = async function() {
         if (!userId || userId.trim() === '') {
             document.getElementById('changeDetectionAreaMsg').textContent = '환자 정보가 올바르게 로드되지 않았습니다.';
@@ -283,20 +300,44 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         const newDetectionArea = detectionAreaType.value;
-        // 감지 범위 변경 API 호출
-        const res = await fetch('http://localhost:13000/patient/detection-area/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patientId: userId, detectionAreaType: newDetectionArea })
-        });
-        const data = await res.json();
+        // 디버깅 로그 추가
+        const jwtToken = getCookie('jwtAccessToken');
+        console.log('[디버그] 감지 범위 변경 요청 userId:', userId);
+        console.log('[디버그] 감지 범위 변경 요청 쿠키 jwtAccessToken:', jwtToken);
+        console.log('[디버그] 감지 범위 변경 요청 body:', { patientId: userId, detectionAreaType: newDetectionArea });
+        let res, data = {};
+        try {
+            res = await fetch('http://localhost:13000/patient/detection-area/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ patientId: userId, detectionAreaType: newDetectionArea }),
+                credentials: 'include' // ★ 쿠키 전달 옵션 추가
+            });
+            console.log('[디버그] 감지 범위 변경 fetch 응답 상태:', res.status);
+            if (!res.ok) {
+                try {
+                    data = await res.json();
+                } catch (e) {
+                    data.msg = `서버 응답 실패 (HTTP 상태: ${res.status}). 인증 토큰을 확인하세요.`;
+                }
+            } else {
+                data = await res.json();
+            }
+            console.log('[디버그] 감지 범위 변경 fetch 응답 데이터:', data);
+        } catch (e) {
+            console.error('[디버그] 감지 범위 변경 fetch 통신 오류:', e);
+            document.getElementById('changeDetectionAreaMsg').textContent = '서버 통신 오류';
+            return;
+        }
         if (res.ok && data.result === 1) {
             const areaText = newDetectionArea === 'hand' ? '손' : newDetectionArea === 'face' ? '얼굴' : '손과 얼굴';
             document.getElementById('detection-area-value').textContent = areaText;
             Swal.fire({ icon: 'success', text: '감지 범위가 변경되었습니다.', timer: 1200, showConfirmButton: false });
             bootstrap.Modal.getInstance(document.getElementById('changeDetectionAreaModal')).hide();
         } else {
-            document.getElementById('changeDetectionAreaMsg').textContent = data.msg || '감지 범위 변경 실패';
+            document.getElementById('changeDetectionAreaMsg').textContent = data.msg || `감지 범위 변경 실패 (상태 코드: ${res.status})`;
         }
     };
     // 모달 닫힘 시 포커스 해제
@@ -305,13 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.activeElement.blur();
         }
     });
-    // JWT 토큰을 쿠키에서 꺼내는 함수 추가
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
+
     document.getElementById('withdrawalBtn').onclick = function(e) {
         e.preventDefault();
         Swal.fire({
