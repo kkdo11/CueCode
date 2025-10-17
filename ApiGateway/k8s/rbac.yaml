@@ -11,7 +11,7 @@ metadata:
   name: api-gateway-role
 rules:
 - apiGroups: [""] # "" indicates the core API group
-  resources: ["services", "endpoints"]
+  resources: ["services", "endpoints", "pods"]
   verbs: ["get", "list", "watch"]
 
 ---

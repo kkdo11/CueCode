@@ -8,5 +8,5 @@ spec:
     app: front-ui
   ports:
   - name: http
-    port: 8080
-    targetPort: 8080
+    port: 14000
+    targetPort: 14000
