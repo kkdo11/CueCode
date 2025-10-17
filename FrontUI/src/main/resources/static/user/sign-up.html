@@ -22,7 +22,7 @@
         <div class="col-lg-10">
             <div class="login-container">
                 <div class="row g-0">
-                    <!-- 좌측 Hero 섹션 -->
+                    <!-- 왼쪽 Card Section Start! -->
                     <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5">
                         <a href="/index.html" class="home-icon-link position-absolute" style="top:24px;left:24px;z-index:10;">
                             <iconify-icon icon="mingcute:home-3-fill" width="32" height="32" style="color: #e9ecef"></iconify-icon>
@@ -31,12 +31,12 @@
                         <h3 class="mb-3 display-6 fw-bold">지금 CueCode 회원가입하고<br>더 많은 소통의 기회를 경험하세요!</h3>
                         <p class="fs-5">회원가입만 하면 맞춤형 서비스와 다양한 혜택을 바로 이용할 수 있습니다.<br>간편하게 가입하고 CueCode의 모든 기능을 무료로 체험해보세요!</p>
                     </div>
-                    <!-- 우측 -->
+                    <!-- 왼쪽 Card Section End! -->
+
+                    <!-- 오른쪽 Sign-up Start! -->
                     <div class="col-md-6 d-flex flex-column justify-content-center p-5">
                         <div class="w-100">
-<!--                            <h1 class="text-center display-6 fw-bold mb-5">회원가입</h1>-->
-                            <!-- 프로세싱 바 -->
-<!--                            <h2 class="progress-title text-center mb-2" style="font-size:1.2rem;font-weight:600;">회원가입 진행 단계</h2>-->
+                            <!-- 프로세싱 바 Start! -->
                             <div class="progress-bar-container mb-4" style="display:flex;justify-content:center;align-items:center;gap:0;">
                                 <ul class="progress-bar-list" style="display:flex;list-style:none;padding:0;margin:0;width:100%;justify-content:space-between;align-items:center;">
                                     <li class="progress-bar-step active" id="step1-bar" style="flex:1;text-align:center;">
@@ -60,9 +60,11 @@
                                     </li>
                                 </ul>
                             </div>
-                            <!-- 단계별 폼 -->
+                            <!-- 프로세싱 바 End! -->
+
+                            <!-- 단계별 폼 Start!-->
                             <form id="regForm">
-                                <!-- 1단계: 역할 선택 -->
+                                <!-- 1단계: 역할 선택 Start!-->
                                 <section class="step-section" id="step1">
                                     <h2 class="d-flex justify-content-between align-items-center mb-3" style="font-size:1.1rem;">
                                         <span class="fw-semibold text-secondary fs-8">회원 유형을 선택하세요</span>
@@ -80,7 +82,9 @@
                                         <button type="button" id="managerBtn">보호자</button>
                                     </div>
                                 </section>
-                                <!-- 2단계: 기본정보 -->
+                                <!-- 1단계: 역할 선택 End!-->
+
+                                <!-- 2단계: 기본정보 Start! -->
                                 <section class="step-section" id="step2" style="display:none;">
                                     <h2 class="mb-4 fw-semibold text-secondary fs-8">기본정보 입력</h2>
                                     <div class="form-group">
@@ -118,7 +122,9 @@
                                         </button>
                                     </div>
                                 </section>
-                                <!-- 3단계: 이메일 인증 -->
+                                <!-- 2단계: 기본정보 End! -->
+
+                                <!-- 3단계: 이메일 인증 Start!-->
                                 <section class="step-section" id="step3" style="display:none;">
                                     <h2 class="mb-4 fw-semibold text-secondary fs-8">이메일 인증</h2>
                                     <div class="form-group">
@@ -148,7 +154,7 @@
                                         </button>
                                     </div>
 
-                                    <!-- 보호자용 약관 동의 섹션 추가 -->
+                                    <!-- 보호자용 약관 동의 섹션 Start!-->
                                     <div class="terms-agreement" id="manager-terms"
                                          style="width: 100%; margin: 16px 0; display: none;">
                                         <div style="display: flex; align-items: center; margin-bottom: 8px;">
@@ -176,6 +182,7 @@
                                             </button>
                                         </div>
                                     </div>
+                                    <!-- 보호자용 약관 동의 섹션 End!-->
 
                                     <!-- 회원가입 버튼 -->
                                     <div style="width: 100%; margin-top: 16px;">
@@ -185,7 +192,9 @@
                                         </button>
                                     </div>
                                 </section>
-                                <!-- 4단계: 감지방식(환자만) -->
+                                <!-- 3단계: 이메일 인증 End!-->
+
+                                <!-- 4단계: 감지방식(환자만) Start! -->
                                 <section class="step-section" id="step4" style="display:none;">
                                     <h2 class="mb-4 fw-semibold text-secondary fs-8">어떤 방식으로 표현할까요?</h2>
 
@@ -239,7 +248,9 @@
                                         <button type="submit" class="submit-btn" onclick="submitForm()">회원가입</button>
                                     </div>
                                 </section>
+                                <!-- 4단계: 감지방식(환자만) End! -->
                             </form>
+                            <!-- 단계별 폼 End!-->
                             <div class="msg" id="msg"></div>
                             <!-- 텍스트형 로그인/비밀번호 찾기 메뉴 (구분선 포함) -->
                             <ul class="login-text-menu">
@@ -248,6 +259,7 @@
                             </ul>
                         </div>
                     </div>
+                    <!-- 오른쪽 Sign-up End! -->
                 </div>
             </div>
         </div>

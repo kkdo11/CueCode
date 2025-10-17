@@ -25,7 +25,7 @@
         <div class="col-lg-10">
             <div class="login-container">
                 <div class="row g-0">
-                    <!-- 좌측 Hero 섹션 -->
+                    <!-- 왼쪽 Card Section Start! -->
                     <div class="col-md-6 hero-section d-flex flex-column justify-content-center p-5 position-relative">
                         <a href="/index.html" class="home-icon-link position-absolute" style="top:24px;left:24px;z-index:10;">
                             <iconify-icon icon="mingcute:home-3-fill" width="32" height="32" style="color: #e9ecef"></iconify-icon>
@@ -34,7 +34,8 @@
                         <h3 class="mb-3 display-6 fw-bold">Subtle Gestures, Deep Connections</h3>
                         <p class="fs-5">CueCode와 함께라면<br>당신의 표현이 언제나 닿을 수 있어요.</p>
                     </div>
-                    <!-- 우측 로그인 폼 -->
+                    <!-- 왼쪽 Card Section End! -->
+                    <!-- 오른쪽 Sign-in Section Start! -->
                     <div class="col-md-6 d-flex flex-column justify-content-center p-5">
                         <div class="w-100">
                             <h1 class="text-center display-6 fw-bold mb-5">로그인</h1>
@@ -61,78 +62,13 @@
                             </ul>
                         </div>
                     </div>
+                    <!-- 오른쪽 Sign-in Section End! -->
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.getElementById('loginForm');
-
-        if (loginForm) {
-            loginForm.onsubmit = async function(e) {
-                e.preventDefault();
-                const userId = document.getElementById('userId').value;
-                const password = document.getElementById('password').value;
-
-                if (!userId || !password) {
-                    Swal.fire({
-                        icon: 'warning',
-                        text: '아이디와 비밀번호를 모두 입력해주세요.'
-                    });
-                    return;
-                }
-
-                try {
-                    const res = await fetch('http://localhost:13000/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, password }),
-                        credentials: 'include'
-                    });
-                    const data = await res.json();
-                    if (res.ok && data.result === 1 && data.accessToken) {
-                        document.cookie = `jwtAccessToken=${data.accessToken}; path=/; SameSite=Lax; max-age=3600;`;
-                        console.log('토큰을 쿠키에 저장 완료');
-                        // JWT에서 사용자 이름 추출
-                        let userName = '';
-                        try {
-                            const decoded = jwt_decode(data.accessToken);
-                            userName = decoded.userName || '';
-                        } catch (e) {
-                            userName = '';
-                        }
-                        Swal.fire({
-                            icon: 'success',
-                            html: `${userName ? userName + '님, ' : ''}반가워요!<br>메인 페이지로 이동합니다.`,
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
-                        setTimeout(() => {
-                            window.location.href = '/index.html';
-                        }, 1500);
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            text: data.msg || '로그인 실패',
-                            showConfirmButton: true
-                        });
-                    }
-                } catch (err) {
-                    Swal.fire({
-                        icon: 'error',
-                        text: '로그인 요청 실패'
-                    });
-                    console.error('로그인 요청 중 오류 발생:', err);
-                }
-            };
-        } else {
-            console.error("오류: 'loginForm' 요소를 찾을 수 없습니다.");
-        }
-    });
-</script>
+<script src="../js/user/sign-in.js"></script>
 </body>
 </html>
