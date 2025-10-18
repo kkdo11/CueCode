@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: motion-service
+  name: motion-service-deployment
 spec:
   replicas: 1
   selector:
