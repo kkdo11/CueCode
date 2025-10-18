@@ -1,8 +1,8 @@
 plugins {
     id 'java'
     // ⬇ Boot 3.3.x 최신으로 (Framework 6.1.15+ 정렬)
-    id 'org.springframework.boot' version '3.3.8'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.5.5' // Upgraded to match UserService
+    id 'io.spring.dependency-management' version '1.1.7' // Upgraded to match UserService
 }
 
 group = 'kopo'
@@ -20,8 +20,8 @@ repositories {
 }
 
 ext {
-    // Spring Cloud 2023.0.6 (Leyton) — Boot 3.3.x와 호환
-    set('springCloudVersion', "2023.0.6")
+    // Spring Cloud 2025.0.0 (current snapshot/future release) - Upgraded to match UserService
+    set('springCloudVersion', "2025.0.0")
 }
 
 dependencies {
