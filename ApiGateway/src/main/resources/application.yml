@@ -20,31 +20,7 @@ spring:
               - GET
               - POST
             allowedHeaders: "*"
-      routes:
-        - id: user-service-login
-          uri: http://localhost:11000
-          predicates:
-            - Path=/login
-        - id: user-service-login-all
-          uri: http://localhost:11000
-          predicates:
-            - Path=/login/**
-        - id: user-service-api
-          uri: http://localhost:11000
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - StripPrefix=1
-        - id: user-service-user-reg
-          uri: http://localhost:11000
-          predicates:
-            - Path=/user/reg/**
-          filters:
-            - StripPrefix=1
-        - id: user-service-reg
-          uri: http://localhost:11000
-          predicates:
-            - Path=/reg/**
+
 
 logging:
   level:
