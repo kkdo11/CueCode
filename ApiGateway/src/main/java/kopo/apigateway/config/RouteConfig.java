@@ -1,19 +1,29 @@
 package kopo.apigateway.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 
-
 @Slf4j
 @Configuration
 public class RouteConfig {
 
+    // Inject URIs from application.yml
+    @Value("${service.uri.user}")
+    private String userServiceUri;
+
+    @Value("${service.uri.front}")
+    private String frontUiServiceUri;
+
+    @Value("${service.uri.motion}")
+    private String motionServiceUri;
+
     /**
-     * Gateway 라우팅: Eureka 미사용 → 직접 URL 사용
+     * Gateway 라우팅: URI를 설정 파일에서 주입받아 동적으로 생성
      */
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
@@ -23,14 +33,14 @@ public class RouteConfig {
                         .path("/login")
                         .and()
                         .method(HttpMethod.GET)
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // FrontUI가 제공하는 대시보드 페이지로 GET 요청을 라우팅합니다.
                 .route("front-ui-dashboard", r -> r
                         .path("/dashboard")
                         .and()
                         .method(HttpMethod.GET)
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // /user/dashboard 경로도 프론트엔드로 라우팅 (정적 대시보드 페이지, 경로 리라이트)
                 .route("front-ui-user-dashboard", r -> r
@@ -38,7 +48,7 @@ public class RouteConfig {
                         .and()
                         .method(HttpMethod.GET)
                         .filters(f -> f.rewritePath("/user/dashboard", "/user/dashboard.html"))
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // Motion-detector 페이지 라우팅
                 .route("front-ui-motion-detector", r -> r
@@ -46,7 +56,7 @@ public class RouteConfig {
                         .and()
                         .method(HttpMethod.GET)
                         .filters(f -> f.rewritePath("/motion", "/motion/motion-detector.html"))
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // Motion-upload 페이지 라우팅
                 .route("front-ui-motion-upload", r -> r
@@ -54,40 +64,40 @@ public class RouteConfig {
                         .and()
                         .method(HttpMethod.GET)
                         .filters(f -> f.rewritePath("/motion/upload", "/motion/motion-upload.html"))
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // Vendor static assets (e.g., FFmpeg)
                 .route("front-ui-vendor-assets", r -> r
                         .path("/vendor/**")
-                        .uri("http://localhost:14000"))
+                        .uri(frontUiServiceUri))
 
                 // UserService가 처리하는 로그인 POST 요청을 라우팅합니다.
                 .route("user-service-login-post", r -> r
                         .path("/login")
                         .and()
                         .method(HttpMethod.POST)
-                        .uri("http://localhost:11000"))
+                        .uri(userServiceUri))
 
                 // 기존의 유저 등록, 조회 관련 라우팅은 유지합니다.
                 .route("user-service-user", r -> r
                         .path("/user/**")
-                        .uri("http://localhost:11000"))
+                        .uri(userServiceUri))
                 .route("user-service-reg", r -> r
                         .path("/reg/**")
-                        .uri("http://localhost:11000"))
+                        .uri(userServiceUri))
 
                 // MotionService 라우팅
                 .route("motion-service", r -> r
                         .path("/motions/**")
-                        .uri("http://localhost:15000"))
+                        .uri(motionServiceUri))
                 // Patient-service 라우팅 추가
                 .route("patient-service", r -> r
                         .path("/patient/**")
-                        .uri("http://localhost:11000"))
+                        .uri(userServiceUri))
                 // Manager-service 라우팅 추가
                 .route("manager-service", r -> r
                         .path("/manager/**")
-                        .uri("http://localhost:11000"))
+                        .uri(userServiceUri))
 
                 .build();
     }
