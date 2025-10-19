@@ -14,6 +14,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -21,23 +23,36 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    // Define paths to be skipped from JWT authentication
+    private final List<String> skipPaths = List.of(
+            "/login",
+            "/reg",
+            "/actuator"
+    );
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
+
+        // Skip JWT validation for defined paths
+        if (skipPaths.stream().anyMatch(path::startsWith)) {
+            return chain.filter(exchange);
+        }
+
         String token = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
 
-        // 토큰이 존재하고, 유효성 검증에 성공한 경우
+        // If token exists and is valid, set authentication in context
         if (token != null && jwtTokenProvider.validateToken(token) == JwtStatus.ACCESS) {
             Authentication authentication = jwtTokenProvider.getAuthentication(token);
             log.info("Authenticated user: {}, roles: {}", authentication.getName(), authentication.getAuthorities());
 
-            // SecurityContext에 인증 정보 저장
             return chain.filter(exchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
         }
 
-        // 토큰이 유효하지 않거나 없는 경우, 그냥 다음 필터로 진행 (인증되지 않은 상태)
-        log.debug("JWT Token is invalid or not present for path: {}", request.getURI().getPath());
+        // For other cases, proceed without authentication
+        log.debug("JWT Token is invalid or not present for path: {}", path);
         return chain.filter(exchange);
     }
 }
