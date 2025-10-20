@@ -74,6 +74,36 @@
         socket.onerror = (error) => { console.error("[WS] 오류 발생:", error); wsStatusDiv.textContent = "WS: 오류"; socket.close(); };
     }
 
+    // === Helper: build compact feature vector matching server's ordering ===
+    function buildCompactFeatures(frame) {
+        // Prefer face blendshapes if present
+        if (frame.face_blendshapes && Object.keys(frame.face_blendshapes).length > 0) {
+            const keys = Object.keys(frame.face_blendshapes).sort();
+            return { detectionArea: 'face', features: keys.map(k => Number(frame.face_blendshapes[k] || 0.0)) };
+        }
+        // Otherwise, try hand landmarks: flatten right then left, each point [x,y,z]
+        const right = frame.right_hand_landmarks || frame.right_hand || null;
+        const left = frame.left_hand_landmarks || frame.left_hand || null;
+        if ((Array.isArray(right) && right.length > 0) || (Array.isArray(left) && left.length > 0)) {
+            // determine max points (use whichever has points)
+            const pointCount = Math.max((right && right.length) || 0, (left && left.length) || 0);
+            const vec = [];
+            // right hand
+            for (let i = 0; i < pointCount; i++) {
+                if (right && right[i] && right[i].length >= 3) { vec.push(Number(right[i][0]||0), Number(right[i][1]||0), Number(right[i][2]||0)); }
+                else { vec.push(0,0,0); }
+            }
+            // left hand
+            for (let i = 0; i < pointCount; i++) {
+                if (left && left[i] && left[i].length >= 3) { vec.push(Number(left[i][0]||0), Number(left[i][1]||0), Number(left[i][2]||0)); }
+                else { vec.push(0,0,0); }
+            }
+            return { detectionArea: 'hand', features: vec };
+        }
+        // Nothing available
+        return null;
+    }
+
     // === 데이터 처리 ===
     function processAndGetData(faceResults, handResults) {
         const faceBlendshapes = faceResults.faceBlendshapes.length > 0
@@ -83,12 +113,36 @@
             const handIndex = handednesses.findIndex(h => h[0].categoryName === handName);
             return handIndex > -1 ? landmarks[handIndex].map(p => [p.x, p.y, p.z]) : null;
         };
-        return {
+        const frame = {
             timestamp_ms: Date.now(),
             face_blendshapes: faceBlendshapes,
             left_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, 'Left'),
             right_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, 'Right')
         };
+        return frame;
+    }
+
+    // Send one frame message over WS (if connected)
+    function sendFrameOverWS(frame) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+        const compact = buildCompactFeatures(frame);
+        if (!compact) return false;
+        const msg = {
+            type: 'frame',
+            detectionArea: compact.detectionArea,
+            timestamp_ms: frame.timestamp_ms,
+            features: compact.features
+        };
+        socket.send(JSON.stringify(msg));
+        return true;
+    }
+
+    // Send end message
+    function sendEndOverWS(detectionArea) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+        const msg = { type: 'end', detectionArea: detectionArea };
+        socket.send(JSON.stringify(msg));
+        return true;
     }
 
     // === 녹화 및 저장 로직 ===
@@ -102,12 +156,22 @@
         recordStatusDiv.textContent = "녹화 중... (3초)";
         console.log("[Record] 3초 녹화를 시작합니다.");
 
+        // ensure websocket is connected
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            initWebSocket();
+        }
+
+        // stop after duration and send 'end' to server for matching
         setTimeout(() => {
             isRecording = false;
             recordButton.disabled = false;
             saveButton.disabled = false;
             recordStatusDiv.textContent = `녹화 완료! 총 ${recordedFrames.length} 프레임 수집.`;
             console.log("[Record] 녹화 완료. 수집된 데이터:", recordedFrames);
+            // send end with preferred detectionArea (if face data present use face else hand)
+            const last = recordedFrames[recordedFrames.length-1];
+            const detectionArea = (last && last.face_blendshapes && Object.keys(last.face_blendshapes).length>0) ? 'face' : 'hand';
+            sendEndOverWS(detectionArea);
         }, RECORDING_DURATION_MS);
     });
 
@@ -187,7 +251,15 @@
         const handResults = handLandmarker.detectForVideo(video, startTimeMs);
         const currentFrameData = processAndGetData(faceResults, handResults);
 
-        if (isRecording) { recordedFrames.push(currentFrameData); }
+        if (isRecording) {
+            recordedFrames.push(currentFrameData);
+            // throttle sending frames to SEND_INTERVAL_MS
+            const now = Date.now();
+            if (now - lastSendTime >= SEND_INTERVAL_MS) {
+                lastSendTime = now;
+                sendFrameOverWS(currentFrameData);
+            }
+        }
 
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         if (faceResults.faceLandmarks) { for (const landmarks of faceResults.faceLandmarks) { drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 }); } }
@@ -200,8 +272,8 @@
     async function main() {
         await createLandmarkers();
         enableCam();
-        // WebSocket은 실시간 인식 시에만 필요하므로, 지금은 주석 처리
-        // initWebSocket();
+        // Enable WebSocket for live matching
+        initWebSocket();
     }
 
     main();
