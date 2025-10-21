@@ -19,8 +19,11 @@ document.getElementById('contact-form').addEventListener('submit', function(even
     fetch('http://localhost:13000/api/users/contact', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + getCookie('jwtAccessToken')
+            },
+            body: JSON.stringify(formData)
     })
         .then(response => {
             if (response.ok) {
