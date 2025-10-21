@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -35,39 +34,30 @@ public class SecurityConfig {
         log.info(this.getClass().getName() + ".filterChain Start!");
         http.csrf(ServerHttpSecurity.CsrfSpec::disable);
         http.formLogin(ServerHttpSecurity.FormLoginSpec::disable);
-        // disable HTTP Basic to avoid browser username/password dialog
-        http.httpBasic(ServerHttpSecurity.HttpBasicSpec::disable);
-
-        // enable CORS using the corsConfigurationSource bean
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-
         http.exceptionHandling(e -> e.accessDeniedHandler(accessDeniedHandler));
         http.exceptionHandling(e -> e.authenticationEntryPoint(loginServerAuthenticationEntryPoint));
         http.securityContextRepository(NoOpServerSecurityContextRepository.getInstance());
         http.authorizeExchange(authz -> authz
-                // allow preflight requests
-                .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .pathMatchers(
-                        "/user/reg/**",      // 회원가입
-                        "/login/**",
-                        "/reg/**",
-                        "/user/actuator/**", // ✅ 게이트웨이 경유 액추에이터
-                        "/actuator/**",
-                        "/swagger-ui/**", "/v3/api-docs/**",
-                        "/motions/**"
-                ).permitAll()
-                .pathMatchers("/user/dashboard").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
-                .pathMatchers("/patient/list").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
-                .pathMatchers("/patient/dashboard.html").hasAuthority("ROLE_USER") // 환자만 접근
-                .pathMatchers("/user/me").hasAuthority( "ROLE_USER") // 환자 모두 접근
-                .pathMatchers("/patient/detection-area/update").hasAuthority("ROLE_USER") // 보호자와 환자 모두 접근
-                .pathMatchers("/user/info").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 정보조회
-                .pathMatchers("/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 본인확인
+                        .pathMatchers(
+                                "/user/reg/**",      // 회원가입
+                                "/login/**",
+                                "/reg/**",
+                                "/user/actuator/**", // ✅ 게이트웨이 경유 액추에이터
+                                "/actuator/**",
+                                "/swagger-ui/**", "/v3/api-docs/**"
+                        ).permitAll()
+                        .pathMatchers("/user/dashboard").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
+                        .pathMatchers("/patient/list").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
+                        .pathMatchers("/patient/dashboard.html").hasAuthority("ROLE_USER") // 환자만 접근
+                        .pathMatchers("/user/me").hasAuthority( "ROLE_USER") // 환자 모두 접근
+                        .pathMatchers("/patient/detection-area/update").hasAuthority("ROLE_USER") // 보호자와 환자 모두 접근
+                        .pathMatchers("/user/info").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 정보조회
+                        .pathMatchers("/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 본인확인
                         .pathMatchers("/user/update-name").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
-                .pathMatchers("/user/**").hasAuthority("ROLE_USER")         // 환자만 접근
+                        .pathMatchers("/user/**").hasAuthority("ROLE_USER")         // 환자만 접근
 
 
-                .anyExchange().permitAll()
+                        .anyExchange().permitAll()
 //                .anyExchange().denyAll()
 
         );
