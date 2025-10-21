@@ -1,6 +1,9 @@
 package kopo.motionservice.service;
 
 import kopo.motionservice.dto.MotionRecordRequestDTO;
+import kopo.motionservice.repository.document.RecordedMotionDocument;
+
+import java.util.List;
 
 public interface IMotionService {
 
@@ -29,5 +32,10 @@ public interface IMotionService {
      * @return FastAPI 응답 결과
      */
     String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile, String trimStart, String trimEnd);
+
+    /**
+     * Returns all recorded motions from storage (used by matching service)
+     */
+    List<RecordedMotionDocument> getAllRecordedMotions();
 
 }

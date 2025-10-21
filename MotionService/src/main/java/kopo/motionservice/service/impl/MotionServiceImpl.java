@@ -1,9 +1,5 @@
 package kopo.motionservice.service.impl;
 
-import com.github.kokorin.jaffree.ffmpeg.FFmpeg;
-import com.github.kokorin.jaffree.StreamType;
-import com.github.kokorin.jaffree.ffmpeg.UrlInput;
-import com.github.kokorin.jaffree.ffmpeg.UrlOutput;
 import kopo.motionservice.dto.MotionRecordRequestDTO;
 import kopo.motionservice.repository.RecordedMotionRepository;
 import kopo.motionservice.repository.document.RecordedMotionDocument;
@@ -22,12 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -86,6 +80,7 @@ public class MotionServiceImpl implements IMotionService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public String sendMotionVideoToFastAPI(
             String phrase,
             String detectionArea,
@@ -93,68 +88,46 @@ public class MotionServiceImpl implements IMotionService {
             String trimStart,
             String trimEnd
     ) {
-        log.info("[MotionService] Streaming FFmpeg → FastAPI (no output file): phrase={}, area={}, ss={}, to={}",
-                phrase, detectionArea, trimStart, trimEnd);
+        log.info("[MotionService] Sending Multipart → FastAPI: phrase={}, area={}", phrase, detectionArea);
 
-        // Build a pipe: FFmpeg writes to ffOut, HTTP reads from ffIn
-        final int PIPE_BUF = 1 << 20; // 1MB pipe buffer helps smooth backpressure
-        try (PipedOutputStream ffOut = new PipedOutputStream();
-             PipedInputStream ffIn  = new PipedInputStream(ffOut, PIPE_BUF);
-             CloseableHttpClient httpClient = HttpClients.custom().build()) {
+        // We no longer perform any client-side trimming or FFmpeg processing here.
+        // Simply stream the uploaded MultipartFile to the FastAPI endpoint and
+        // parse the returned JSON payload, then persist it into MongoDB.
 
-            // ---- 1) Kick off FFmpeg in a background thread
-            var es = java.util.concurrent.Executors.newSingleThreadExecutor();
-            var ffTask = es.submit(() -> {
-                try (var inStream = videoFile.getInputStream()) {
-                    // Use the uploaded stream as FFmpeg input (no temp file)
-                    var input = com.github.kokorin.jaffree.ffmpeg.PipeInput.pumpFrom(inStream)
-                            // If input is WebM (typical from MediaRecorder), set format:
-                            .setFormat("webm");
+        ObjectMapper mapper = new ObjectMapper();
 
-                    var out = com.github.kokorin.jaffree.ffmpeg.PipeOutput.pumpTo(ffOut)
-                            .setCodec(StreamType.VIDEO, "copy")
-                            .setCodec(StreamType.AUDIO, "libopus") // re-encode audio for compatibility
-                            .addArgument("-f").addArgument("webm");
-
-                    var ff = FFmpeg.atPath(); // if ffmpeg isn't on PATH: FFmpeg.atPath(Paths.get("C:\\ffmpeg\\bin"))
-
-                    ff.addInput(input);
-
-                    if (trimStart != null && !trimStart.isBlank()) {
-                        ff.addArgument("-ss").addArgument(trimStart);
-                    }
-                    if (trimEnd != null && !trimEnd.isBlank()) {
-                        ff.addArgument("-to").addArgument(trimEnd);
-                    }
-
-                    ff.addOutput(out).execute();
-                } catch (Exception e) {
-                    log.error("[MotionService] FFmpeg streaming failed", e);
-                    // If FFmpeg fails, make sure to close the pipe so the HTTP layer sees EOF
-                } finally {
-                    try { ffOut.close(); } catch (Exception ignore) {}
-                }
-            });
-
-            // ---- 2) Build a streaming multipart request to FastAPI
-            var filePart = new InputStreamResource(ffIn) {
-                @Override public String getFilename() { return "motion.webm"; } // give it a name
-                @Override public long contentLength() { return -1; }           // unknown → chunked
-            };
-
-            var body = new LinkedMultiValueMap<String, Object>();
-            body.add("phrase", phrase);
-            body.add("detectionArea", detectionArea);
-            body.add("videoFile", filePart);
-
-            var headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             var requestFactory = new org.springframework.http.client.HttpComponentsClientHttpRequestFactory(httpClient);
             requestFactory.setConnectTimeout(10_000);
             requestFactory.setReadTimeout(120_000);
 
-            // Important: with InputStreamResource + unknown length, HC5 will stream chunked
+            // Wrap the MultipartFile input stream so RestTemplate can stream it
+            InputStreamResource fileResource = new InputStreamResource(videoFile.getInputStream()) {
+                @Override
+                public String getFilename() {
+                    String name = videoFile.getOriginalFilename();
+                    return (name == null || name.isBlank()) ? "motion.webm" : name;
+                }
+
+                @Override
+                public long contentLength() {
+                    try {
+                        long size = videoFile.getSize();
+                        return size <= 0 ? -1 : size;
+                    } catch (Exception e) {
+                        return -1;
+                    }
+                }
+            };
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("phrase", phrase);
+            body.add("detectionArea", detectionArea);
+            body.add("videoFile", fileResource);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
             var rest = new org.springframework.web.client.RestTemplate(requestFactory);
             var req  = new HttpEntity<>(body, headers);
 
@@ -165,19 +138,123 @@ public class MotionServiceImpl implements IMotionService {
                     String.class
             );
 
-            // Wait for ffmpeg thread to finish (or time out)
-            try { ffTask.get(2, java.util.concurrent.TimeUnit.MINUTES); }
-            catch (Exception e) { ffTask.cancel(true); }
+            String respBody = resp.getBody();
+            log.info("[MotionService] FastAPI responded: status={} bodyLen={}", resp.getStatusCode(), (respBody == null ? 0 : respBody.length()));
 
-            es.shutdownNow();
+            if (respBody == null || respBody.isBlank()) {
+                return "";
+            }
 
-            log.info("[MotionService] FastAPI status={}, bodyLen={}",
-                    resp.getStatusCode(), (resp.getBody() == null ? 0 : resp.getBody().length()));
+            // Parse the JSON response into a Map
+            Map<String, Object> parsed = mapper.readValue(respBody, new TypeReference<Map<String, Object>>() {});
+            Object motionDataObj = parsed.get("motion_data");
 
-            return resp.getBody();
+            RecordedMotionDocument.MotionDataDocument motionDataDocument = new RecordedMotionDocument.MotionDataDocument();
 
-        } catch (IOException e) {
-            log.error("[MotionService] I/O error during streaming", e);
+            if (motionDataObj instanceof Map) {
+                Map<String, Object> motionDataMap = (Map<String, Object>) motionDataObj;
+
+                // face_blendshapes
+                if (motionDataMap.containsKey("face_blendshapes")) {
+                    Object fbObj = motionDataMap.get("face_blendshapes");
+                    if (fbObj instanceof List) {
+                        List<?> fbList = (List<?>) fbObj;
+                        List<RecordedMotionDocument.FaceBlendshapesFrameDocument> fbDocs = new ArrayList<>();
+                        for (Object item : fbList) {
+                            if (!(item instanceof Map)) continue;
+                            Map<String, Object> itemMap = (Map<String, Object>) item;
+                            RecordedMotionDocument.FaceBlendshapesFrameDocument fdoc = new RecordedMotionDocument.FaceBlendshapesFrameDocument();
+                            Number ts = (Number) itemMap.getOrDefault("timestamp_ms", 0);
+                            fdoc.setTimestampMs(ts.longValue());
+
+                            Object valuesObj = itemMap.get("values");
+                            if (valuesObj instanceof Map) {
+                                Map<String, Object> valuesMap = (Map<String, Object>) valuesObj;
+                                // convert numbers to Double
+                                Map<String, Double> converted = valuesMap.entrySet().stream()
+                                        .filter(e -> e.getValue() instanceof Number)
+                                        .collect(Collectors.toMap(Map.Entry::getKey, e -> ((Number) e.getValue()).doubleValue()));
+                                fdoc.setValues(converted);
+                            }
+
+                            fbDocs.add(fdoc);
+                        }
+                        motionDataDocument.setFaceBlendshapes(fbDocs);
+                    }
+                }
+
+                // hand_landmarks
+                if (motionDataMap.containsKey("hand_landmarks")) {
+                    Object hlObj = motionDataMap.get("hand_landmarks");
+                    if (hlObj instanceof List) {
+                        List<?> hlList = (List<?>) hlObj;
+                        List<RecordedMotionDocument.HandLandmarksFrameDocument> hlDocs = new ArrayList<>();
+                        for (Object item : hlList) {
+                            if (!(item instanceof Map)) continue;
+                            Map<String, Object> itemMap = (Map<String, Object>) item;
+                            RecordedMotionDocument.HandLandmarksFrameDocument hdoc = new RecordedMotionDocument.HandLandmarksFrameDocument();
+                            Number ts = (Number) itemMap.getOrDefault("timestamp_ms", 0);
+                            hdoc.setTimestampMs(ts.longValue());
+
+                            // right_hand and left_hand may be null or arrays
+                            Object rightObj = itemMap.get("right_hand");
+                            if (rightObj instanceof List) {
+                                List<?> outer = (List<?>) rightObj;
+                                List<List<Double>> right = new ArrayList<>();
+                                for (Object row : outer) {
+                                    if (row instanceof List) {
+                                        List<?> rowList = (List<?>) row;
+                                        List<Double> coords = new ArrayList<>();
+                                        for (Object v : rowList) {
+                                            if (v instanceof Number) coords.add(((Number) v).doubleValue());
+                                        }
+                                        right.add(coords);
+                                    }
+                                }
+                                hdoc.setRightHand(right);
+                            }
+
+                            Object leftObj = itemMap.get("left_hand");
+                            if (leftObj instanceof List) {
+                                List<?> outer = (List<?>) leftObj;
+                                List<List<Double>> left = new ArrayList<>();
+                                for (Object row : outer) {
+                                    if (row instanceof List) {
+                                        List<?> rowList = (List<?>) row;
+                                        List<Double> coords = new ArrayList<>();
+                                        for (Object v : rowList) {
+                                            if (v instanceof Number) coords.add(((Number) v).doubleValue());
+                                        }
+                                        left.add(coords);
+                                    }
+                                }
+                                hdoc.setLeftHand(left);
+                            }
+
+                            hlDocs.add(hdoc);
+                        }
+                        motionDataDocument.setHandLandmarks(hlDocs);
+                    }
+                }
+            }
+
+            // Build final RecordedMotionDocument and save
+            String mockUserId = "user123"; // TODO: replace with real user extraction from JWT
+
+            RecordedMotionDocument document = RecordedMotionDocument.builder()
+                    .userId(mockUserId)
+                    .phrase((String) parsed.getOrDefault("phrase", phrase))
+                    .motionType((String) parsed.getOrDefault("detectionArea", detectionArea))
+                    .motionData(motionDataDocument)
+                    .build();
+
+            recordedMotionRepository.save(document);
+            log.info("[MotionService] Saved motion to DB recordId={}", document.getRecordId());
+
+            return respBody;
+
+        } catch (Exception e) {
+            log.error("[MotionService] Error sending video to FastAPI or saving result", e);
             return "Error: " + e.getMessage();
         }
     }
@@ -186,5 +263,10 @@ public class MotionServiceImpl implements IMotionService {
     public String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile) {
         // Delegate to the main method with null trimStart/trimEnd
         return sendMotionVideoToFastAPI(phrase, detectionArea, videoFile, null, null);
+    }
+
+    @Override
+    public List<RecordedMotionDocument> getAllRecordedMotions() {
+        return recordedMotionRepository.findAll();
     }
 }

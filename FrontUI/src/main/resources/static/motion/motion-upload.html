@@ -29,7 +29,6 @@
         }
         button:active { transform: translateY(1px); }
         button.alt { background-color: #0ea5e9; }
-        button.warn { background-color: #ef4444; }
         button:disabled { background-color: #9aa0a6; cursor: not-allowed; opacity: .75; }
         input[type="text"], select, input[type="number"] {
             padding: 10px; border-radius: 10px; border: 1px solid #d0d0d0; font-size: 1em;
@@ -39,6 +38,17 @@
         video { background: #111; border-radius: 10px; }
         .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .hint { font-size: .9em; color: #666; margin-top: 6px; }
+        /* visually hidden (accessible) */
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        /* countdown overlay */
+        #countdownOverlay {
+            position: absolute;
+            font-size: 4rem;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+            pointer-events: none;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -47,32 +57,24 @@
 <div id="container">
     <form id="uploadForm" enctype="multipart/form-data">
         <div class="controls-container">
+            <label for="detectionArea" class="sr-only">Detection Area</label>
             <select id="detectionArea" name="detectionArea" required>
                 <option value="hands">손</option>
                 <option value="face">얼굴</option>
                 <option value="eyes">눈</option>
             </select>
+
+            <label for="motionLabel" class="sr-only">Motion Label</label>
             <input type="text" id="motionLabel" name="motionLabel" placeholder="동작 이름 (예: 안녕하세요)" required />
         </div>
 
-        <div style="margin-top:18px; display:flex; flex-direction:column; align-items:center;">
+        <div style="margin-top:18px; display:flex; flex-direction:column; align-items:center; position:relative;">
             <video id="preview" width="360" height="270" controls autoplay muted playsinline></video>
+            <div id="countdownOverlay" aria-hidden="true"></div>
 
             <div class="row" style="margin-top:10px;">
-                <button type="button" id="startBtn" class="alt">녹화 시작</button>
-                <button type="button" id="stopBtn" class="warn" disabled>녹화 종료</button>
+                <button type="button" id="startBtn" class="alt">녹화 시작 (3s)</button>
                 <button type="button" id="resetBtn" disabled>재촬영</button>
-            </div>
-
-            <div id="trimControls" style="margin-top:12px; display:none;">
-                <label>시작(초):
-                    <input type="number" id="trimStart" min="0" value="0" step="0.1" style="width:80px;" />
-                </label>
-                <label>종료(초):
-                    <input type="number" id="trimEnd" min="0" value="0" step="0.1" style="width:80px;" />
-                </label>
-                <button type="button" id="trimFinishBtn" style="margin-left:8px;">Trim Finish</button>
-                <div class="hint">슬라이더 값 변경 후 미리보기는 자동 재생됩니다.</div>
             </div>
         </div>
 
@@ -90,24 +92,24 @@
         const statusDiv = document.getElementById('status');
         const preview = document.getElementById('preview');
         const startBtn = document.getElementById('startBtn');
-        const stopBtn  = document.getElementById('stopBtn');
         const resetBtn = document.getElementById('resetBtn');
         const uploadBtn = document.getElementById('uploadButton');
         const form = document.getElementById('uploadForm');
-        const trimControls = document.getElementById('trimControls');
-        const trimStart = document.getElementById('trimStart');
-        const trimEnd = document.getElementById('trimEnd');
+        const countdownOverlay = document.getElementById('countdownOverlay');
 
         // ---- Config
         const API_GATEWAY_URL = "http://localhost:13000"; // 필요 시 변경
+        const RECORD_SECONDS = 3; // fixed recording length
+        const COUNTDOWN_SECONDS = 3; // 3-2-1 countdown
 
         // ---- State
-        let mediaRecorder, recordedBlobs = [], stream, videoURL, videoDuration = 0;
+        let mediaRecorder, recordedBlobs = [], stream, videoURL;
 
         function enable(el, v = true) { el.disabled = !v; }
         function revokeURLSafe(url) { if (url) URL.revokeObjectURL(url); }
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // ---- Recording
+        // ---- Recording with countdown and fixed duration
         startBtn.onclick = async () => {
             try {
                 recordedBlobs = [];
@@ -137,64 +139,58 @@
                     preview.src = videoURL;
                     preview.controls = true;
 
-                    trimControls.style.display = 'block';
-                    preview.onloadedmetadata = () => {
-                        videoDuration = preview.duration || 0;
-                        if (!videoDuration || !isFinite(videoDuration)) {
-                            setTimeout(() => {
-                                videoDuration = preview.duration || 0;
-                                trimEnd.value = (videoDuration || 0).toFixed(1);
-                                trimEnd.max = (videoDuration || 0).toFixed(1);
-                            }, 300);
-                        } else {
-                            if (trimEnd.value === "0") trimEnd.value = videoDuration.toFixed(1);
-                            trimEnd.max = videoDuration.toFixed(1);
-                        }
-                    };
-
                     enable(resetBtn, true);
+                    statusDiv.textContent = "녹화 완료. 업로드 가능.";
                 };
 
-                mediaRecorder.start();
+                // prepare UI
                 enable(startBtn, false);
-                enable(stopBtn, true);
                 enable(uploadBtn, false);
-                trimControls.style.display = 'none';
+                enable(resetBtn, false);
+                countdownOverlay.style.display = 'block';
+
+                // countdown
+                for (let i = COUNTDOWN_SECONDS; i >= 1; i--) {
+                    countdownOverlay.textContent = i;
+                    statusDiv.textContent = `촬영 시작까지: ${i}`;
+                    await sleep(1000);
+                }
+                countdownOverlay.textContent = "";
+                countdownOverlay.style.display = 'none';
+
+                // start recording
                 statusDiv.textContent = "녹화 중...";
+                mediaRecorder.start();
+
+                // stop automatically after RECORD_SECONDS
+                setTimeout(() => {
+                    try {
+                        mediaRecorder?.stop();
+                        stream?.getTracks()?.forEach(t => t.stop());
+                        enable(uploadBtn, true);
+                        enable(startBtn, true);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }, RECORD_SECONDS * 1000);
             } catch (err) {
                 console.error(err);
                 statusDiv.textContent = "카메라/마이크 권한 필요 또는 장치 접근 실패.";
-            }
-        };
-
-        stopBtn.onclick = () => {
-            try {
-                mediaRecorder?.stop();
-                stream?.getTracks()?.forEach(t => t.stop());
                 enable(startBtn, true);
-                enable(stopBtn, false);
-                enable(uploadBtn, true);
-                statusDiv.textContent = "녹화 종료. 트리밍 가능.";
-            } catch (e) {
-                console.error(e);
+                countdownOverlay.style.display = 'none';
             }
         };
 
+        // reset clears recorded video and returns to ready state
         resetBtn.onclick = () => {
             try {
                 recordedBlobs = [];
-                videoDuration = 0;
-                trimStart.value = "0";
-                trimEnd.value = "0";
-                trimControls.style.display = 'none';
-
                 preview.pause();
                 preview.removeAttribute('src');
                 preview.srcObject = null;
                 revokeURLSafe(videoURL); videoURL = null;
 
                 enable(uploadBtn, true);
-                enable(stopBtn, false);
                 enable(startBtn, true);
                 enable(resetBtn, false);
 
@@ -204,14 +200,12 @@
             }
         };
 
-        // ---- Upload
+        // ---- Upload (no trimming fields)
         form.onsubmit = async (e) => {
             e.preventDefault();
 
             const label = document.getElementById('motionLabel').value?.trim();
             const detectionArea = document.getElementById('detectionArea').value;
-            const trimStartVal = trimStart.value;
-            const trimEndVal = trimEnd.value;
 
             if (!label) {
                 statusDiv.textContent = "동작 이름을 입력해주세요.";
@@ -231,8 +225,6 @@
                 formData.append('motionLabel', label);
                 formData.append('detectionArea', detectionArea);
                 formData.append('videoFile', uploadBlob, 'motion.webm');
-                formData.append('trimStart', trimStartVal);
-                formData.append('trimEnd', trimEndVal);
 
                 const response = await fetch(`${API_GATEWAY_URL}/motions/upload`, {
                     method: 'POST',
