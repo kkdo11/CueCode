@@ -55,6 +55,9 @@ public class SecurityConfig {
                         .pathMatchers("/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 본인확인
                         .pathMatchers("/user/update-name").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
                         .pathMatchers("/user/**").hasAuthority("ROLE_USER")         // 환자만 접근
+                        .pathMatchers("/motions/upload").hasAuthority("ROLE_USER")         // 환자만 접근
+
+
 
 
                         .anyExchange().permitAll()
@@ -72,7 +75,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:14000","http://localhost:13000"));
+        // 프론트 개발 서버(예: python -m http.server 8080)에서 호출할 수 있도록 8080 origin 추가
+        config.setAllowedOrigins(List.of("http://localhost:14000","http://localhost:13000","http://localhost:8080"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
