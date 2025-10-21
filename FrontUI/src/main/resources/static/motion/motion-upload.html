@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
     <link rel="icon" href="data:," />
     <title>MotionLink Demo v0.5 - Motion Upload</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,9 +39,7 @@
         video { background: #111; border-radius: 10px; }
         .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .hint { font-size: .9em; color: #666; margin-top: 6px; }
-        /* visually hidden (accessible) */
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-        /* countdown overlay */
         #countdownOverlay {
             position: absolute;
             font-size: 4rem;
@@ -88,7 +87,64 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    // 유틸: 쿠키 조회
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // JWT 디코딩 후 콘솔에 정보 출력
+    function logDecodedToken(token, source) {
+        try {
+            const decoded = jwt_decode(token);
+            console.group(`🔔 JWT 토큰 디코딩된 개인 정보 (${source})`);
+            console.log('토큰 존재:', true);
+            console.log('발급 시간 (iat):', new Date(decoded.iat * 1000).toLocaleString());
+            console.log('만료 시간 (exp):', new Date(decoded.exp * 1000).toLocaleString());
+            console.log('전체 페이로드:', decoded);
+            console.groupEnd();
+            return decoded;
+        } catch (e) {
+            console.warn(`JWT 디코딩 실패 (${source}):`, e);
+            return null;
+        }
+    }
+
+    // 10초 후 로그인 페이지로 이동하는 헬퍼
+    function redirectToSignInWithDelay(statusEl, url, seconds = 10) {
+        statusEl.textContent = `인증이 필요합니다. ${seconds}초 후 로그인 페이지로 이동합니다...`;
+        setTimeout(() => {
+            window.location.href = url;
+        }, seconds * 1000);
+    }
+
+    // 비동기 인증 확인
+    async function checkAuth(apiBase) {
+        // 1) 클라이언트에서 읽을 수 있는 쿠키가 있다면
+        const token = getCookie('jwtAccessToken');
+        if (token) {
+            logDecodedToken(token, '클라이언트 쿠키 체크');
+            return true;
+        }
+        // 2) httpOnly 쿠키 기반인지 서버로 확인
+        try {
+            const resp = await fetch(`${apiBase}/user/me`, { method: 'GET', credentials: 'include' });
+            if (resp.ok) {
+                console.log('HTTP-Only 쿠키를 통한 서버 인증 성공.');
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('Auth check failed (Server API access error):', e);
+            return false;
+        }
+    }
+
+    const SIGN_IN_PAGE_URL = 'http://localhost:14000/user/sign-in.html';
+
+    document.addEventListener('DOMContentLoaded', async () => {
         const statusDiv = document.getElementById('status');
         const preview = document.getElementById('preview');
         const startBtn = document.getElementById('startBtn');
@@ -98,20 +154,43 @@
         const countdownOverlay = document.getElementById('countdownOverlay');
 
         // ---- Config
-        const API_GATEWAY_URL = "http://localhost:13000"; // 필요 시 변경
-        const RECORD_SECONDS = 3; // fixed recording length
-        const COUNTDOWN_SECONDS = 3; // 3-2-1 countdown
+        const API_GATEWAY_URL = "http://localhost:13000";
+        const RECORD_SECONDS = 3;
+        const COUNTDOWN_SECONDS = 3;
 
         // ---- State
         let mediaRecorder, recordedBlobs = [], stream, videoURL;
+        let loggedIn = false;
 
         function enable(el, v = true) { el.disabled = !v; }
         function revokeURLSafe(url) { if (url) URL.revokeObjectURL(url); }
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+        // 초기 인증 확인
+        loggedIn = await checkAuth(API_GATEWAY_URL);
+        console.log('초기 인증 상태:', loggedIn);
+        if (loggedIn) {
+            statusDiv.textContent = '로그인 상태: 녹화 및 업로드 가능';
+            enable(startBtn, true);
+            enable(uploadBtn, false);
+            enable(resetBtn, false);
+        } else {
+            statusDiv.textContent = '로그인이 필요합니다. 녹화/업로드는 로그인 후 이용해주세요.';
+            enable(startBtn, false);
+            enable(uploadBtn, false);
+            enable(resetBtn, false);
+        }
+
         // ---- Recording with countdown and fixed duration
         startBtn.onclick = async () => {
             try {
+                // 시작 직전 인증 재확인
+                loggedIn = await checkAuth(API_GATEWAY_URL);
+                if (!loggedIn) {
+                    redirectToSignInWithDelay(statusDiv, SIGN_IN_PAGE_URL, 10);
+                    return;
+                }
+
                 recordedBlobs = [];
                 revokeURLSafe(videoURL); videoURL = null;
 
@@ -122,17 +201,14 @@
                 preview.srcObject = stream;
 
                 const options = { mimeType: 'video/webm; codecs=vp9,opus' };
-                try {
-                    mediaRecorder = new MediaRecorder(stream, options);
-                } catch {
-                    mediaRecorder = new MediaRecorder(stream);
-                }
+                try { mediaRecorder = new MediaRecorder(stream, options); }
+                catch { mediaRecorder = new MediaRecorder(stream); }
 
                 mediaRecorder.ondataavailable = (e) => {
                     if (e.data && e.data.size > 0) recordedBlobs.push(e.data);
                 };
 
-                mediaRecorder.onstop = () => {
+                mediaRecorder.onstop = async () => {
                     const superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
                     videoURL = URL.createObjectURL(superBuffer);
                     preview.srcObject = null;
@@ -140,7 +216,9 @@
                     preview.controls = true;
 
                     enable(resetBtn, true);
-                    statusDiv.textContent = "녹화 완료. 업로드 가능.";
+                    loggedIn = await checkAuth(API_GATEWAY_URL);
+                    enable(uploadBtn, loggedIn);
+                    statusDiv.textContent = loggedIn ? "녹화 완료. 업로드 가능." : "녹화 완료. 로그인 필요.";
                 };
 
                 // prepare UI
@@ -162,16 +240,14 @@
                 statusDiv.textContent = "녹화 중...";
                 mediaRecorder.start();
 
-                // stop automatically after RECORD_SECONDS
+                // stop automatically
                 setTimeout(() => {
                     try {
                         mediaRecorder?.stop();
                         stream?.getTracks()?.forEach(t => t.stop());
-                        enable(uploadBtn, true);
                         enable(startBtn, true);
-                    } catch (e) {
-                        console.error(e);
-                    }
+                        enable(uploadBtn, loggedIn);
+                    } catch (e) { console.error(e); }
                 }, RECORD_SECONDS * 1000);
             } catch (err) {
                 console.error(err);
@@ -181,8 +257,8 @@
             }
         };
 
-        // reset clears recorded video and returns to ready state
-        resetBtn.onclick = () => {
+        // reset
+        resetBtn.onclick = async () => {
             try {
                 recordedBlobs = [];
                 preview.pause();
@@ -190,17 +266,16 @@
                 preview.srcObject = null;
                 revokeURLSafe(videoURL); videoURL = null;
 
-                enable(uploadBtn, true);
+                loggedIn = await checkAuth(API_GATEWAY_URL);
+                enable(uploadBtn, loggedIn);
                 enable(startBtn, true);
                 enable(resetBtn, false);
 
-                statusDiv.textContent = "재촬영 준비 완료.";
-            } catch (e) {
-                console.error(e);
-            }
+                statusDiv.textContent = loggedIn ? "재촬영 준비 완료." : "재촬영 준비 완료(로그인 필요).";
+            } catch (e) { console.error(e); }
         };
 
-        // ---- Upload (no trimming fields)
+        // ---- Upload
         form.onsubmit = async (e) => {
             e.preventDefault();
 
@@ -216,6 +291,13 @@
                 return;
             }
 
+            // 업로드 전 인증 재확인
+            loggedIn = await checkAuth(API_GATEWAY_URL);
+            if (!loggedIn) {
+                redirectToSignInWithDelay(statusDiv, SIGN_IN_PAGE_URL, 10);
+                return;
+            }
+
             try {
                 statusDiv.textContent = "업로드 중...";
                 enable(uploadBtn, false);
@@ -228,12 +310,15 @@
 
                 const response = await fetch(`${API_GATEWAY_URL}/motions/upload`, {
                     method: 'POST',
+                    credentials: 'include', // 쿠키 기반 인증
                     body: formData
                 });
 
                 if (response.ok) {
                     const result = await response.text();
                     statusDiv.textContent = `업로드 성공: ${result}`;
+                } else if (response.status === 401) {
+                    redirectToSignInWithDelay(statusDiv, SIGN_IN_PAGE_URL, 10);
                 } else {
                     statusDiv.textContent = `서버 오류: ${response.status}`;
                 }

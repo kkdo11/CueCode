@@ -5,6 +5,7 @@ import kopo.apigateway.jwt.JwtTokenProvider;
 import kopo.apigateway.jwt.JwtTokenType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -47,7 +48,13 @@ public class JwtAuthenticationFilter implements WebFilter {
             Authentication authentication = jwtTokenProvider.getAuthentication(token);
             log.info("Authenticated user: {}, roles: {}", authentication.getName(), authentication.getAuthorities());
 
-            return chain.filter(exchange)
+            // Mutate request to forward Authorization header to downstream services
+            ServerHttpRequest mutatedRequest = request.mutate()
+                    .header(HttpHeaders.AUTHORIZATION, JwtTokenProvider.HEADER_PREFIX + token)
+                    .build();
+            ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
+
+            return chain.filter(mutatedExchange)
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
         }
 

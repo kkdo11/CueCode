@@ -83,7 +83,7 @@ public class JwtTokenProvider {
     // 인증 객체 생성
     public Authentication getAuthentication(String token) {
         TokenDTO rDTO = getTokenInfo(token);
-        String managerId = nvl(rDTO.managerId()); // managerId 추출
+        String userId = nvl(rDTO.userId()); // principal로 userId 사용
         String roles = nvl(rDTO.role());
         Set<GrantedAuthority> pSet = new HashSet<>();
         if (!roles.isEmpty()) {
@@ -91,7 +91,7 @@ public class JwtTokenProvider {
                 pSet.add(new SimpleGrantedAuthority(role));
             }
         }
-        return new UsernamePasswordAuthenticationToken(managerId, "", pSet); // managerId를 Principal 이름으로 사용
+        return new UsernamePasswordAuthenticationToken(userId, "", pSet); // userId를 Principal 이름으로 사용
     }
 
     // 쿠키/헤더에서 토큰 추출
