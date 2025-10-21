@@ -1,3 +1,4 @@
+
 $(function () {
 
     // Header Scroll 복원
@@ -80,14 +81,14 @@ $(function () {
 
 
     function removeCookie(name) {
-      document.cookie = name + '=; Max-Age=0; path=/; domain=localhost; Secure; SameSite=Strict';
+      document.cookie = name + '=; Max-Age=0; path=/; Secure; SameSite=Strict';
     }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.onclick = function() {
         console.log('[프런트] 로그아웃 버튼 클릭됨');
-        fetch('http://localhost:13000/login/user/v1/logout', { method: 'POST', credentials: 'include' })
+        fetch(API_BASE + '/login/user/v1/logout', { method: 'POST', credentials: 'include' })
           .then(res => {
             console.log('[프런트] 로그아웃 fetch 응답:', res);
             return res.text();

@@ -773,3 +773,11 @@ body {
     background-color: #ffffff !important;
     color: #111827 !important;
 }
+
+/* 수정/연결해제 버튼 텍스트 강제 중앙 정렬 */
+#patient-modal #modal-edit-btn,
+#patient-modal #modal-delete-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

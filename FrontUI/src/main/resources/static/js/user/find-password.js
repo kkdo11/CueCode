@@ -37,7 +37,7 @@ sendCodeBtn.onclick = function () {
         Swal.fire({icon: 'warning', text: '올바른 이메일 주소를 입력하세요.'});
         return;
     }
-    fetch('http://localhost:13000/reg/sendMail', {
+    fetch(API_BASE + '/reg/sendMail', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({email: email})
@@ -63,7 +63,7 @@ sendCodeBtn.onclick = function () {
 verifyCodeBtn.onclick = function () {
     const email = emailInput.value.trim();
     const authCode = emailCodeInput.value.trim();
-    fetch('http://localhost:13000/reg/verifyEmailAuth', {
+    fetch(API_BASE + '/reg/verifyEmailAuth', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({email: email, authCode: authCode})
@@ -170,7 +170,7 @@ document.getElementById('findPwForm').onsubmit = function (e) {
     const user_id = document.getElementById('user_id').value;
     const email = document.getElementById('email').value;
     const new_password = pwInput.value;
-    fetch('http://localhost:13000/reg/find/resetPassword', {
+    fetch(API_BASE + '/reg/find/resetPassword', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({user_id, email, new_password})

@@ -86,6 +86,7 @@
     </div>
 </div>
 
+<script src="../js/config.js"></script>
 <script>
     // 유틸: 쿠키 조회
     function getCookie(name) {
@@ -142,7 +143,7 @@
         }
     }
 
-    const SIGN_IN_PAGE_URL = 'http://localhost:14000/user/sign-in.html';
+    const SIGN_IN_PAGE_URL = '/user/sign-in.html';
 
     document.addEventListener('DOMContentLoaded', async () => {
         const statusDiv = document.getElementById('status');
@@ -154,7 +155,7 @@
         const countdownOverlay = document.getElementById('countdownOverlay');
 
         // ---- Config
-        const API_GATEWAY_URL = "http://localhost:13000";
+        const API_GATEWAY_URL = API_BASE;
         const RECORD_SECONDS = 3;
         const COUNTDOWN_SECONDS = 3;
 

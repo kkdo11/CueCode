@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         try {
             console.log('[로그] fetch 요청 시작', {
-                url: 'http://localhost:13000/user/verify-password',
+                url: API_BASE + '/user/verify-password',
                 body: { userId, password }
             });
-            const res = await fetch('http://localhost:13000/user/verify-password', {
+            const res = await fetch(API_BASE + '/user/verify-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, password }),

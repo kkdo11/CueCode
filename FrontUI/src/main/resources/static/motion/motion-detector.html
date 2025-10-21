@@ -39,9 +39,10 @@
     <button id="saveButton">동작 저장</button>
 </div>
 
+<script src="../js/config.js"></script>
 <script type="module">
     // === 설정 값 ===
-    const API_GATEWAY_URL = "http://localhost:13000";
+    const API_GATEWAY_URL = API_BASE;
     const WEBSOCKET_URL = "ws://localhost:8000/ws/motion";
     const SEND_INTERVAL_MS = 100;
     const RECORDING_DURATION_MS = 3000;

@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const res = await fetch('http://localhost:13000/login', {
+                const res = await fetch(API_BASE + '/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, password }),
