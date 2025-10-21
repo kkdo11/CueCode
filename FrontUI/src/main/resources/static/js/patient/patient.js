@@ -8,7 +8,6 @@ function getCookie(name) {
 
 function removeCookie(name) {
     document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-    document.cookie = `${name}=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
 }
 
 // --- [2] 로그아웃 버튼 노출 함수 정의 ---
@@ -19,7 +18,7 @@ function showLogoutButton(userName) {
                 <button id="logoutBtn" class="btn btn-outline-danger px-4 py-2">로그아웃</button>`;
         document.getElementById('logoutBtn').onclick = function() {
             // 서버 로그아웃 API 호출
-            fetch('http://localhost:13000/user/v1/logout', { method: 'POST', credentials: 'include' })
+            fetch(API_BASE + '/user/v1/logout', { method: 'POST', credentials: 'include' })
                 .finally(() => {
                     removeCookie('jwtAccessToken');
                     removeCookie('jwtRefreshToken');

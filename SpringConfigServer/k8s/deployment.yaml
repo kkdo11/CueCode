@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: config-server-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode:config-server-latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode/config-server-latest
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: git

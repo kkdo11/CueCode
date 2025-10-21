@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[프론트] userId:', userId); // userId 추출 직후 로그 추가
     // 사용자 정보 API로 정보 표시
     if (userId) {
-        fetch('http://localhost:13000/user/info?userId=' + encodeURIComponent(userId), {
+        fetch(API_BASE + '/user/info?userId=' + encodeURIComponent(userId), {
             method: 'GET',
             credentials: 'include'
         })
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('[프론트] 감지 범위 조회 요청 body:', { patientId: userId });
 
                     // 감지 범위 조회 요청도 credentials: 'include'를 사용하도록 수정
-                    fetch('http://localhost:13000/patient/detection-area/read', {
+                    fetch(API_BASE + '/patient/detection-area/read', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         // 이름 변경 API 호출
-        const res = await fetch('http://localhost:13000/user/update-name', {
+        const res = await fetch(API_BASE + '/user/update-name', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, newName }),
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         // 아이디 변경 API 호출
-        const res = await fetch('http://localhost:13000/user/update-id', {
+        const res = await fetch(API_BASE + '/user/update-id', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, newId }),
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changeEmailMsg').textContent = '올바른 이메일 주소를 입력하세요.';
             return;
         }
-        fetch('http://localhost:13000/reg/sendMail', {
+        fetch(API_BASE + '/reg/sendMail', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email })
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function verifyChangeEmailCode() {
         const email = document.getElementById('newEmailInput').value.trim();
         const authCode = document.getElementById('emailCodeInput').value.trim();
-        fetch('http://localhost:13000/reg/verifyEmailAuth', {
+        fetch(API_BASE + '/reg/verifyEmailAuth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email, authCode: authCode })
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         // 비밀번호 변경 API 호출
-        const res = await fetch('http://localhost:13000/user/update-password', {
+        const res = await fetch(API_BASE + '/user/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, currentPassword: currentPw, newPassword: newPw }),
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
         new bootstrap.Modal(document.getElementById('changeDetectionAreaModal')).show();
     };
     document.getElementById('saveDetectionAreaBtnMain').onclick = function() {
-        window.location.href = 'http://localhost:14000/index.html';
+        window.location.href = '/index.html';
     };
 
     // 🌟🌟🌟 감지 범위 변경 로직 수정: credentials: 'include' 사용 및 오류 처리 보강 🌟🌟🌟
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('[디버그] 감지 범위 변경 요청 body:', { patientId: userId, detectionAreaType: newDetectionArea });
         let res, data = {};
         try {
-            res = await fetch('http://localhost:13000/patient/detection-area/update', {
+            res = await fetch(API_BASE + '/patient/detection-area/update', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 const token = getCookie('jwtAccessToken');
-                fetch('http://localhost:13000/user/withdrawal', {
+                fetch(API_BASE + '/user/withdrawal', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

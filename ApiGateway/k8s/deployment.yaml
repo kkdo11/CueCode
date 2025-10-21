@@ -19,7 +19,7 @@ spec:
         - name: ncr-secret
       containers:
         - name: api-gateway-app
-          image: cuecode.kr.ncr.ntruss.com/cuecode:api-gateway-latest
+          image: cuecode.kr.ncr.ntruss.com/cuecode/api-gateway:latest
           imagePullPolicy: Always # 항상 최신 이미지를 가져오도록 설정
           ports:
             - name: http
@@ -57,7 +57,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: management # 포트 번호 대신 포트 이름을 사용하는 것이 더 명확함
+              port: 13001 # 포트 번호 대신 포트 이름을 사용하는 것이 더 명확함
             initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:

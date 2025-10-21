@@ -178,7 +178,17 @@ const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const emailVerifyMsg = document.getElementById('emailVerifyMsg');
 let sentCode = null, emailVerified = false, countdownTimer = null, remaining = 0;
 function formatTime(sec){ const m = Math.floor(sec/60).toString().padStart(2,'0'); const s = (sec%60).toString().padStart(2,'0'); return `${m}:${s}`; }
-function startCountdown(seconds){ remaining = seconds; document.getElementById('countdown').textContent = formatTime(remaining); clearInterval(countdownTimer); countdownTimer = setInterval(()=>{ remaining--; document.getElementById('countdown').textContent = formatTime(Math.max(remaining,0)); if(remaining<=0){ clearInterval(countdownTimer); emailVerifyMsg.textContent = '인증 시간이 만료되었습니다.'; verifyCodeBtn.disabled = true; sendCodeBtn.disabled = false; sendCodeBtn.textContent = '인증번호 재발송'; } },1000); }
+function startCountdown(seconds){ remaining = seconds; document.getElementById('countdown').textContent = formatTime(remaining); clearInterval(countdownTimer); countdownTimer = setInterval(()=>{
+ remaining--;
+ document.getElementById('countdown').textContent = formatTime(Math.max(remaining,0));
+ if(remaining<=0){
+ clearInterval(countdownTimer);
+ emailVerifyMsg.textContent = '인증 시간이 만료되었습니다.';
+ verifyCodeBtn.disabled = true;
+ sendCodeBtn.disabled = false;
+ sendCodeBtn.textContent = '인증번호 재발송';
+ }
+},1000); }
 sendCodeBtn.onclick = function() {
     const email = emailInput.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -189,7 +199,7 @@ sendCodeBtn.onclick = function() {
         return;
     }
     // 서버로 이메일만 전송, 인증번호 및 HTML 메일 발송은 백엔드에서 처리
-    fetch('http://localhost:13000/reg/sendMail', {
+    fetch(API_BASE + '/reg/sendMail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email })
@@ -226,7 +236,7 @@ verifyCodeBtn.onclick = function() {
     const email = emailInput.value.trim();
     const authCode = emailCodeInput.value.trim();
     // 서버 인증 요청
-    fetch('http://localhost:13000/reg/verifyEmailAuth', {
+    fetch(API_BASE + '/reg/verifyEmailAuth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, authCode: authCode })
@@ -276,9 +286,9 @@ function submitForm() {
     const email = document.getElementById('email').value;
     let url = '';
     if (role === 'patient') {
-        url = `http://localhost:13000/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
+        url = API_BASE + `/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
     } else {
-        url = `http://localhost:13000/reg/insertManager?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`;
+        url = API_BASE + `/reg/insertManager?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`;
     }
     fetch(url, { method: 'POST' })
         .then(res => res.text())
@@ -315,7 +325,7 @@ checkIdBtn.onclick = function() {
         return;
     }
     // 중복 확인 요청
-    fetch(`http://localhost:13000/reg/checkUserId?user_id=${encodeURIComponent(userId)}`)
+    fetch(API_BASE + `/reg/checkUserId?user_id=${encodeURIComponent(userId)}`)
         .then(res => res.json())
         .then(data => {
             if (data.available) {

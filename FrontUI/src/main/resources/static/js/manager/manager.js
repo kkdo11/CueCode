@@ -8,7 +8,6 @@ function getCookie(name) {
 
 function removeCookie(name) {
     document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-    document.cookie = `${name}=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
 }
 
 // --- [2] 로그아웃 버튼 노출 함수 정의 ---
@@ -19,7 +18,7 @@ function showLogoutButton(userName) {
                 <button id="logoutBtn" class="btn btn-outline-danger px-4 py-2">로그아웃</button>`;
         document.getElementById('logoutBtn').onclick = function () {
             // 서버 로그아웃 API 호출
-            fetch('http://localhost:13000/user/v1/logout', {method: 'POST', credentials: 'include'})
+            fetch(API_BASE + '/user/v1/logout', {method: 'POST', credentials: 'include'})
                 .finally(() => {
                     removeCookie('jwtAccessToken');
                     removeCookie('jwtRefreshToken');
@@ -137,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ---- 역할(임시) ----
     window.userRole = 'ROLE_USER_MANAGER';
     try {
-        const me = await fetch('http://localhost:13000/user/me', {credentials: 'include'});
+        const me = await fetch(API_BASE + '/user/me', {credentials: 'include'});
         if (me.ok) {
             const data = await me.json();
             console.log('/user/me', data);
@@ -150,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ---- API helpers ----
     async function getManagerIdFromAPI() {
         try {
-            const res = await fetch('http://localhost:13000/user/me', {credentials: 'include'});
+            const res = await fetch(API_BASE + '/user/me', {credentials: 'include'});
             if (!res.ok) return null;
             const data = await res.json();
             return data.managerId ?? null;
@@ -169,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const res = await fetch(`http://localhost:13000/patient/list?managerId=${encodeURIComponent(managerId)}`, {
+            const res = await fetch(API_BASE + `/patient/list?managerId=${encodeURIComponent(managerId)}`, {
                 credentials: 'include'
             });
 
@@ -197,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           `;
                 tr.addEventListener('click', async () => {
                     try {
-                        const d = await fetch(`http://localhost:13000/patient/detail?id=${encodeURIComponent(p.id)}`, {
+                        const d = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(p.id)}`, {
                             credentials: 'include'
                         });
                         if (d.ok) {
@@ -278,7 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             resultIcon?.setAttribute('icon', 'solar:clock-circle-linear');
 
             try {
-                const res = await fetch(`http://localhost:13000/patient/detail?id=${encodeURIComponent(id)}`, {
+                const res = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(id)}`, {
                     credentials: 'include'
                 });
                 if (res.ok) {
@@ -324,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             setLoading(addBtn, true);
             try {
-                const res = await fetch('http://localhost:13000/manager/addPatient', {
+                const res = await fetch(API_BASE + '/manager/addPatient', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     credentials: 'include',
@@ -435,7 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .split(',').map(s => s.trim()).filter(Boolean);
 
         try {
-            const res = await fetch('http://localhost:13000/patient/update', {
+            const res = await fetch(API_BASE + '/patient/update', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
@@ -469,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!confirm(`정말로 환자(${currentPatient.name})와의 연결을 해제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
 
         try {
-            const res = await fetch('http://localhost:13000/patient/unlink-manager', {
+            const res = await fetch(API_BASE + '/patient/unlink-manager', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',

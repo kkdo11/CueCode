@@ -50,6 +50,7 @@
     </form>
     <div class="msg" id="msg"></div>
 </div>
+<script src="../js/config.js"></script>
 <script>
     let role = 'patient';
     document.getElementById('patientBtn').onclick = function() {
@@ -74,9 +75,9 @@
         let url = '';
         if (role === 'patient') {
             const detectionAreaType = document.querySelector('input[name="detectionAreaType"]:checked').value;
-            url = `http://localhost:13000/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
+            url = API_BASE + `/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
         } else {
-            url = `http://localhost:13000/reg/insertManager?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`;
+            url = API_BASE + `/reg/insertManager?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`;
         }
         try {
             const res = await fetch(url, { method: 'POST' });
