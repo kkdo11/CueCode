@@ -16,7 +16,7 @@ document.getElementById('contact-form').addEventListener('submit', function(even
 
     const formData = { name, email, message };
 
-    fetch(API_BASE + 'api/users/contact', {
+    fetch(API_BASE + '/users/contact', {
         method: 'POST',
         credentials: 'include',
             headers: {
