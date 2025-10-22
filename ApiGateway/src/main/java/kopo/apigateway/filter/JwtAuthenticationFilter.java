@@ -100,7 +100,8 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/login",
             "/reg",
             "/actuator",
-            "/api/login"
+            "/api/login",
+            "/api/reg"
     );
 
     @Override
