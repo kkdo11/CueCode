@@ -28,6 +28,9 @@ spec:
             limits:
               cpu: "400m"
               memory: "512Mi"
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: json
           readinessProbe:
             httpGet:
               # [수정] React/Vue 등 정적 프론트엔드에 맞는 경로로 수정

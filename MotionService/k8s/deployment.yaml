@@ -17,7 +17,7 @@ spec:
         image: cuecode.kr.ncr.ntruss.com/cuecode:motion-service-latest
         env:
         - name: SPRING_PROFILES_ACTIVE
-          value: prod
+          value: prod,json
         - name: JWT_SECRET # motion-prod.yml의 ${JWT_SECRET}에 주입될 값
           valueFrom:
             secretKeyRef:
