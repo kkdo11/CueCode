@@ -12,17 +12,19 @@ spring:
       max-request-size: 100MB
   cloud:
     gateway:
-      # [수정] 라우팅 규칙 섹션을 추가하고 빈 목록으로 설정하여,
-      # Config Server 설정이 전체 라우팅 목록을 완전히 덮어쓰도록 유도합니다.
-      routes: []
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:14000"
-            allowedMethods:
-              - GET
-              - POST
-            allowedHeaders: "*"
+      server:
+        webflux:
+          # [수정] 라우팅 규칙 섹션을 추가하고 빈 목록으로 설정하여,
+          # Config Server 설정이 전체 라우팅 목록을 완전히 덮어쓰도록 유도합니다.
+          routes: []
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "http://localhost:14000"
+                allowedMethods:
+                  - GET
+                  - POST
+                allowedHeaders: "*"
 
 
 logging:
