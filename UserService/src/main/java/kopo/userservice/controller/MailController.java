@@ -17,7 +17,6 @@ public class MailController {
 
     private final IMailService mailService;
     @PostMapping("/contact")
-
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> contactUs(@RequestBody ContactFormDTO contactForm) {
         log.info(this.getClass().getName() + ".contactUs start!");

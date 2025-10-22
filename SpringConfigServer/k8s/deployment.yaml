@@ -17,7 +17,7 @@ spec:
         image: cuecode.kr.ncr.ntruss.com/cuecode/config-server-latest
         env:
         - name: SPRING_PROFILES_ACTIVE
-          value: git
+          value: git,json
         - name: GIT_USERNAME
           valueFrom:
             secretKeyRef:
@@ -28,6 +28,8 @@ spec:
             secretKeyRef:
               name: git-credentials-secret
               key: password
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xms256m -Xmx768m"
         ports:
         - containerPort: 8888
         resources:

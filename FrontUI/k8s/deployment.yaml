@@ -8,7 +8,9 @@ spec:
   selector:
     matchLabels:
       app: front-ui
-  template:
+    Environment:
+      SPRING_PROFILES_ACTIVE:  json
+      JAVA_TOOL_OPTIONS:       "-Xms128m -Xmx512m"
     metadata:
       labels:
         app: front-ui
@@ -23,22 +25,20 @@ spec:
             - containerPort: 14000
           resources:
             requests:
-              cpu: "200m"
+              cpu: "100m"
               memory: "256Mi"
             limits:
-              cpu: "400m"
+              cpu: "200m"
               memory: "512Mi"
           readinessProbe:
             httpGet:
-              # [수정] React/Vue 등 정적 프론트엔드에 맞는 경로로 수정
               path: /
               port: 14000
-            initialDelaySeconds: 10 # 정적 파일은 시작이 빠르므로 시간을 줄여도 좋습니다.
+            initialDelaySeconds: 90
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              # [수정] React/Vue 등 정적 프론트엔드에 맞는 경로로 수정
               path: /
               port: 14000
-            initialDelaySeconds: 20
+            initialDelaySeconds: 90
             periodSeconds: 15

@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .pathMatchers(
                                 "/user/reg/**",      // 회원가입
                                 "/api/login/**",
-                                "/reg/**",
+                                "/api/reg/**",
                                 "/user/actuator/**", // ✅ 게이트웨이 경유 액추에이터
                                 "/actuator/**",
                                 "/swagger-ui/**", "/v3/api-docs/**"
