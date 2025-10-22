@@ -40,7 +40,7 @@ public class SecurityConfig {
         http.authorizeExchange(authz -> authz
                         .pathMatchers(
                                 "/user/reg/**",      // 회원가입
-                                "/login/**",
+                                "/api/login/**",
                                 "/reg/**",
                                 "/user/actuator/**", // ✅ 게이트웨이 경유 액추에이터
                                 "/actuator/**",
