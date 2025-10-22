@@ -2,8 +2,8 @@ package kopo.motionservice.handler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kopo.motionservice.service.matching.MotionMatchingService;
-import kopo.motionservice.service.matching.MotionMatchingService.MatchResult;
+import kopo.motionservice.dto.MatchResultDTO;
+import kopo.motionservice.service.IMotionDetectorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,27 +13,26 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class MotionHandler extends TextWebSocketHandler {
 
-    private final MotionMatchingService matchingService;
+    private final IMotionDetectorService matchingService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     // per-session buffers of frames (each frame is double[] feature vector)
     private final Map<String, List<double[]>> buffers = new ConcurrentHashMap<>();
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    public void afterConnectionEstablished(WebSocketSession session) {
         log.info("[MotionHandler] New client connected: {}", session.getId());
         buffers.put(session.getId(), new ArrayList<>());
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) {
         log.info("[MotionHandler] Client disconnected: {}", session.getId());
         buffers.remove(session.getId());
     }
@@ -71,7 +70,7 @@ public class MotionHandler extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage(mapper.writeValueAsString(Map.of("type", "match", "matched", false, "reason", "empty_sequence"))));
                     return;
                 }
-                MatchResult res = matchingService.matchSequence(seq, detectionArea == null ? "face" : detectionArea);
+                MatchResultDTO res = matchingService.matchSequence(seq, detectionArea == null ? "face" : detectionArea);
                 Map<String, Object> out = new HashMap<>();
                 out.put("type", "match");
                 out.put("matched", res.getRecordId() != null);
