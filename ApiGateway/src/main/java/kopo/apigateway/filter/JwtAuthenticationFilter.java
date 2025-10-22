@@ -99,7 +99,8 @@ public class JwtAuthenticationFilter implements WebFilter {
     private final List<String> skipPaths = List.of(
             "/login",
             "/reg",
-            "/actuator"
+            "/actuator",
+            "/api/login"
     );
 
     @Override
