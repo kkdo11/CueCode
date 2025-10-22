@@ -1,6 +1,8 @@
-package kopo.motionservice.service.matching;
+package kopo.motionservice.service.impl;
 
+import kopo.motionservice.dto.MatchResultDTO;
 import kopo.motionservice.repository.document.RecordedMotionDocument;
+import kopo.motionservice.service.IMotionDetectorService;
 import kopo.motionservice.service.IMotionService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,7 +18,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MotionMatchingService {
+public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private final IMotionService motionService;
 
@@ -29,7 +31,7 @@ public class MotionMatchingService {
     }
 
     public void reloadCache() {
-        log.info("[MotionMatchingService] Reloading cache from DB via IMotionService...");
+        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
         Map<String, CachedMotion> tmp = new HashMap<>();
         for (RecordedMotionDocument doc : all) {
@@ -37,16 +39,17 @@ public class MotionMatchingService {
                 CachedMotion cm = buildCachedMotion(doc);
                 if (cm != null) tmp.put(doc.getRecordId(), cm);
             } catch (Exception e) {
-                log.warn("[MotionMatchingService] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
+                log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
             }
         }
         cache.clear();
         cache.putAll(tmp);
-        log.info("[MotionMatchingService] Cache loaded. {} motions cached.", cache.size());
+        log.info("[MotionDetectorServiceImpl] Cache loaded. {} motions cached.", cache.size());
     }
 
-    public MatchResult matchSequence(List<double[]> liveSequence, String detectionArea) {
-        if (liveSequence == null || liveSequence.isEmpty()) return MatchResult.noMatch();
+    @Override
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+        if (liveSequence == null || liveSequence.isEmpty()) return MatchResultDTO.noMatch();
 
         double bestScore = Double.POSITIVE_INFINITY;
         CachedMotion best = null;
@@ -60,9 +63,9 @@ public class MotionMatchingService {
             }
         }
 
-        if (best == null) return MatchResult.noMatch();
+        if (best == null) return MatchResultDTO.noMatch();
 
-        return new MatchResult(best.recordId, best.phrase, best.motionType, bestScore);
+        return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
     }
 
     // simple matching rule: motionType contains detectionArea (case-insensitive)
@@ -81,7 +84,7 @@ public class MotionMatchingService {
             doc.getMotionData().getFaceBlendshapes().forEach(f -> {
                 if (f.getValues() != null) keySet.addAll(f.getValues().keySet());
             });
-            List<String> keys = keySet.stream().sorted().collect(Collectors.toList());
+            List<String> keys = keySet.stream().sorted().toList();
             if (keys.isEmpty()) return null;
 
             List<double[]> seq = new ArrayList<>();
@@ -203,18 +206,5 @@ public class MotionMatchingService {
         private String phrase;
         private String motionType;
         private double[][] sequence; // precomputed per-frame feature vectors
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class MatchResult {
-        private String recordId;
-        private String phrase;
-        private String motionType;
-        private double score;
-
-        public static MatchResult noMatch() {
-            return new MatchResult(null, null, null, Double.POSITIVE_INFINITY);
-        }
     }
 }
