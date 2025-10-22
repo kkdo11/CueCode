@@ -28,6 +28,8 @@ spec:
             secretKeyRef:
               name: git-credentials-secret
               key: password
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xms256m -Xmx768m"
         ports:
         - containerPort: 8888
         resources:

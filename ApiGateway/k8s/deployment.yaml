@@ -46,6 +46,8 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: JWT_SECRET_KEY
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms256m -Xmx512m -XX:+UseG1GC"
           resources:
             requests:
               cpu: "250m"
