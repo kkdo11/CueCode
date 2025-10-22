@@ -75,10 +75,7 @@ public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
             auths = Arrays.stream(authoritiesHeader.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .map(s -> {
-                        if (s.startsWith("ROLE_")) return s;
-                        return s.startsWith("ROLE") ? s : "ROLE_" + s; // 안전하게 ROLE_ 접두사 보장
-                    })
+                    .map(s -> s.startsWith("ROLE_") ? s : "ROLE_" + s) // ROLE_ 접두사 보장
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         }
