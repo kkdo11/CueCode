@@ -8,7 +8,9 @@ spec:
   selector:
     matchLabels:
       app: front-ui
-  template:
+    Environment:
+      SPRING_PROFILES_ACTIVE:  json
+      JAVA_TOOL_OPTIONS:       "-Xms128m -Xmx512m"
     metadata:
       labels:
         app: front-ui
