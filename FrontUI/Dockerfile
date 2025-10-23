@@ -3,11 +3,13 @@ FROM gradle:8.4-jdk17-alpine AS build
 WORKDIR /app
 
 # 1. Copy only dependency-related files first
-COPY build.gradle settings.gradle ./
+# [수정] gradlew 실행 파일을 함께 복사합니다.
+COPY build.gradle settings.gradle gradlew ./
 COPY gradle ./gradle
 
 # 2. Download dependencies. This layer is cached as long as build.gradle doesn't change.
-RUN ./gradlew dependencies
+# [수정] gradlew에 실행 권한을 부여합니다.
+RUN chmod +x ./gradlew && ./gradlew dependencies
 
 # 3. Copy the rest of the source code
 COPY src ./src
@@ -25,5 +27,6 @@ WORKDIR /app
 # Copy the renamed jar from the build stage
 COPY --from=build /app/build/libs/app.jar /app/app.jar
 
+# 각 서비스에 맞는 포트 번호로 수정해야 합니다.
 EXPOSE 14000
 ENTRYPOINT ["java","-jar","/app/app.jar"]
