@@ -24,12 +24,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MotionServiceImpl implements IMotionService {
 
     private final RecordedMotionRepository recordedMotionRepository;
+
+    @Value("${cuecodemotion.url}")
+    private String cuecodeMotionBaseUrl;
 
     @Override
     public void saveRecordedMotion(MotionRecordRequestDTO requestDTO) {
@@ -132,7 +137,7 @@ public class MotionServiceImpl implements IMotionService {
             var req  = new HttpEntity<>(body, headers);
 
             ResponseEntity<String> resp = rest.exchange(
-                    "http://localhost:8000/api/process-motion",
+                    cuecodeMotionBaseUrl + "/api/process-motion",
                     HttpMethod.POST,
                     req,
                     String.class
