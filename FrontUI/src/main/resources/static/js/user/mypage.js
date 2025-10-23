@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showConfirmButton: false
                 });
                 setTimeout(function() {
-                    window.location.href = '/user/myinfo.html';
+                    window.location.href = '/user/myInfo.html';
                 }, 1200);
                 // TODO: 사용자 정보 수정 폼 활성화 코드 추가
             } else {
