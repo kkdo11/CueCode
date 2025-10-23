@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: front-ui-deployment
 spec:
+  # [KISS] 복제본 수는 1로 유지
   replicas: 1
   selector:
     matchLabels:
@@ -14,9 +15,9 @@ spec:
     spec:
       containers:
         - name: front-ui-app
-          # [개선] :latest 대신 특정 버전 태그 사용
+          # [개선/일관성] :latest 대신 특정 버전 태그를 사용
           image: cuecode.kr.ncr.ntruss.com/cuecode/front-ui:latest
-          # [권장] imagePullPolicy를 추가하여 항상 새 이미지를 가져오도록 강제
+          # [권장/일관성] 항상 새 이미지를 가져오도록 강제
           imagePullPolicy: Always
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -25,6 +26,7 @@ spec:
               value: "-Xms128m -Xmx256m"
           ports:
             - containerPort: 14000
+          # [SRP] 리소스 요청 및 제한 명확화 (운영 안정성)
           resources:
             requests:
               cpu: "50m"
@@ -32,15 +34,19 @@ spec:
             limits:
               cpu: "100m"
               memory: "512Mi"
+          # [SRP] Readiness Probe: 트래픽 수신 준비 확인 (민첩하게 확인)
           readinessProbe:
             httpGet:
               path: /
               port: 14000
             initialDelaySeconds: 90
             periodSeconds: 10
+            failureThreshold: 3 # 가독성 향상
+          # [SRP/Holistic View] Liveness Probe: 컨테이너 생존 확인 (보수적으로 확인)
           livenessProbe:
             httpGet:
               path: /
               port: 14000
-            initialDelaySeconds: 90
-            periodSeconds: 15
+            initialDelaySeconds: 120 # Readiness보다 길게 설정하여 시작 중 재시작 방지
+            periodSeconds: 30        # 장애 감지 주기를 늘려 불필요한 재시작 방지
+            failureThreshold: 5      # 장애 감지 시간 명확화
