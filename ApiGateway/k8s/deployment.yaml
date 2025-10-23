@@ -52,10 +52,10 @@ spec:
             requests:
               cpu: "200m"
               # [수정] 올바른 들여쓰기 적용
-              memory: "512Mi"
+              memory: "384Mi"
             limits:
               cpu: "500m"
-              memory: "1Gi"
+              memory: "768Mi"
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

@@ -29,16 +29,16 @@ spec:
               name: git-credentials-secret
               key: password
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xms256m -Xmx768m"
+          value: "-Xms256m -Xmx512m"
         ports:
         - containerPort: 8888
         resources:
           requests:
             cpu: "50m"
-            memory: "512Mi"
+            memory: "384Mi"
           limits:
             cpu: "100m"
-            memory: "1Gi"
+            memory: "768Mi"
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
