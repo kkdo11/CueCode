@@ -30,10 +30,7 @@
 .env
 .env.*
 
-# Exclude Gradle wrapper files (if not needed in build context)
-gradlew
-gradlew.bat
-gradle/wrapper/gradle-wrapper.jar
+
 
 # Exclude DevSpace configuration (if not needed in build context)
 devspace.yaml
