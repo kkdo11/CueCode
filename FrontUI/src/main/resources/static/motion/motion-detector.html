@@ -298,6 +298,11 @@
         #stopDetectionBtn { background-color: #EF4444; }
         #status { margin-top: 10px; color: #555; }
         #detectedPhrase { font-size: 1.5rem; color: #007bff; margin-top: 15px; min-height: 2em; }
+
+        /* detect button styles (added) */
+        .detect-btns { display:flex; gap:12px; justify-content:center; margin: 12px 0; }
+        .detect-btn { padding:8px 14px; border-radius:8px; border:1px solid #e0e0e0; background:#fff; color:#333; cursor:pointer; min-width:88px; font-weight:600; }
+        .detect-btn.active { background:#6FC8F8; color:#fff; border-color:#6FC8F8; }
     </style>
     <script type="module" src="/vendor/mediapipe/js/vision_bundle.js"></script>
 </head>
@@ -312,6 +317,13 @@
 <div>
     <button id="startDetectionBtn">동작 인식 시작</button>
     <button id="stopDetectionBtn" disabled>동작 인식 종료</button>
+</div>
+
+<!-- Detection area selector (hands / face / eyes) -->
+<div class="detect-btns" id="detectAreaBtns">
+    <button class="detect-btn active" data-value="hands" id="detectHandsBtn">손</button>
+    <button class="detect-btn" data-value="face" id="detectFaceBtn">얼굴</button>
+    <button class="detect-btn" data-value="eyes" id="detectEyesBtn">눈</button>
 </div>
 
 <div id="status">상태: 대기 중</div>
@@ -337,6 +349,29 @@
     let lastVideoTime = -1, lastSendTime = 0;
     let frameCount = 0;
     const FRAMES_BEFORE_END = 10; // Now triggers every ~1 second (10 x 100ms)
+
+    // user-selected detection area: 'hands' | 'face' | 'eyes' (default: hands)
+    let selectedDetectionArea = 'hands';
+
+    function getNormalizedDetectionArea(raw) {
+        if (!raw) return 'hand';
+        if (raw === 'hands') return 'hand';
+        // treat 'face' and 'eyes' as face blendshapes
+        return 'face';
+    }
+
+    // wire up detect buttons
+    function setupDetectAreaButtons() {
+        const container = document.getElementById('detectAreaBtns');
+        if (!container) return;
+        container.querySelectorAll('.detect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                container.querySelectorAll('.detect-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedDetectionArea = btn.dataset.value || 'hands';
+            });
+        });
+    }
 
     async function createLandmarkers() {
         const vision = await FilesetResolver.forVisionTasks("/vendor/mediapipe/wasm");
@@ -373,10 +408,12 @@
             : {};
 
         const getHandData = (handednesses, landmarks, handName) => {
-            const idx = handednesses.findIndex(h => h[0].categoryName === handName);
+            if (!handednesses || !landmarks) return null;
+            const idx = handednesses.findIndex(h => (h[0] && h[0].categoryName) === handName);
             return idx > -1 ? landmarks[idx].map(p => [p.x, p.y, p.z]) : null;
         };
 
+        // build frame object (kept for potential local use)
         const frame = {
             timestamp_ms: Date.now(),
             face_blendshapes: faceBlendshapes,
@@ -384,21 +421,74 @@
             right_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Right")
         };
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        // Based on user selection, prepare features
+        const normalizedArea = getNormalizedDetectionArea(selectedDetectionArea);
+        let features = null;
+
+        if (normalizedArea === 'face') {
+            // if no face blendshapes, skip sending
+            if (Object.keys(faceBlendshapes).length === 0) return;
+            // ensure deterministic ordering: sort keys and build features accordingly
+            const featureKeys = Object.keys(faceBlendshapes).sort();
+            features = featureKeys.map(k => Number(faceBlendshapes[k] || 0));
+
             socket.send(JSON.stringify({
                 type: "frame",
-                detectionArea: Object.keys(faceBlendshapes).length > 0 ? "face" : "hand",
+                detectionArea: normalizedArea,
                 timestamp_ms: frame.timestamp_ms,
-                features: Object.values(faceBlendshapes)
+                featureKeys: featureKeys,
+                features: features
             }));
+
+            // increment frameCount and possibly send end below (do not fallthrough to generic send)
             frameCount++;
             if (frameCount >= FRAMES_BEFORE_END) {
                 socket.send(JSON.stringify({
                     type: "end",
-                    detectionArea: Object.keys(faceBlendshapes).length > 0 ? "face" : "hand"
+                    detectionArea: normalizedArea
                 }));
                 frameCount = 0;
             }
+            return;
+        } else { // 'hand'
+            const right = frame.right_hand_landmarks || null;
+            const left = frame.left_hand_landmarks || null;
+            if ((!Array.isArray(right) || right.length === 0) && (!Array.isArray(left) || left.length === 0)) {
+                // no hand data -> skip
+                return;
+            }
+            // determine max point count
+            const pointCount = Math.max((right && right.length) || 0, (left && left.length) || 0);
+            const vec = [];
+            for (let i = 0; i < pointCount; i++) {
+                if (right && right[i] && right[i].length >= 3) { vec.push(Number(right[i][0]||0), Number(right[i][1]||0), Number(right[i][2]||0)); }
+                else { vec.push(0,0,0); }
+            }
+            for (let i = 0; i < pointCount; i++) {
+                if (left && left[i] && left[i].length >= 3) { vec.push(Number(left[i][0]||0), Number(left[i][1]||0), Number(left[i][2]||0)); }
+                else { vec.push(0,0,0); }
+            }
+            features = vec;
+        }
+
+        if (!features) return;
+
+        socket.send(JSON.stringify({
+            type: "frame",
+            detectionArea: normalizedArea,
+            timestamp_ms: frame.timestamp_ms,
+            features: features
+        }));
+
+        frameCount++;
+        if (frameCount >= FRAMES_BEFORE_END) {
+            socket.send(JSON.stringify({
+                type: "end",
+                detectionArea: normalizedArea
+            }));
+            frameCount = 0;
         }
     }
 
@@ -482,7 +572,8 @@
     stopBtn.onclick = () => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             detectionActive = false;
-            socket.send(JSON.stringify({ type: "end", detectionArea: "face" }));
+            // send explicit end with the user-selected area
+            socket.send(JSON.stringify({ type: "end", detectionArea: getNormalizedDetectionArea(selectedDetectionArea) }));
             socket.close();
         }
     };
@@ -490,6 +581,7 @@
     // === initialize ===
     await createLandmarkers();
     enableCam();
+    setupDetectAreaButtons();
 </script>
 </body>
 </html>
