@@ -5,6 +5,7 @@ import java.util.List;
 
 public interface IMotionDetectorService {
     void reloadCache();
-    MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea);
+    // userId 매개변수를 추가합니다.
+    MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea, String userId);
     // Add other methods as needed from the implementation
 }

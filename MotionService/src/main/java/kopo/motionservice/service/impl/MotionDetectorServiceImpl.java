@@ -39,6 +39,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 CachedMotion cm = buildCachedMotion(doc);
                 if (cm != null) tmp.put(doc.getRecordId(), cm);
             } catch (Exception e) {
+                // 원래 코드의 로깅 방식을 유지
                 log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
             }
         }
@@ -48,13 +49,23 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
     }
 
     @Override
-    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea, String userId) {
         if (liveSequence == null || liveSequence.isEmpty()) return MatchResultDTO.noMatch();
 
         double bestScore = Double.POSITIVE_INFINITY;
         CachedMotion best = null;
 
-        for (CachedMotion cm : cache.values()) {
+        // Filter cache for the given userId
+        Collection<CachedMotion> userMotions = cache.values().stream()
+                .filter(cm -> userId == null || userId.isBlank() || userId.equals(cm.getUserId()))
+                .collect(Collectors.toList());
+
+        if (userMotions.isEmpty()) {
+            log.warn("[MotionDetectorServiceImpl] No cached motions found for user: {}", userId);
+            return MatchResultDTO.noMatch();
+        }
+
+        for (CachedMotion cm : userMotions) {
             if (!matchesArea(cm.motionType, detectionArea)) continue;
 
             // If cached motion is hand-type, align and normalize the live sequence to cached dimensionality
@@ -65,7 +76,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 alignedLive = alignAndNormalizeLiveHandSequence(liveSequence, dims);
             }
 
-            double score = dtwDistance(alignedLive, cm.sequence);
+            double score = dtwDistance(alignedLive, cm.sequence); // 원래 DTW 로직 사용 (정규화 포함)
             if (score < bestScore) {
                 bestScore = score;
                 best = cm;
@@ -86,6 +97,8 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
     private CachedMotion buildCachedMotion(RecordedMotionDocument doc) {
         if (doc.getMotionData() == null) return null;
         String motionType = doc.getMotionType();
+        String userId = doc.getUserId(); // userId 추출
+
         // Prefer face_blendshapes if available, otherwise use hand_landmarks
         if (doc.getMotionData().getFaceBlendshapes() != null && !doc.getMotionData().getFaceBlendshapes().isEmpty()) {
             // Build ordered list of keys across frames
@@ -105,7 +118,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 }
                 seq.add(vec);
             }
-            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, seq.toArray(new double[0][]));
+            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, userId, seq.toArray(new double[0][]));
         }
 
         // hand landmarks: flatten [right_hand then left_hand] per frame
@@ -161,7 +174,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
             // Normalize cached hand sequence per-frame (center & scale) to improve invariance
             List<double[]> normalized = normalizeHandSequence(seq, pointCount);
-            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, normalized.toArray(new double[0][]));
+            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, userId, normalized.toArray(new double[0][]));
         }
 
         return null;
@@ -307,6 +320,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         private String recordId;
         private String phrase;
         private String motionType;
+        private String userId; // userId 필드 추가
         private double[][] sequence; // precomputed per-frame feature vectors
     }
 }
