@@ -27,19 +27,38 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     @PostConstruct
     public void init() {
-        reloadCache();
+        reloadCache(null); // Pass null to load all data initially
     }
 
-    public void reloadCache() {
-        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
+//    public void reloadCache() {
+//        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
+//        List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
+//        Map<String, CachedMotion> tmp = new HashMap<>();
+//        for (RecordedMotionDocument doc : all) {
+//            try {
+//                CachedMotion cm = buildCachedMotion(doc);
+//                if (cm != null) tmp.put(doc.getRecordId(), cm);
+//            } catch (Exception e) {
+//                log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
+//            }
+//        }
+//        cache.clear();
+//        cache.putAll(tmp);
+//        log.info("[MotionDetectorServiceImpl] Cache loaded. {} motions cached.", cache.size());
+//    }
+
+    public void reloadCache(String userId) {
+        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService for userId={}...", userId);
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
         Map<String, CachedMotion> tmp = new HashMap<>();
         for (RecordedMotionDocument doc : all) {
+            if (userId != null && !userId.equals(doc.getUserId())) {
+                continue; // Skip records not matching the userId
+            }
             try {
                 CachedMotion cm = buildCachedMotion(doc);
                 if (cm != null) tmp.put(doc.getRecordId(), cm);
             } catch (Exception e) {
-                // 원래 코드의 로깅 방식을 유지
                 log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
             }
         }
@@ -55,18 +74,10 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         double bestScore = Double.POSITIVE_INFINITY;
         CachedMotion best = null;
 
-        // Filter cache for the given userId
-        Collection<CachedMotion> userMotions = cache.values().stream()
-                .filter(cm -> userId == null || userId.isBlank() || userId.equals(cm.getUserId()))
-                .collect(Collectors.toList());
-
-        if (userMotions.isEmpty()) {
-            log.warn("[MotionDetectorServiceImpl] No cached motions found for user: {}", userId);
-            return MatchResultDTO.noMatch();
-        }
-
-        for (CachedMotion cm : userMotions) {
+        for (CachedMotion cm : cache.values()) {
             if (!matchesArea(cm.motionType, detectionArea)) continue;
+
+            // Removed userId filtering as cache is already userId-specific
 
             // If cached motion is hand-type, align and normalize the live sequence to cached dimensionality
             List<double[]> alignedLive = liveSequence;
@@ -76,7 +87,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 alignedLive = alignAndNormalizeLiveHandSequence(liveSequence, dims);
             }
 
-            double score = dtwDistance(alignedLive, cm.sequence); // 원래 DTW 로직 사용 (정규화 포함)
+            double score = dtwDistance(alignedLive, cm.sequence);
             if (score < bestScore) {
                 bestScore = score;
                 best = cm;
@@ -88,6 +99,12 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
     }
 
+    @Override
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+        // 기본 동작: userId를 명시하지 않으면 전체(또는 컨텍스트에 따른) 캐시를 사용하도록 null 전달
+        return matchSequence(liveSequence, detectionArea, null);
+    }
+
     // simple matching rule: motionType contains detectionArea (case-insensitive)
     private boolean matchesArea(String motionType, String detectionArea) {
         if (motionType == null || detectionArea == null) return false;
@@ -97,8 +114,6 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
     private CachedMotion buildCachedMotion(RecordedMotionDocument doc) {
         if (doc.getMotionData() == null) return null;
         String motionType = doc.getMotionType();
-        String userId = doc.getUserId(); // userId 추출
-
         // Prefer face_blendshapes if available, otherwise use hand_landmarks
         if (doc.getMotionData().getFaceBlendshapes() != null && !doc.getMotionData().getFaceBlendshapes().isEmpty()) {
             // Build ordered list of keys across frames
@@ -118,7 +133,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 }
                 seq.add(vec);
             }
-            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, userId, seq.toArray(new double[0][]));
+            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, seq.toArray(new double[0][]));
         }
 
         // hand landmarks: flatten [right_hand then left_hand] per frame
@@ -174,7 +189,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
             // Normalize cached hand sequence per-frame (center & scale) to improve invariance
             List<double[]> normalized = normalizeHandSequence(seq, pointCount);
-            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, userId, normalized.toArray(new double[0][]));
+            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, normalized.toArray(new double[0][]));
         }
 
         return null;
@@ -320,7 +335,6 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         private String recordId;
         private String phrase;
         private String motionType;
-        private String userId; // userId 필드 추가
         private double[][] sequence; // precomputed per-frame feature vectors
     }
 }
