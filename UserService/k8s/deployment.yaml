@@ -15,7 +15,7 @@ spec:
       containers:
         - name: user-service-app
           # [개선] :latest 대신 특정 버전 태그 사용 (예: git-commit-hash)
-          image: cuecode.kr.ncr.ntruss.com/cuecode/user-service-latest
+          image: cuecode.kr.ncr.ntruss.com/cuecode/user-service:latest
           imagePullPolicy: Always
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -26,7 +26,7 @@ spec:
                   name: jwt-secret      # 시크릿 이름
                   key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
             - name: JAVA_TOOL_OPTIONS
-              value: "-Xms256m -Xmx768m"
+              value: "-Xms256m -Xmx512m"
           # [수정] 올바른 위치와 들여쓰기 적용
           ports:
             - containerPort: 11000
@@ -37,7 +37,7 @@ spec:
                 name: user-db-secret
           resources:
             requests:
-              cpu: "250m"
+              cpu: "150m"
               memory: "512Mi"
             limits:
               cpu: "500m"

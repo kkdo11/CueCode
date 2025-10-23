@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: config-server-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode/config-server-latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode/config-server:latest
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: git,json
@@ -29,16 +29,16 @@ spec:
               name: git-credentials-secret
               key: password
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xms256m -Xmx768m"
+          value: "-Xms128m -Xmx256m"
         ports:
         - containerPort: 8888
         resources:
           requests:
+            cpu: "50m"
+            memory: "256Mi"
+          limits:
             cpu: "100m"
             memory: "512Mi"
-          limits:
-            cpu: "250m"
-            memory: "1Gi"
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness

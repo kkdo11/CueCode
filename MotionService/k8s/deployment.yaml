@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: motion-service-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode:motion-service-latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode/motion-service:latest
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: prod,json
@@ -24,7 +24,7 @@ spec:
               name: jwt-secret      # 시크릿 이름
               key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xms256m -Xmx768m"
+          value: "-Xms512m -Xmx1g"
         envFrom:
         - secretRef:
             name: motion-db-secret
@@ -32,11 +32,11 @@ spec:
         - containerPort: 15000
         resources:
           requests:
-            cpu: "300m"
-            memory: "512Mi"
-          limits:
             cpu: "500m"
-            memory: "1Gi"
+            memory: "768Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1.5Gi"
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
