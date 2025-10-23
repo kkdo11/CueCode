@@ -1,9 +1,42 @@
-# IDE and build artifacts
+# Exclude common development and build artifacts
 .gradle
-build
+/build
 .idea
+.vscode
 *.iml
-
-# OS-specific files
+*.ipr
+*.iws
+.project
+.classpath
+.settings
 .DS_Store
-Thumbs.db
+*.log
+*.bak
+*.swp
+*.swo
+*.tmp
+*.temp
+*.zip
+*.tar.gz
+*.rar
+*.jar.original
+*.war.original
+
+# Exclude Git-related files
+.git
+.gitignore
+
+# Exclude local environment files
+.env
+.env.*
+
+# Exclude Gradle wrapper files (if not needed in build context)
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.jar
+
+# Exclude DevSpace configuration (if not needed in build context)
+devspace.yaml
+.devspace/
+
+# Exclude any other large or unnecessary files
