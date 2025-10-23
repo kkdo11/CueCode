@@ -3,14 +3,11 @@ kind: Deployment
 metadata:
   name: front-ui-deployment
 spec:
-
   replicas: 1
   selector:
     matchLabels:
       app: front-ui
-    Environment:
-      SPRING_PROFILES_ACTIVE:  json
-      JAVA_TOOL_OPTIONS:       "-Xms128m -Xmx512m"
+  template:
     metadata:
       labels:
         app: front-ui
@@ -21,14 +18,19 @@ spec:
           image: cuecode.kr.ncr.ntruss.com/cuecode/front-ui:latest
           # [권장] imagePullPolicy를 추가하여 항상 새 이미지를 가져오도록 강제
           imagePullPolicy: Always
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: json
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m"
           ports:
             - containerPort: 14000
           resources:
             requests:
-              cpu: "100m"
+              cpu: "50m"
               memory: "256Mi"
             limits:
-              cpu: "200m"
+              cpu: "100m"
               memory: "512Mi"
           readinessProbe:
             httpGet:

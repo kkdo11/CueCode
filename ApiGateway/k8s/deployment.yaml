@@ -50,7 +50,7 @@ spec:
               value: "-Xms256m -Xmx512m -XX:+UseG1GC"
           resources:
             requests:
-              cpu: "250m"
+              cpu: "200m"
               # [수정] 올바른 들여쓰기 적용
               memory: "512Mi"
             limits:
