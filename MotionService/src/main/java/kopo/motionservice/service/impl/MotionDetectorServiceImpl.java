@@ -27,14 +27,34 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     @PostConstruct
     public void init() {
-        reloadCache();
+        reloadCache(null); // Pass null to load all data initially
     }
 
-    public void reloadCache() {
-        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
+//    public void reloadCache() {
+//        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
+//        List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
+//        Map<String, CachedMotion> tmp = new HashMap<>();
+//        for (RecordedMotionDocument doc : all) {
+//            try {
+//                CachedMotion cm = buildCachedMotion(doc);
+//                if (cm != null) tmp.put(doc.getRecordId(), cm);
+//            } catch (Exception e) {
+//                log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
+//            }
+//        }
+//        cache.clear();
+//        cache.putAll(tmp);
+//        log.info("[MotionDetectorServiceImpl] Cache loaded. {} motions cached.", cache.size());
+//    }
+
+    public void reloadCache(String userId) {
+        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService for userId={}...", userId);
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
         Map<String, CachedMotion> tmp = new HashMap<>();
         for (RecordedMotionDocument doc : all) {
+            if (userId != null && !userId.equals(doc.getUserId())) {
+                continue; // Skip records not matching the userId
+            }
             try {
                 CachedMotion cm = buildCachedMotion(doc);
                 if (cm != null) tmp.put(doc.getRecordId(), cm);
@@ -48,7 +68,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
     }
 
     @Override
-    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea, String userId) {
         if (liveSequence == null || liveSequence.isEmpty()) return MatchResultDTO.noMatch();
 
         double bestScore = Double.POSITIVE_INFINITY;
@@ -56,6 +76,8 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
         for (CachedMotion cm : cache.values()) {
             if (!matchesArea(cm.motionType, detectionArea)) continue;
+
+            // Removed userId filtering as cache is already userId-specific
 
             // If cached motion is hand-type, align and normalize the live sequence to cached dimensionality
             List<double[]> alignedLive = liveSequence;
@@ -75,6 +97,12 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         if (best == null) return MatchResultDTO.noMatch();
 
         return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
+    }
+
+    @Override
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+        // 기본 동작: userId를 명시하지 않으면 전체(또는 컨텍스트에 따른) 캐시를 사용하도록 null 전달
+        return matchSequence(liveSequence, detectionArea, null);
     }
 
     // simple matching rule: motionType contains detectionArea (case-insensitive)

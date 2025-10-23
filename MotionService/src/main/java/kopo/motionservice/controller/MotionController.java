@@ -2,9 +2,12 @@ package kopo.motionservice.controller;
 
 import kopo.motionservice.service.IMotionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/motions")
@@ -16,8 +19,15 @@ public class MotionController {
     public ResponseEntity<String> uploadMotionVideo(
             @RequestParam("motionLabel") String motionLabel,
             @RequestParam("detectionArea") String detectionArea,
-            @RequestParam("videoFile") MultipartFile videoFile) {
-        String result = motionService.sendMotionVideoToFastAPI(motionLabel, detectionArea, videoFile);
+            @RequestParam("videoFile") MultipartFile videoFile,
+            Principal principal) {
+
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+        }
+        String userId = principal.getName();
+
+        String result = motionService.sendMotionVideoToFastAPI(motionLabel, detectionArea, videoFile, userId);
         return ResponseEntity.ok(result);
     }
 }
