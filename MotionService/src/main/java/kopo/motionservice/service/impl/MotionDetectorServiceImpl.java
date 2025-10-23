@@ -56,7 +56,16 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
         for (CachedMotion cm : cache.values()) {
             if (!matchesArea(cm.motionType, detectionArea)) continue;
-            double score = dtwDistance(liveSequence, cm.sequence);
+
+            // If cached motion is hand-type, align and normalize the live sequence to cached dimensionality
+            List<double[]> alignedLive = liveSequence;
+            if (cm.motionType != null && cm.motionType.toLowerCase().contains("hand")) {
+                int dims = (cm.sequence != null && cm.sequence.length > 0) ? cm.sequence[0].length : -1;
+                if (dims <= 0) continue;
+                alignedLive = alignAndNormalizeLiveHandSequence(liveSequence, dims);
+            }
+
+            double score = dtwDistance(alignedLive, cm.sequence);
             if (score < bestScore) {
                 bestScore = score;
                 best = cm;
@@ -149,7 +158,10 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
                 }
                 seq.add(vec);
             }
-            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, seq.toArray(new double[0][]));
+
+            // Normalize cached hand sequence per-frame (center & scale) to improve invariance
+            List<double[]> normalized = normalizeHandSequence(seq, pointCount);
+            return new CachedMotion(doc.getRecordId(), doc.getPhrase(), motionType, normalized.toArray(new double[0][]));
         }
 
         return null;
@@ -197,6 +209,96 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             sum += diff; // small penalty
         }
         return Math.sqrt(sum);
+    }
+
+    // --- new helpers for hand normalization & alignment ---
+
+    // Normalize a cached hand sequence per-frame: center each hand block and scale to unit magnitude
+    private List<double[]> normalizeHandSequence(List<double[]> seq, int pointCount) {
+        if (seq == null) return Collections.emptyList();
+        List<double[]> out = new ArrayList<>(seq.size());
+        int dims = pointCount * 3 * 2;
+        for (double[] frame : seq) {
+            double[] f = padOrTrim(frame, dims);
+            normalizeHandFrameInplace(f, pointCount);
+            out.add(f);
+        }
+        return out;
+    }
+
+    // Align incoming live sequence frames to expected dims and normalize similarly
+    private List<double[]> alignAndNormalizeLiveHandSequence(List<double[]> live, int expectedDims) {
+        if (live == null) return Collections.emptyList();
+        // expectedDims should be divisible by 6 (pointCount*3*2)
+        int pointCount = (expectedDims / 3) / 2;
+        List<double[]> out = new ArrayList<>(live.size());
+        for (double[] raw : live) {
+            double[] f = padOrTrim(raw, expectedDims);
+            normalizeHandFrameInplace(f, pointCount);
+            out.add(f);
+        }
+        return out;
+    }
+
+    // Ensure frame is exactly 'dims' long by padding zeros or truncating
+    private double[] padOrTrim(double[] frame, int dims) {
+        if (frame == null) return new double[dims];
+        if (frame.length == dims) return Arrays.copyOf(frame, frame.length);
+        double[] out = new double[dims];
+        int copy = Math.min(dims, frame.length);
+        System.arraycopy(frame, 0, out, 0, copy);
+        if (copy < dims) Arrays.fill(out, copy, dims, 0.0);
+        return out;
+    }
+
+    // Center each hand block (right and left) and scale by RMS of non-zero coords to reduce scale variance
+    private void normalizeHandFrameInplace(double[] f, int pointCount) {
+        if (f == null) return;
+        int handBlock = pointCount * 3; // coords per hand
+        // normalize right hand block
+        normalizeHandBlock(f, 0, pointCount);
+        // normalize left hand block
+        normalizeHandBlock(f, handBlock, pointCount);
+    }
+
+    private void normalizeHandBlock(double[] f, int startIdx, int pointCount) {
+        // compute centroid of present points
+        double cx = 0, cy = 0, cz = 0; int count = 0;
+        for (int p = 0; p < pointCount; p++) {
+            int base = startIdx + p * 3;
+            if (base + 2 >= f.length) break;
+            double x = f[base], y = f[base + 1], z = f[base + 2];
+            if (!isZeroPoint(x, y, z)) {
+                cx += x; cy += y; cz += z; count++;
+            }
+        }
+        if (count == 0) return; // nothing to normalize
+        cx /= count; cy /= count; cz /= count;
+        // subtract centroid
+        double energy = 0.0;
+        for (int p = 0; p < pointCount; p++) {
+            int base = startIdx + p * 3;
+            if (base + 2 >= f.length) break;
+            double x = f[base], y = f[base + 1], z = f[base + 2];
+            if (!isZeroPoint(x, y, z)) {
+                double nx = x - cx; double ny = y - cy; double nz = z - cz;
+                f[base] = nx; f[base + 1] = ny; f[base + 2] = nz;
+                energy += nx*nx + ny*ny + nz*nz;
+            } else {
+                f[base] = 0; f[base + 1] = 0; f[base + 2] = 0;
+            }
+        }
+        double scale = Math.sqrt(energy / Math.max(1, count));
+        if (scale < 1e-6) scale = 1.0;
+        for (int p = 0; p < pointCount; p++) {
+            int base = startIdx + p * 3;
+            if (base + 2 >= f.length) break;
+            f[base] /= scale; f[base + 1] /= scale; f[base + 2] /= scale;
+        }
+    }
+
+    private boolean isZeroPoint(double x, double y, double z) {
+        return Math.abs(x) < 1e-8 && Math.abs(y) < 1e-8 && Math.abs(z) < 1e-8;
     }
 
     @Data
