@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: motion-service-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode:motion-service-latest
+        image: cuecode.kr.ncr.ntruss.com/cuecode/motion-service:latest
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: prod,json
