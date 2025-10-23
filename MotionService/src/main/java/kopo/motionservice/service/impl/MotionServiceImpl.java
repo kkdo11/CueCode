@@ -1,3 +1,4 @@
+// java
 package kopo.motionservice.service.impl;
 
 import kopo.motionservice.dto.MotionRecordRequestDTO;
@@ -17,10 +18,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// 변경: javax -> jakarta
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,15 +47,13 @@ public class MotionServiceImpl implements IMotionService {
     public void saveRecordedMotion(MotionRecordRequestDTO requestDTO) {
         log.info("[MotionService] Manual Mapping - Saving recorded motion for phrase: {}", requestDTO.getPhrase());
 
-        // TODO: JWT 인증 구현 후, 토큰에서 실제 userId를 가져와야 합니다.
-        String mockUserId = "user123";
+        String userId = Optional.ofNullable(extractUserIdFromJwt()).orElse("user123");
+        log.info("[MotionService] Using userId={}", userId);
 
-        // DTO -> Document 수동 매핑 시작
         MotionRecordRequestDTO.MotionDataDTO motionDataDTO = requestDTO.getMotionData();
         RecordedMotionDocument.MotionDataDocument motionDataDocument = new RecordedMotionDocument.MotionDataDocument();
 
         if (motionDataDTO != null) {
-            // face_blendshapes 수동 매핑
             List<RecordedMotionDocument.FaceBlendshapesFrameDocument> blendshapesFrames = Optional.ofNullable(motionDataDTO.getFaceBlendshapes()).orElse(new ArrayList<>()).stream()
                     .map(dtoFrame -> {
                         RecordedMotionDocument.FaceBlendshapesFrameDocument docFrame = new RecordedMotionDocument.FaceBlendshapesFrameDocument();
@@ -58,7 +63,6 @@ public class MotionServiceImpl implements IMotionService {
                     }).collect(Collectors.toList());
             motionDataDocument.setFaceBlendshapes(blendshapesFrames);
 
-            // hand_landmarks 수동 매핑
             List<RecordedMotionDocument.HandLandmarksFrameDocument> landmarksFrames = Optional.ofNullable(motionDataDTO.getHandLandmarks()).orElse(new ArrayList<>()).stream()
                     .map(dtoFrame -> {
                         RecordedMotionDocument.HandLandmarksFrameDocument docFrame = new RecordedMotionDocument.HandLandmarksFrameDocument();
@@ -70,18 +74,16 @@ public class MotionServiceImpl implements IMotionService {
             motionDataDocument.setHandLandmarks(landmarksFrames);
         }
 
-        // 최종 Document 객체 생성
         RecordedMotionDocument document = RecordedMotionDocument.builder()
-                .userId(mockUserId)
+                .userId(userId)
                 .phrase(requestDTO.getPhrase())
                 .motionType(requestDTO.getMotionType())
                 .motionData(motionDataDocument)
                 .build();
 
-        // DB에 저장
         recordedMotionRepository.save(document);
 
-        log.info("[MotionService] Motion saved successfully! recordId: {}", document.getRecordId());
+        log.info("[MotionService] Motion saved successfully! recordId: {} userId: {}", document.getRecordId(), document.getUserId());
     }
 
     @Override
@@ -91,13 +93,10 @@ public class MotionServiceImpl implements IMotionService {
             String detectionArea,
             org.springframework.web.multipart.MultipartFile videoFile,
             String trimStart,
-            String trimEnd
+            String trimEnd,
+            String userId
     ) {
-        log.info("[MotionService] Sending Multipart → FastAPI: phrase={}, area={}", phrase, detectionArea);
-
-        // We no longer perform any client-side trimming or FFmpeg processing here.
-        // Simply stream the uploaded MultipartFile to the FastAPI endpoint and
-        // parse the returned JSON payload, then persist it into MongoDB.
+        log.info("[MotionService] Sending Multipart → FastAPI: phrase={}, area={}, userId={}", phrase, detectionArea, userId);
 
         ObjectMapper mapper = new ObjectMapper();
 
@@ -106,7 +105,6 @@ public class MotionServiceImpl implements IMotionService {
             requestFactory.setConnectTimeout(10_000);
             requestFactory.setReadTimeout(120_000);
 
-            // Wrap the MultipartFile input stream so RestTemplate can stream it
             InputStreamResource fileResource = new InputStreamResource(videoFile.getInputStream()) {
                 @Override
                 public String getFilename() {
@@ -150,7 +148,6 @@ public class MotionServiceImpl implements IMotionService {
                 return "";
             }
 
-            // Parse the JSON response into a Map
             Map<String, Object> parsed = mapper.readValue(respBody, new TypeReference<Map<String, Object>>() {});
             Object motionDataObj = parsed.get("motion_data");
 
@@ -159,7 +156,6 @@ public class MotionServiceImpl implements IMotionService {
             if (motionDataObj instanceof Map) {
                 Map<String, Object> motionDataMap = (Map<String, Object>) motionDataObj;
 
-                // face_blendshapes
                 if (motionDataMap.containsKey("face_blendshapes")) {
                     Object fbObj = motionDataMap.get("face_blendshapes");
                     if (fbObj instanceof List) {
@@ -175,7 +171,6 @@ public class MotionServiceImpl implements IMotionService {
                             Object valuesObj = itemMap.get("values");
                             if (valuesObj instanceof Map) {
                                 Map<String, Object> valuesMap = (Map<String, Object>) valuesObj;
-                                // convert numbers to Double
                                 Map<String, Double> converted = valuesMap.entrySet().stream()
                                         .filter(e -> e.getValue() instanceof Number)
                                         .collect(Collectors.toMap(Map.Entry::getKey, e -> ((Number) e.getValue()).doubleValue()));
@@ -188,7 +183,6 @@ public class MotionServiceImpl implements IMotionService {
                     }
                 }
 
-                // hand_landmarks
                 if (motionDataMap.containsKey("hand_landmarks")) {
                     Object hlObj = motionDataMap.get("hand_landmarks");
                     if (hlObj instanceof List) {
@@ -201,7 +195,6 @@ public class MotionServiceImpl implements IMotionService {
                             Number ts = (Number) itemMap.getOrDefault("timestamp_ms", 0);
                             hdoc.setTimestampMs(ts.longValue());
 
-                            // right_hand and left_hand may be null or arrays
                             Object rightObj = itemMap.get("right_hand");
                             if (rightObj instanceof List) {
                                 List<?> outer = (List<?>) rightObj;
@@ -243,18 +236,17 @@ public class MotionServiceImpl implements IMotionService {
                 }
             }
 
-            // Build final RecordedMotionDocument and save
-            String mockUserId = "user123"; // TODO: replace with real user extraction from JWT
+            log.info("[MotionService] Using userId={} for saved document", userId);
 
             RecordedMotionDocument document = RecordedMotionDocument.builder()
-                    .userId(mockUserId)
+                    .userId(userId)
                     .phrase((String) parsed.getOrDefault("phrase", phrase))
                     .motionType((String) parsed.getOrDefault("detectionArea", detectionArea))
                     .motionData(motionDataDocument)
                     .build();
 
             recordedMotionRepository.save(document);
-            log.info("[MotionService] Saved motion to DB recordId={}", document.getRecordId());
+            log.info("[MotionService] Saved motion to DB recordId={} userId={}", document.getRecordId(), document.getUserId());
 
             return respBody;
 
@@ -265,13 +257,45 @@ public class MotionServiceImpl implements IMotionService {
     }
 
     @Override
-    public String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile) {
-        // Delegate to the main method with null trimStart/trimEnd
-        return sendMotionVideoToFastAPI(phrase, detectionArea, videoFile, null, null);
+    public String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile, String trimStart, String trimEnd) {
+        return sendMotionVideoToFastAPI(phrase, detectionArea, videoFile, trimStart, trimEnd, extractUserIdFromJwt());
     }
 
     @Override
+    public String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile, String userId) {
+        return sendMotionVideoToFastAPI(phrase, detectionArea, videoFile, null, null, userId);
+    }
+
+    @Override
+    public String sendMotionVideoToFastAPI(String phrase, String detectionArea, org.springframework.web.multipart.MultipartFile videoFile) {
+        return sendMotionVideoToFastAPI(phrase, detectionArea, videoFile, null, null, extractUserIdFromJwt());
+    }
+
+    // JWT에서 payload의 "sub" 추출 (서명 검증 없음 — 프로덕션에서는 서명 검증 필요)
+    private String extractUserIdFromJwt() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) {
+                log.debug("[MotionService] No request attributes available (not in HTTP request)");
+                return null;
+            }
+            HttpServletRequest req = attrs.getRequest();
+            String auth = req.getHeader("X-User-Id"); // 수정: Authorization -> X-User-Id
+            log.debug("[MotionService] X-User-Id header={}", auth);
+            if (auth == null) return null;
+            return auth; // 헤더 값을 그대로 반환
+        } catch (Exception e) {
+            log.warn("[MotionService] Failed to extract userId from X-User-Id header", e);
+            return null;
+        }
+    }
+
+    // java
+    @Override
     public List<RecordedMotionDocument> getAllRecordedMotions() {
+        log.info("[MotionService] Fetching all recorded motions for caching.");
         return recordedMotionRepository.findAll();
     }
+
+
 }

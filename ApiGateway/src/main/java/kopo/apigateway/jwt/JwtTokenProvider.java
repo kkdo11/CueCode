@@ -98,22 +98,33 @@ public class JwtTokenProvider {
     public String resolveToken(ServerHttpRequest request, JwtTokenType tokenType) {
         String token = "";
         String tokenName = "";
-        if (tokenType == JwtTokenType.ACCESS_TOKEN) {
-            tokenName = accessTokenName;
-        } else if (tokenType == JwtTokenType.REFRESH_TOKEN) {
-            tokenName = refreshTokenName;
-        }
-        HttpCookie cookie = request.getCookies().getFirst(tokenName);
-        if (cookie != null) {
-            token = nvl(cookie.getValue());
-        }
-        if (token.isEmpty()) {
-            String bearerToken = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(HEADER_PREFIX)) {
-                token = bearerToken.substring(7);
+
+        // 1. 쿼리 파라미터에서 토큰 추출 (WebSocket을 위해 추가)
+        token = request.getQueryParams().getFirst("token");
+
+        if (!StringUtils.hasText(token)) {
+            if (tokenType == JwtTokenType.ACCESS_TOKEN) {
+                tokenName = accessTokenName;
+            } else if (tokenType == JwtTokenType.REFRESH_TOKEN) {
+                tokenName = refreshTokenName;
+            }
+
+            // 2. 쿠키에서 토큰 추출
+            HttpCookie cookie = request.getCookies().getFirst(tokenName);
+            if (cookie != null) {
+                token = nvl(cookie.getValue());
+            }
+
+            // 3. 헤더에서 토큰 추출
+            if (!StringUtils.hasText(token)) {
+                String bearerToken = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+                if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(HEADER_PREFIX)) {
+                    token = bearerToken.substring(7);
+                }
             }
         }
-        return token;
+
+        return nvl(token);
     }
 
     // 토큰 상태 검증

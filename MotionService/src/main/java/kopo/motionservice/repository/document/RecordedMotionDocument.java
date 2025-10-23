@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import lombok.Setter;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Date;
 import java.util.List;
@@ -83,4 +84,6 @@ public class RecordedMotionDocument {
         @Field(name = "left_hand")
         private List<List<Double>> leftHand;
     }
+
+
 }
