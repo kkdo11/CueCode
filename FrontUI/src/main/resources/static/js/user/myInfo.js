@@ -1,3 +1,4 @@
+
 // 마스킹 함수
 function maskName(name) {
     if (!name) return '';
@@ -15,77 +16,135 @@ function maskEmail(email) {
     return local.slice(0,2) + '***@' + domain;
 }
 
-// JWT 토큰을 쿠키에서 꺼내는 함수 추가
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
+async function initMyInfoPage() {
     let userId = '';
-    let currentPatientId = '';
-    const token = document.cookie.split('; ').find(row => row.startsWith('jwtAccessToken='));
-    if (token) {
-        try {
-            // jwt_decode 함수가 전역에 정의되어 있다고 가정
-            const decoded = jwt_decode(token.split('=')[1]);
-            userId = decoded.sub || decoded.userId || '';
-        } catch (e) {
-            userId = '';
-        }
-    }
-    console.log('[프론트] userId:', userId); // userId 추출 직후 로그 추가
-    // 사용자 정보 API로 정보 표시
-    if (userId) {
-        fetch(API_BASE + '/user/info?userId=' + encodeURIComponent(userId), {
+    let userRole = '';
+
+    // 1. /user/me API로 기본 사용자 정보(ID, 역할) 가져오기
+    try {
+        const meResponse = await fetch(API_BASE + '/user/me', {
             method: 'GET',
             credentials: 'include'
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log('[프론트] user info 응답:', data); // user info 응답 로그 추가
-                document.getElementById('info-name').textContent = maskName(data.name || data.userName || '');
-                document.getElementById('info-id').textContent = maskId(data.id || data.userId || userId);
-                document.getElementById('info-email').textContent = maskEmail(data.email || '');
-                // 감지 범위 표시: 환자 회원이면 별도 API 호출
-                const detectionAreaRow = document.getElementById('detection-area-row');
-                const detectionAreaParent = detectionAreaRow;
-                if (data.userType === 'patient') {
-                    console.log('[프론트] 감지 범위 조회 요청 body:', { patientId: userId });
+        });
 
-                    // 감지 범위 조회 요청도 credentials: 'include'를 사용하도록 수정
-                    fetch(API_BASE + '/patient/detection-area/read', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ patientId: userId }),
-                        credentials: 'include' // ✅ 수정: 쿠키 인증 방식 통일
-                    })
-                        .then(res => res.json())
-                        .then(area => {
-                            console.log('[프론트] 감지 범위 조회 응답:', area);
-                            if (area.result === 1) {
-                                const areaText = area.detectionArea === 'hand' ? '손' : area.detectionArea === 'face' ? '얼굴' : area.detectionArea === 'both' ? '손과 얼굴' : '설정 안됨';
-                                document.getElementById('detection-area-value').textContent = areaText;
-                                detectionAreaParent.classList.remove('d-none');
-                            } else {
-                                document.getElementById('detection-area-value').textContent = '설정 안됨';
-                                detectionAreaParent.classList.remove('d-none');
-                            }
-                        })
-                        .catch((err) => {
-                            console.error('[프론트] 감지 범위 조회 fetch 에러:', err);
-                            document.getElementById('detection-area-value').textContent = '조회 오류';
-                            detectionAreaParent.classList.remove('d-none');
-                        });
-                } else {
-                    detectionAreaParent.classList.add('d-none');
-                }
-            });
+        if (meResponse.ok) {
+            const meData = await meResponse.json();
+            userId = meData.userId;
+            userRole = meData.userRole;
+            console.log('[프론트] /user/me 응답 userId:', userId);
+        } else {
+            throw new Error('사용자 인증 정보를 가져오는데 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('[프론트] /user/me API 호출 오류:', error);
+        Swal.fire({
+            icon: 'error',
+            text: '사용자 정보를 가져올 수 없습니다. 다시 로그인해주세요.',
+            confirmButtonText: '로그인으로 이동'
+        }).then(() => {
+            window.location.href = '/user/sign-in.html';
+        });
+        return; // 함수 실행 중단
     }
+
+    // 2. userId로 상세 정보 조회
+    if (userId) {
+        try {
+            const infoResponse = await fetch(API_BASE + '/user/info?userId=' + encodeURIComponent(userId), {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const infoData = await infoResponse.json();
+
+            console.log('[프론트] /user/info 응답:', infoData);
+            console.log('[프론트] infoData.userType:', infoData.userType);
+            document.getElementById('info-name').textContent = maskName(infoData.name || '');
+            document.getElementById('info-id').textContent = maskId(infoData.id || userId);
+            document.getElementById('info-email').textContent = maskEmail(infoData.email || '');
+
+            // 감지 범위 표시 (환자일 경우)
+            const detectionAreaRow = document.getElementById('detection-area-row');
+            console.log('[프론트] JS 실행 전 detectionAreaRow hidden 상태:', detectionAreaRow.hasAttribute('hidden'));
+            if (infoData.userType === 'patient') {
+                console.log('[프론트] userType이 patient입니다. detectionAreaRow의 hidden 속성을 제거합니다.');
+                detectionAreaRow.removeAttribute('hidden'); // 환자일 경우 hidden 속성 제거
+                detectionAreaRow.classList.add('d-flex', 'flex-row', 'align-items-center', 'justify-content-between');
+
+                // 감지 범위 조회 및 표시 로직
+                try {
+                    const daResponse = await fetch(API_BASE + '/user/detection-area?userId=' + encodeURIComponent(userId), {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    const daData = await daResponse.json();
+                    console.log('[프론트] 감지 범위 응답:', daData);
+
+                    let areaText = '없음';
+                    if (daData.hand && daData.face) {
+                        areaText = '손과 얼굴';
+                        document.getElementById('detectBoth').checked = true;
+                    } else if (daData.hand) {
+                        areaText = '손';
+                        document.getElementById('detectHand').checked = true;
+                    } else if (daData.face) {
+                        areaText = '얼굴';
+                        document.getElementById('detectFace').checked = true;
+                    }
+                    document.getElementById('detection-area-value').textContent = areaText;
+                } catch (daError) {
+                    console.error('[프론트] 감지 범위 API 호출 오류:', daError);
+                    document.getElementById('detection-area-value').textContent = '정보 로드 실패';
+                }
+
+                // 감지 범위 변경 버튼
+                document.getElementById('changeDetectionAreaBtn').onclick = function() {
+                    document.getElementById('changeDetectionAreaMsg').textContent = '';
+                    new bootstrap.Modal(document.getElementById('changeDetectionAreaModal')).show();
+                };
+
+                // 감지 범위 저장 버튼 (모달 내부)
+                document.getElementById('saveDetectionAreaBtnModal').onclick = async function() {
+                    const selectedArea = document.querySelector('input[name="detectionAreaType"]:checked');
+                    if (!selectedArea) {
+                        document.getElementById('changeDetectionAreaMsg').textContent = '감지 범위를 선택해주세요.';
+                        return;
+                    }
+                    const detectionAreaType = selectedArea.value;
+                    const res = await fetch(API_BASE + '/user/update-detection-area', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId, detectionAreaType }),
+                        credentials: 'include'
+                    });
+                    const data = await res.json();
+
+                    if (res.ok && data.result === 1) {
+                        let areaText = '';
+                        if (detectionAreaType === 'hand') areaText = '손';
+                        else if (detectionAreaType === 'face') areaText = '얼굴';
+                        else if (detectionAreaType === 'both') areaText = '손과 얼굴';
+                        document.getElementById('detection-area-value').textContent = areaText;
+                        Swal.fire({ icon: 'success', text: '감지 범위가 변경되었습니다.', timer: 1200, showConfirmButton: false });
+                        bootstrap.Modal.getInstance(document.getElementById('changeDetectionAreaModal')).hide();
+                    } else {
+                        document.getElementById('changeDetectionAreaMsg').textContent = data.msg || '감지 범위 변경 실패';
+                    }
+                };
+
+            } else {
+                // 환자가 아닐 경우 감지 범위 행 숨김 (명시적)
+                console.log('[프론트] userType이 patient가 아닙니다. detectionAreaRow를 숨깁니다.');
+                detectionAreaRow.setAttribute('hidden', ''); // hidden 속성 유지
+            }
+            console.log('[프론트] 최종 detectionAreaRow hidden 상태:', detectionAreaRow.hasAttribute('hidden'));
+        } catch (error) {
+            console.error('[프론트] /user/info API 호출 오류:', error);
+        }
+    }
+
+
+    // --- 이하 이벤트 핸들러들은 모두 이 클로저 내에서 `userId`를 안전하게 사용 ---
+
     // 이름 변경 버튼
     document.getElementById('changeNameBtn').onclick = function() {
         document.getElementById('changeNameMsg').textContent = '';
@@ -98,7 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changeNameMsg').textContent = '새 이름을 입력하세요.';
             return;
         }
-        // 이름 변경 API 호출
         const res = await fetch(API_BASE + '/user/update-name', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -114,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changeNameMsg').textContent = data.msg || '이름 변경 실패';
         }
     };
+
     // 아이디 변경 버튼
     document.getElementById('changeIdBtn').onclick = function() {
         document.getElementById('changeIdMsg').textContent = '';
@@ -126,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changeIdMsg').textContent = '새 아이디를 입력하세요.';
             return;
         }
-        // 아이디 변경 API 호출
         const res = await fetch(API_BASE + '/user/update-id', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -136,13 +194,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = await res.json();
         if (res.ok && data.result === 1) {
             document.getElementById('info-id').textContent = maskId(newId);
-            Swal.fire({ icon: 'success', text: '아이디가 변경되었습니다.', timer: 1200, showConfirmButton: false });
-            bootstrap.Modal.getInstance(document.getElementById('changeIdModal')).hide();
-            userId = newId;
+            Swal.fire({ icon: 'success', text: '아이디가 변경되었습니다. 다시 로그인해주세요.', timer: 1200, showConfirmButton: false });
+            // 중요: ID 변경 후에는 재로그인이 필요하므로 로그아웃 처리 또는 로그인 페이지로 리디렉션
+            setTimeout(() => window.location.href = '/user/sign-in.html', 1200);
         } else {
             document.getElementById('changeIdMsg').textContent = data.msg || '아이디 변경 실패';
         }
     };
+
     // 이메일 변경 버튼
     document.getElementById('changeEmailBtn').onclick = function() {
         document.getElementById('changeEmailMsg').textContent = '';
@@ -234,16 +293,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('changeEmailMsg').textContent = '서버 인증 요청 실패. 다시 시도해주세요.';
             });
     }
-    document.getElementById('emailCodeInput').addEventListener('blur', verifyChangeEmailCode);
+    document.getElementById('verifyEmailCodeBtn').onclick = verifyChangeEmailCode;
     // 이메일 변경 저장 시 인증 완료 여부 체크
-    const originalSaveEmailBtn = document.getElementById('saveEmailBtn').onclick;
-    document.getElementById('saveEmailBtn').onclick = function() {
+    document.getElementById('saveEmailBtn').onclick = async function() {
         if (!emailChangeVerified) {
             document.getElementById('changeEmailMsg').textContent = '이메일 인증을 완료하세요.';
             return;
         }
-        if (typeof originalSaveEmailBtn === 'function') originalSaveEmailBtn();
+        const newEmail = document.getElementById('newEmailInput').value.trim();
+        const res = await fetch(API_BASE + '/user/update-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, newEmail }),
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.result === 1) {
+            document.getElementById('info-email').textContent = maskEmail(newEmail);
+            Swal.fire({ icon: 'success', text: '이메일이 변경되었습니다.', timer: 1200, showConfirmButton: false });
+            bootstrap.Modal.getInstance(document.getElementById('changeEmailModal')).hide();
+        } else {
+            document.getElementById('changeEmailMsg').textContent = data.msg || '이메일 변경 실패';
+        }
     };
+
     // 비밀번호 변경 버튼
     document.getElementById('changePwBtn').onclick = function() {
         document.getElementById('changePwMsg').textContent = '';
@@ -264,7 +337,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changePwMsg').textContent = '새 비밀번호가 일치하지 않습니다.';
             return;
         }
-        // 비밀번호 변경 API 호출
         const res = await fetch(API_BASE + '/user/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -279,74 +351,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('changePwMsg').textContent = data.msg || '비밀번호 변경 실패';
         }
     };
-    // 감지 범위 변경 버튼
-    document.getElementById('changeDetectionAreaBtn').onclick = function() {
-        new bootstrap.Modal(document.getElementById('changeDetectionAreaModal')).show();
-    };
-    document.getElementById('saveDetectionAreaBtnMain').onclick = function() {
-        window.location.href = '/index.html';
-    };
-
-    // 🌟🌟🌟 감지 범위 변경 로직 수정: credentials: 'include' 사용 및 오류 처리 보강 🌟🌟🌟
-    document.getElementById('saveDetectionAreaBtnModal').onclick = async function() {
-        if (!userId || userId.trim() === '') {
-            document.getElementById('changeDetectionAreaMsg').textContent = '환자 정보가 올바르게 로드되지 않았습니다.';
-            console.error('감지 범위 변경 시 userId 값:', userId);
-            return;
-        }
-        const detectionAreaType = document.querySelector('input[name="detectionAreaType"]:checked');
-        if (!detectionAreaType) {
-            document.getElementById('changeDetectionAreaMsg').textContent = '변경할 감지 범위를 선택하세요.';
-            return;
-        }
-        const newDetectionArea = detectionAreaType.value;
-        // 디버깅 로그 추가
-        const jwtToken = getCookie('jwtAccessToken');
-        console.log('[디버그] 감지 범위 변경 요청 userId:', userId);
-        console.log('[디버그] 감지 범위 변경 요청 쿠키 jwtAccessToken:', jwtToken);
-        console.log('[디버그] 감지 범위 변경 요청 body:', { patientId: userId, detectionAreaType: newDetectionArea });
-        let res, data = {};
-        try {
-            res = await fetch(API_BASE + '/patient/detection-area/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ patientId: userId, detectionAreaType: newDetectionArea }),
-                credentials: 'include' // ★ 쿠키 전달 옵션 추가
-            });
-            console.log('[디버그] 감지 범위 변경 fetch 응답 상태:', res.status);
-            if (!res.ok) {
-                try {
-                    data = await res.json();
-                } catch (e) {
-                    data.msg = `서버 응답 실패 (HTTP 상태: ${res.status}). 인증 토큰을 확인하세요.`;
-                }
-            } else {
-                data = await res.json();
-            }
-            console.log('[디버그] 감지 범위 변경 fetch 응답 데이터:', data);
-        } catch (e) {
-            console.error('[디버그] 감지 범위 변경 fetch 통신 오류:', e);
-            document.getElementById('changeDetectionAreaMsg').textContent = '서버 통신 오류';
-            return;
-        }
-        if (res.ok && data.result === 1) {
-            const areaText = newDetectionArea === 'hand' ? '손' : newDetectionArea === 'face' ? '얼굴' : '손과 얼굴';
-            document.getElementById('detection-area-value').textContent = areaText;
-            Swal.fire({ icon: 'success', text: '감지 범위가 변경되었습니다.', timer: 1200, showConfirmButton: false });
-            bootstrap.Modal.getInstance(document.getElementById('changeDetectionAreaModal')).hide();
-        } else {
-            document.getElementById('changeDetectionAreaMsg').textContent = data.msg || `감지 범위 변경 실패 (상태 코드: ${res.status})`;
-        }
-    };
-    // 모달 닫힘 시 포커스 해제
-    document.getElementById('changeDetectionAreaModal').addEventListener('hidden.bs.modal', function() {
-        if (document.activeElement && document.activeElement.id === 'detectHand') {
-            document.activeElement.blur();
-        }
-    });
-
+    
+    // 회원 탈퇴 버튼
     document.getElementById('withdrawalBtn').onclick = function(e) {
         e.preventDefault();
         Swal.fire({
@@ -358,31 +364,32 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: '아니오'
         }).then((result) => {
             if (result.isConfirmed) {
-                const token = getCookie('jwtAccessToken');
                 fetch(API_BASE + '/user/withdrawal', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify({ userId })
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.result === 1) {
-                            Swal.fire({ icon: 'success', text: '정상적으로 탈퇴되었습니다.', timer: 1500, showConfirmButton: false });
-                            setTimeout(function() {
-                                window.location.href = '/user/sign-in.html';
-                            }, 1500);
-                        } else {
-                            Swal.fire({ icon: 'error', text: data.msg || '탈퇴에 실패했습니다.' });
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire({ icon: 'error', text: '서버 오류로 탈퇴에 실패했습니다.' });
-                    });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.result === 1) {
+                        Swal.fire({ icon: 'success', text: '정상적으로 탈퇴되었습니다.', timer: 1500, showConfirmButton: false });
+                        setTimeout(() => window.location.href = '/user/sign-in.html', 1500);
+                    } else {
+                        Swal.fire({ icon: 'error', text: data.msg || '탈퇴에 실패했습니다.' });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({ icon: 'error', text: '서버 오류로 탈퇴에 실패했습니다.' });
+                });
             }
         });
     };
-});
+
+    // 메인 페이지로 이동 버튼
+    document.getElementById('goToIndexBtn').onclick = function() {
+        window.location.href = '/index.html';
+    };
+}
+
+document.addEventListener('DOMContentLoaded', initMyInfoPage);

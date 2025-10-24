@@ -38,6 +38,9 @@ public class LoginController {
     @Value("${jwt.token.refresh.name}")
     private String refreshTokenName;
 
+    @Value("${server.ssl.enabled:false}")
+    private boolean isSslEnabled;
+
     private final JwtTokenProvider jwtTokenProvider;
     private final kopo.userservice.service.IUserService userService;
     private final kopo.userservice.util.RedisUtil redisUtil;
@@ -80,13 +83,16 @@ public class LoginController {
         log.info("[Redis] access 저장 시도: key={}, value={}, ttl={}", "access:" + userId, accessToken, accessTokenValidTime);
         redisUtil.set("access:" + userId, accessToken, accessTokenValidTime);
 
-        ResponseCookie cookie = ResponseCookie.from(accessTokenName, accessToken)
-                .domain("localhost")
+        String sameSite = isSslEnabled ? "None" : "Lax";
+
+        ResponseCookie accessTokenCookie = ResponseCookie.from(accessTokenName, accessToken)
                 .path("/")
                 .maxAge(accessTokenValidTime)
                 .httpOnly(true)
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
-        response.setHeader("Set-Cookie", cookie.toString());
+        response.setHeader("Set-Cookie", accessTokenCookie.toString());
 
         // Refresh Token 생성
         String refreshToken = jwtTokenProvider.createToken(userId, userName, userRoles, managerId, JwtTokenType.REFRESH_TOKEN);
@@ -94,13 +100,14 @@ public class LoginController {
         log.info("[Redis] refresh 저장 시도: key={}, value={}, ttl={}", "refresh:" + userId, refreshToken, refreshTokenValidTime);
         redisUtil.set("refresh:" + userId, refreshToken, refreshTokenValidTime);
 
-        cookie = ResponseCookie.from(refreshTokenName, refreshToken)
-                .domain("localhost")
+        ResponseCookie refreshTokenCookie = ResponseCookie.from(refreshTokenName, refreshToken)
                 .path("/")
                 .maxAge(refreshTokenValidTime)
                 .httpOnly(true)
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
 
         // 결과 메시지 전달하기
         MsgDTO dto = MsgDTO.builder().result(1).msg(userName + "님 로그인이 성공하였습니다.").build();
@@ -122,13 +129,17 @@ public class LoginController {
         return dto;
     }
 
+
+
+
+
     @Operation(summary = "로그아웃 처리 API", description = "JWT 토큰 쿠키 삭제를 통한 로그아웃 처리 API",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK"),
                     @ApiResponse(responseCode = "404", description = "Page Not Found!"),
             }
     )
-    @PostMapping(value = "/user/v1/logout")
+    @PostMapping(value = "/logout")
     public MsgDTO logout(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
         log.info(this.getClass().getName() + ".logout Start!");
 
@@ -159,25 +170,25 @@ public class LoginController {
 
         userService.invalidateRefreshToken(request);
 
+        String sameSite = isSslEnabled ? "Strict" : "Lax";
+
         // Access Token 쿠키 삭제
         ResponseCookie accessCookie = ResponseCookie.from(accessTokenName, "")
-                .domain("localhost")
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
         response.addHeader("Set-Cookie", accessCookie.toString());
 
         // Refresh Token 쿠키 삭제
         ResponseCookie refreshCookie = ResponseCookie.from(refreshTokenName, "")
-                .domain("localhost")
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
@@ -217,26 +228,32 @@ public class LoginController {
         // JWT 토큰 생성 및 쿠키 설정
         String accessToken = jwtTokenProvider.createToken(userId, userName, userRoles, managerId, JwtTokenType.ACCESS_TOKEN);
         log.info("JWT 생성: userId={}, roles={}", userId, userRoles);
-        ResponseCookie cookie = ResponseCookie.from(accessTokenName, accessToken)
-                .domain("localhost")
+        String sameSite = isSslEnabled ? "None" : "Lax";
+
+        ResponseCookie accessTokenCookie = ResponseCookie.from(accessTokenName, accessToken)
                 .path("/")
                 .maxAge(accessTokenValidTime)
-                .httpOnly(false)
+                .httpOnly(true)
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
-        response.setHeader("Set-Cookie", cookie.toString());
+        response.setHeader("Set-Cookie", accessTokenCookie.toString());
+
         String refreshToken = jwtTokenProvider.createToken(userId, userName, userRoles, managerId, JwtTokenType.REFRESH_TOKEN);
-        cookie = ResponseCookie.from(refreshTokenName, refreshToken)
-                .domain("localhost")
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from(refreshTokenName, refreshToken)
                 .path("/")
                 .maxAge(refreshTokenValidTime)
                 .httpOnly(true)
+                .secure(isSslEnabled)
+                .sameSite(sameSite)
                 .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
         log.info("[Redis] access 저장 시도: key={}, value={}, ttl={}", "access:" + userId, accessToken, accessTokenValidTime);
         redisUtil.set("access:" + userId, accessToken, accessTokenValidTime);
         log.info("[Redis] refresh 저장 시도: key={}, value={}, ttl={}", "refresh:" + userId, refreshToken, refreshTokenValidTime);
         redisUtil.set("refresh:" + userId, refreshToken, refreshTokenValidTime);
         // accessToken을 응답 JSON에 포함
-        return MsgDTO.builder().result(1).msg(userName + "님 로그인이 성공하였습니다.").accessToken(accessToken).build();
+        return MsgDTO.builder().result(1).msg(userName + "님 로그인이 성공하였습니다.").userName(userName).build();
     }
 }

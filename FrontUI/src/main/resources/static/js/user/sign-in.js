@@ -23,17 +23,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     credentials: 'include'
                 });
                 const data = await res.json();
-                if (res.ok && data.result === 1 && data.accessToken) {
-                    document.cookie = `jwtAccessToken=${data.accessToken}; path=/; SameSite=Lax; max-age=3600;`;
-                    console.log('토큰을 쿠키에 저장 완료');
-                    // JWT에서 사용자 이름 추출
-                    let userName = '';
-                    try {
-                        const decoded = jwt_decode(data.accessToken);
-                        userName = decoded.userName || '';
-                    } catch (e) {
-                        userName = '';
-                    }
+                if (res.ok && data.result === 1) { // Removed data.accessToken check
+                    // JWT에서 사용자 이름 추출 (서버에서 직접 제공)
+                    let userName = data.userName || ''; // Use userName from server response
+                    // Removed client-side JWT decoding as accessToken is httpOnly
                     Swal.fire({
                         icon: 'success',
                         html: `${userName ? userName + '님, ' : ''}반가워요!<br>메인 페이지로 이동합니다.`,

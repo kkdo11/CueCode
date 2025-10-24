@@ -6,4 +6,8 @@ server:
   port: 11000
   address: 0.0.0.0
 
+logging:
+  level:
+    org.springframework.security: TRACE
+
 

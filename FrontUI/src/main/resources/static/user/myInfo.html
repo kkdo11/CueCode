@@ -73,7 +73,7 @@
                                         </div>
                                         <button class="btn btn-cuecode btn-sm" id="changePwBtn">변경하기</button>
                                     </div>
-                                    <div class="mb-3 d-flex flex-row align-items-center justify-content-between" id="detection-area-row" style="display:none;">
+                                    <div class="mb-3" id="detection-area-row" hidden>
                                       <div class="d-flex align-items-center">
                                         <span class="fw-bold" style="min-width:60px;">감지 범위</span>
                                         <span id="detection-area-value" class="ms-3"></span>
@@ -81,7 +81,7 @@
                                       <button class="btn btn-cuecode btn-sm" id="changeDetectionAreaBtn">변경하기</button>
                                     </div>
                                     <div class="mb-3 text-center">
-                                      <button class="btn btn-primary btn-lg py-3 login-btn" id="saveDetectionAreaBtnMain">저장하기</button>
+                                      <button class="btn btn-primary btn-lg py-3 login-btn" id="goToIndexBtn">메인 페이지로 이동</button>
                                     </div>
                                 </div>
                             </div>
@@ -137,7 +137,10 @@
                                       <input type="email" class="form-control" id="newEmailInput" placeholder="새 이메일 입력" style="flex:1; min-width:180px; height:40px; border-radius:8px;" />
                                       <button type="button" class="btn btn-cuecode" id="sendEmailCodeBtn">인증번호 발송</button>
                                     </div>
-                                    <input type="text" class="form-control mb-2" id="emailCodeInput" placeholder="인증번호 입력" style="height:40px; border-radius:8px;" />
+                                    <div class="d-flex align-items-center mb-2" style="gap: 10px;">
+                                      <input type="text" class="form-control" id="emailCodeInput" placeholder="인증번호 입력" style="flex:1; min-width:180px; height:40px; border-radius:8px;" />
+                                      <button type="button" class="btn btn-cuecode" id="verifyEmailCodeBtn">인증번호 확인</button>
+                                    </div>
                                     <div class="form-text text-danger mt-2" id="changeEmailMsg"></div>
                                   </div>
                                   <div class="modal-footer">

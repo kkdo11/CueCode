@@ -10,5 +10,6 @@ public class UserInfoDTO {
     private String email;
     private String name;
     private String userType; // "patient" 또는 "manager"
+    private String managerId;
 }
 
