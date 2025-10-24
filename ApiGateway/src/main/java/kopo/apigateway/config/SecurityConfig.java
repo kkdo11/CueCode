@@ -42,7 +42,8 @@ public class SecurityConfig {
                         // 🚨 인증 없이 접근 허용 (permitAll)
                         "/api/user/reg/**",          // 회원가입 관련
                         "/api/login/**",             // 로그인 관련
-                        "/api/reg/**",               // 회원가입 관련
+                        "/api/reg/**",// 회원가입 관련
+                        "/actuator/**",
                         "/api/user/actuator/**",     // User Service 액추에이터
                         "/api/actuator/**",          // 게이트웨이 자체 액추에이터
                         "/api/swagger-ui/**", "/api/v3/api-docs/**", // API 문서
