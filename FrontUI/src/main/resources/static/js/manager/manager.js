@@ -193,7 +193,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 } else if (res.status === 404) {
                     resultIcon?.setAttribute('icon', 'solar:danger-triangle-linear');
                     resultTitle.textContent = '등록되지 않은 환자입니다.';
-                    resultDesc.textContent = 'ID를 확인 후 추가를 진행하세요.';
+                    resultDesc.textContent = 'ID를 확인 후 추가를 진행해주세요.';
                     show(resultBox, true);
                 } else if (res.status === 403) {
                     await Swal.fire('세션 만료', '다시 로그인 해주세요.', 'warning');

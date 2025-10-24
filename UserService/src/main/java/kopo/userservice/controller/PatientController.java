@@ -7,6 +7,7 @@ import kopo.userservice.service.PatientManagerService;
 import kopo.userservice.util.EncryptUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -37,25 +38,26 @@ public class PatientController {
     }
 
     @GetMapping("/detail")
-    public PatientDTO getPatientDetail(@RequestParam String id) {
+    public ResponseEntity<PatientDTO> getPatientDetail(@RequestParam String id) {
         log.info("[PatientController] /patient/detail?id={} called", id);
         Optional<PatientDocument> patientOptional = patientRepository.findById(id);
         if (patientOptional.isEmpty()) {
-            return null;
+            log.warn("[PatientController] Patient with id {} not found", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         PatientDocument patient = patientOptional.get();
-        String decryptedEmail = "";
+        String decryptedEmail = ""; // Initialize decryptedEmail here
         try {
             if (patient.getEmail() != null && !patient.getEmail().isEmpty()) {
                 decryptedEmail = EncryptUtil.decAES128CBC(patient.getEmail());
             }
         } catch (Exception e) {
             log.error("Failed to decrypt email for patient id: {}", id, e);
-            decryptedEmail = "복호화 오류"; // 복호화 실패 시 표시할 메시지
+            decryptedEmail = "복호화 오류";
         }
 
-        return PatientDTO.builder()
+        return ResponseEntity.ok(PatientDTO.builder()
                 .id(patient.getId())
                 .name(patient.getName())
                 .email(decryptedEmail)
@@ -63,7 +65,7 @@ public class PatientController {
                 .medicalHistory(patient.getMedicalHistory())
                 .medications(patient.getMedications())
                 .allergies(patient.getAllergies())
-                .build();
+                .build());
     }
 
     @PostMapping("/update")
