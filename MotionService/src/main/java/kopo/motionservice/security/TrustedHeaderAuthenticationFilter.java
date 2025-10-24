@@ -42,6 +42,12 @@ public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
+            // 디버깅: 헤더 값 출력
+            logger.debug("X-User-Id: {}, X-Authorities: {}, X-Gateway-Secret: {}",
+                    request.getHeader(USER_ID_HEADER),
+                    request.getHeader(AUTHORITIES_HEADER),
+                    request.getHeader(GATEWAY_SECRET_HEADER));
+
             // 이미 인증 정보가 있으면 아무것도 안 함
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 String userId = request.getHeader(USER_ID_HEADER);
