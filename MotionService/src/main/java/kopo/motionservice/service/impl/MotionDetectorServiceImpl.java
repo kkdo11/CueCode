@@ -1,16 +1,23 @@
 package kopo.motionservice.service.impl;
 
 import kopo.motionservice.dto.MatchResultDTO;
+import kopo.motionservice.repository.DangerousPhraseAlertRepository;
+import kopo.motionservice.repository.document.DangerousPhraseAlertDocument;
 import kopo.motionservice.repository.document.RecordedMotionDocument;
 import kopo.motionservice.service.IMotionDetectorService;
 import kopo.motionservice.service.IMotionService;
+import kopo.motionservice.util.RedisUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import jakarta.annotation.PostConstruct;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -21,9 +28,19 @@ import java.util.stream.Collectors;
 public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private final IMotionService motionService;
+    @Autowired
+    private RedisUtil redisUtil;
+    @Autowired
+    private DangerousPhraseAlertRepository dangerousPhraseAlertRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 사용자별 캐시: userId -> Map<recordId, CachedMotion>
     private final Map<String, Map<String, CachedMotion>> userCaches = new ConcurrentHashMap<>();
+
+    private static final String REDIS_CACHE_PREFIX = "motion_cache:";
+    private static final long REDIS_CACHE_TIMEOUT_SECONDS = 3600; // 1 hour
+
+    private static final Set<String> DANGEROUS_PHRASES = new HashSet<>(Arrays.asList("도와주세요", "아파요"));
 
     @PostConstruct
     public void init() {
@@ -40,6 +57,21 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             log.info("[MotionDetectorServiceImpl] Reloading cache for ALL users...");
             reloadAllUserCaches();
             return;
+        }
+
+        String redisKey = REDIS_CACHE_PREFIX + userId;
+        String cachedData = redisUtil.get(redisKey);
+
+        if (cachedData != null) {
+            try {
+                Map<String, CachedMotion> userCache = objectMapper.readValue(cachedData, new TypeReference<Map<String, CachedMotion>>() {});
+                userCaches.put(userId, userCache);
+                log.info("[MotionDetectorServiceImpl] Cache loaded from Redis for userId={}. {} motions cached.", userId, userCache.size());
+                return;
+            } catch (Exception e) {
+                log.warn("[MotionDetectorServiceImpl] Failed to load cache from Redis for userId={}: {}", userId, e.getMessage());
+                // Fallback to DB if Redis cache fails
+            }
         }
 
         log.info("[MotionDetectorServiceImpl] Reloading cache from DB for userId={}...", userId);
@@ -67,12 +99,25 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         // 해당 사용자의 캐시를 업데이트
         userCaches.put(userId, userCache);
         log.info("[MotionDetectorServiceImpl] Cache loaded for userId={}. {} motions cached.", userId, loadedCount);
+
+        // Save to Redis
+        try {
+            String jsonCache = objectMapper.writeValueAsString(userCache);
+            redisUtil.set(redisKey, jsonCache, REDIS_CACHE_TIMEOUT_SECONDS);
+            log.info("[MotionDetectorServiceImpl] Cache saved to Redis for userId={}", userId);
+        } catch (Exception e) {
+            log.error("[MotionDetectorServiceImpl] Failed to save cache to Redis for userId={}: {}", userId, e.getMessage());
+        }
     }
 
     /**
      * 모든 사용자의 캐시를 리로드 (관리자 용도)
      */
     private void reloadAllUserCaches() {
+        // For simplicity, reloadAllUserCaches will not use Redis for aggregated cache.
+        // It will just reload from DB and update local cache.
+        // Individual user caches will be saved to Redis when reloadCache(userId) is called.
+        log.info("[MotionDetectorServiceImpl] Reloading all user caches from DB (Redis not used for aggregated cache)...");
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
         Map<String, Map<String, CachedMotion>> tempCaches = new HashMap<>();
 
@@ -160,6 +205,15 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
         log.info("[MotionDetectorServiceImpl] Match found for userId={}. recordId={}, phrase={}, score={}",
                 userId, best.recordId, best.phrase, bestScore);
+
+        // Check for dangerous phrases and save alert
+        if (DANGEROUS_PHRASES.contains(best.phrase)) {
+            log.warn("[MotionDetectorServiceImpl] Dangerous phrase detected for userId={}: {}", userId, best.phrase);
+            DangerousPhraseAlertDocument alert = new DangerousPhraseAlertDocument(userId, best.phrase, LocalDateTime.now());
+            dangerousPhraseAlertRepository.save(alert);
+            log.info("[MotionDetectorServiceImpl] Dangerous phrase alert saved to MongoDB for userId={}", userId);
+        }
+
         return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
     }
 
