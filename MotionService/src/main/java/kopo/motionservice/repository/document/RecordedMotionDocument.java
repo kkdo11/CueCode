@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -27,6 +28,7 @@ public class RecordedMotionDocument {
     @Field(name = "user_id")
     private String userId;
 
+    @Indexed
     @Field(name = "phrase")
     private String phrase;
 
@@ -36,15 +38,19 @@ public class RecordedMotionDocument {
     @Field(name = "motion_data")
     private MotionDataDocument motionData;
 
+    @Field(name = "description")
+    private String description;
+
     @Field(name = "created_at")
     private Date createdAt;
 
     @Builder
-    public RecordedMotionDocument(String userId, String phrase, String motionType, MotionDataDocument motionData) {
+    public RecordedMotionDocument(String userId, String phrase, String motionType, MotionDataDocument motionData, String description) {
         this.userId = userId;
         this.phrase = phrase;
         this.motionType = motionType;
         this.motionData = motionData;
+        this.description = description;
         this.createdAt = new Date();
     }
 

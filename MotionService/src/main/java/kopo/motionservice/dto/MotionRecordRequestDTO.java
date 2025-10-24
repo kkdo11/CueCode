@@ -24,6 +24,9 @@ public class MotionRecordRequestDTO {
     @JsonProperty("motion_data")
     private MotionDataDTO motionData;
 
+    @JsonProperty("description")
+    private String description;
+
     @JsonProperty("user_id")
     private String userId; // User ID for identifying the owner of the motion record
 
