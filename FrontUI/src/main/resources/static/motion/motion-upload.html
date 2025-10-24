@@ -836,7 +836,9 @@
 
         // --- 업로드 이벤트 핸들러 ---
         uploadBtn.onclick = async () => {
+            // read latest inputs (motionLabel and motionDescription)
             const label = document.getElementById('motionLabel').value?.trim();
+            const description = document.getElementById('motionDescription').value?.trim();
             const detectionArea = document.getElementById('detectionArea').value;
 
             if (!label) {
@@ -859,16 +861,15 @@
                 statusDiv.textContent = "📤 영상을 서버에 업로드 중입니다...";
                 enable(uploadBtn, false);
                 enable(resetBtn, false);
-                uploadBtn.classList.remove('pulse-effect'); // 💡 반짝임 제거
+                uploadBtn.classList.remove('pulse-effect'); // remove pulse while uploading
 
                 const formData = new FormData();
                 formData.append('motionLabel', label);
                 formData.append('motionDescription', description);
                 formData.append('detectionArea', detectionArea);
-                // 💡 모든 단계에서 'videoFile' 필드명으로 단일 파일 전송
+                // send single file per step
                 formData.append('videoFile', recordedVideos[stepNumber].blob, `motion_${stepNumber-1}.webm`);
 
-                // 💡 단일 최종 엔드포인트 사용
                 const response = await fetch(`${API_GATEWAY_URL}/motions/upload`, {
                     method: 'POST',
                     credentials: 'include',
@@ -880,7 +881,7 @@
                     statusDiv.textContent = `⭐ 업로드 성공! 다음 단계로 넘어가 주세요.`;
 
                     enable(resetBtn, true);
-                    setNextButtonVisibility(nextBtn, true); // 💡 다음 버튼 표시
+                    setNextButtonVisibility(nextBtn, true);
                     if (isFinalStep) enable(finalUploadBtn, isAllUploaded());
 
                     await Swal.fire('업로드 완료', `${stepNumber-1}차 영상이 성공적으로 업로드되었습니다.`, 'success');
@@ -891,7 +892,7 @@
                     statusDiv.textContent = `❌ 업로드 실패: ${response.status} (${text.substring(0, 50)}...)`;
                     enable(uploadBtn, true);
                     enable(resetBtn, true);
-                    uploadBtn.classList.add('pulse-effect'); // 💡 실패 시 다시 반짝임
+                    uploadBtn.classList.add('pulse-effect');
                     await Swal.fire('오류', `업로드 실패: ${response.status}`, 'error');
                 }
             } catch (error) {
@@ -899,7 +900,7 @@
                 statusDiv.textContent = "❌ 네트워크 오류로 업로드에 실패했습니다.";
                 enable(uploadBtn, true);
                 enable(resetBtn, true);
-                uploadBtn.classList.add('pulse-effect'); // 💡 실패 시 다시 반짝임
+                uploadBtn.classList.add('pulse-effect');
                 await Swal.fire('오류', '업로드 중 네트워크 오류가 발생했습니다.', 'error');
             }
         };

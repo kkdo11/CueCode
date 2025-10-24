@@ -1,3 +1,750 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>CueCode | 실시간 동작 인식</title>-->
+<!--    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg" />-->
+<!--    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">-->
+<!--    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">-->
+<!--    <link rel="stylesheet" href="../css/styles.css" />-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>-->
+<!--    <link rel="stylesheet" href="../css/patient/patient.css" />-->
+<!--    <style>-->
+<!--        /* ======================================================= */-->
+<!--        /* UIverse 토글 스위치 CSS (Start) */-->
+<!--        /* ======================================================= */-->
+<!--        .checkbox-wrapper-5 .check {-->
+<!--            &#45;&#45;size: 40px;-->
+<!--            position: relative;-->
+<!--            background: linear-gradient(90deg, #19bb85, #9adac4);-->
+<!--            line-height: 0;-->
+<!--            perspective: 400px;-->
+<!--            font-size: var(&#45;&#45;size);-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"],-->
+<!--        .checkbox-wrapper-5 .check label,-->
+<!--        .checkbox-wrapper-5 .check label::before,-->
+<!--        .checkbox-wrapper-5 .check label::after,-->
+<!--        .checkbox-wrapper-5 .check {-->
+<!--            appearance: none;-->
+<!--            display: inline-block;-->
+<!--            border-radius: var(&#45;&#45;size);-->
+<!--            border: 0;-->
+<!--            transition: .35s ease-in-out;-->
+<!--            box-sizing: border-box;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check label {-->
+<!--            width: calc(2.2 * var(&#45;&#45;size));-->
+<!--            height: var(&#45;&#45;size);-->
+<!--            background: #d7d7d7;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"] {-->
+<!--            position: absolute;-->
+<!--            z-index: 1;-->
+<!--            width: calc(.8 * var(&#45;&#45;size));-->
+<!--            height: calc(.8 * var(&#45;&#45;size));-->
+<!--            top: calc(.1 * var(&#45;&#45;size));-->
+<!--            left: calc(.1 * var(&#45;&#45;size));-->
+<!--            background: linear-gradient(45deg, #dedede, #ffffff);-->
+<!--            box-shadow: 0 6px 7px rgba(0,0,0,0.3);-->
+<!--            outline: none;-->
+<!--            margin: 0;-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"]:checked {-->
+<!--            left: calc(1.3 * var(&#45;&#45;size));-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label {-->
+<!--            background: transparent;-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check label::before,-->
+<!--        .checkbox-wrapper-5 .check label::after {-->
+<!--            content: "· ·";-->
+<!--            position: absolute;-->
+<!--            overflow: hidden;-->
+<!--            left: calc(.15 * var(&#45;&#45;size));-->
+<!--            top: calc(.5 * var(&#45;&#45;size));-->
+<!--            height: var(&#45;&#45;size);-->
+<!--            letter-spacing: calc(-0.04 * var(&#45;&#45;size));-->
+<!--            color: #9b9b9b;-->
+<!--            font-family: "Times New Roman", serif;-->
+<!--            z-index: 2;-->
+<!--            font-size: calc(.6 * var(&#45;&#45;size));-->
+<!--            border-radius: 0;-->
+<!--            transform-origin: 0 0 calc(-0.5 * var(&#45;&#45;size));-->
+<!--            backface-visibility: hidden;-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check label::after {-->
+<!--            content: "●";-->
+<!--            top: calc(.65 * var(&#45;&#45;size));-->
+<!--            left: calc(.2 * var(&#45;&#45;size));-->
+<!--            height: calc(.1 * var(&#45;&#45;size));-->
+<!--            width: calc(.35 * var(&#45;&#45;size));-->
+<!--            font-size: calc(.2 * var(&#45;&#45;size));-->
+<!--            transform-origin: 0 0 calc(-0.4 * var(&#45;&#45;size));-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::before,-->
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {-->
+<!--            left: calc(1.55 * var(&#45;&#45;size));-->
+<!--            top: calc(.4 * var(&#45;&#45;size));-->
+<!--            line-height: calc(.1 * var(&#45;&#45;size));-->
+<!--            transform: rotateY(360deg);-->
+<!--        }-->
+
+<!--        .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {-->
+<!--            height: calc(.16 * var(&#45;&#45;size));-->
+<!--            top: calc(.55 * var(&#45;&#45;size));-->
+<!--            left: calc(1.6 * var(&#45;&#45;size));-->
+<!--            font-size: calc(.6 * var(&#45;&#45;size));-->
+<!--            line-height: 0;-->
+<!--        }-->
+<!--        /* ======================================================= */-->
+<!--        /* UIverse 토글 스위치 CSS (End) */-->
+<!--        /* ======================================================= */-->
+
+<!--        /* 💡 메인 Flex Container에 포함되는 두 카드의 너비 설정 */-->
+<!--        .main-flex-area {-->
+<!--            align-items: stretch !important; /* 자식 요소의 높이를 강제로 맞춤 (오른쪽 column) */-->
+<!--        }-->
+<!--        .camera-control-card {-->
+<!--            /* 카메라 카드: 전체 공간의 약 65% 차지 */-->
+<!--            flex: 0 0 65%;-->
+<!--            max-width: 65%;-->
+<!--            padding: 20px !important;-->
+<!--        }-->
+<!--        .right-side-column {-->
+<!--            /* 오른쪽 열: 전체 공간의 약 30% 차지 */-->
+<!--            flex: 0 0 30%;-->
+<!--            max-width: 30%;-->
+<!--            display: flex; /* 내부 요소 수직 정렬 */-->
+<!--            flex-direction: column;-->
+<!--        }-->
+<!--        .range-select-card {-->
+<!--            /* 상단 카드 */-->
+<!--            height: auto;-->
+<!--        }-->
+<!--        .detected-phrase-card {-->
+<!--            /* 하단 카드: 남은 공간을 채워 전체 높이를 카메라 카드와 맞춤 */-->
+<!--            flex-grow: 1;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            justify-content: center; /* 내부 콘텐츠 중앙 정렬 */-->
+<!--        }-->
+
+<!--        /* 카메라 및 레이아웃 스타일 */-->
+<!--        #container {-->
+<!--            position: relative;-->
+<!--            display: block;-->
+<!--            width: 100%;-->
+<!--            max-width: 100%;-->
+<!--            height: auto;-->
+<!--            aspect-ratio: 4/3;-->
+<!--            margin-left: auto;-->
+<!--            margin-right: auto;-->
+<!--            border: 2px solid #333;-->
+<!--            border-radius: 10px;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+<!--        #webcam, #output_canvas {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            transform: scaleX(-1);-->
+<!--        }-->
+<!--        #output_canvas { position: absolute; top: 0; left: 0; }-->
+
+<!--        /* 상태 텍스트 스타일 */-->
+<!--        #status {-->
+<!--            margin-top: 10px;-->
+<!--            color: #555;-->
+<!--            font-weight: 600;-->
+<!--            text-align: center;-->
+<!--            max-width: 100%;-->
+<!--            margin-left: auto;-->
+<!--            margin-right: auto;-->
+<!--        }-->
+<!--        #detectionStatus {-->
+<!--            font-size: 1.1rem;-->
+<!--            min-width: 150px;-->
+<!--            text-align: left;-->
+<!--        }-->
+<!--        .text-running { color: #10B981; }-->
+<!--        .text-stopped { color: #EF4444; }-->
+
+<!--        /* 제어 헤더 컨테이너 (토글 스위치) */-->
+<!--        .control-header {-->
+<!--            width: 100%;-->
+<!--            margin-left: auto;-->
+<!--            margin-right: auto;-->
+<!--            justify-content: flex-start !important;-->
+<!--            gap: 20px;-->
+<!--        }-->
+
+<!--        /* 토글 영역 */-->
+<!--        .detection-toggle-area-inner {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--        }-->
+
+<!--        /* 💡 감지 영역 선택 카드 버튼 그룹 */-->
+<!--        .detect-btns-select {-->
+<!--            display: flex;-->
+<!--            gap: 12px;-->
+<!--            width: 100%;-->
+<!--            margin-top: 15px; /* 제목과의 간격 */-->
+<!--        }-->
+
+<!--        /* 💡 감지 버튼 개별 스타일: 가로 폭 확장 유지 */-->
+<!--        .detect-btns-select .detect-btn {-->
+<!--            padding:8px 14px;-->
+<!--            border-radius:8px;-->
+<!--            border:1px solid #e0e0e0;-->
+<!--            background:#fff;-->
+<!--            color:#333;-->
+<!--            cursor:pointer;-->
+<!--            font-weight:600;-->
+<!--            transition: all 0.2s;-->
+<!--            flex-grow: 1;-->
+<!--            min-width: auto;-->
+<!--        }-->
+<!--        .detect-btns-select .detect-btn.active { background:#6FC8F8; color:#fff; border-color:#6FC8F8; }-->
+
+<!--        /* 인식된 문장 카드 스타일 (flex-grow: 1로 높이 자동 확장) */-->
+<!--        .detected-phrase-card {-->
+<!--            padding: 30px !important;-->
+<!--            /* 💡 배경색을 그라데이션으로 수정 */-->
+<!--            background: linear-gradient(135deg, #6FC8F8 0%, #437de4 100%) !important;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);-->
+<!--            margin: 0;-->
+<!--        }-->
+<!--        .detected-phrase-card h5 {-->
+<!--            color: rgba(255, 255, 255, 0.8) !important;-->
+<!--        }-->
+<!--        #detectedPhrase {-->
+<!--            font-size: 2.5rem;-->
+<!--            font-weight: bold;-->
+<!--            color: white;-->
+<!--            line-height: 1.2;-->
+<!--            /* 하단 카드에서 남은 공간을 차지하도록 flex-grow 및 중앙 정렬 */-->
+<!--            flex-grow: 1;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--        }-->
+
+<!--        /* 💡 작은 화면에서 수직 배열 되도록 조정 (모바일 반응형) */-->
+<!--        @media (max-width: 991px) {-->
+<!--            .camera-control-card, .right-side-column {-->
+<!--                flex: 0 0 100%;-->
+<!--                max-width: 100%;-->
+<!--                margin-bottom: 20px;-->
+<!--            }-->
+<!--            .right-side-column {-->
+<!--                margin-top: 0 !important;-->
+<!--            }-->
+<!--            .detected-phrase-card {-->
+<!--                flex-grow: 0;-->
+<!--            }-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--<header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100 fixed-header">-->
+<!--    <div class="container">-->
+<!--        <div class="header-wrapper d-flex align-items-center justify-content-between">-->
+<!--            <div class="logo">-->
+<!--                <a href="/index.html" class="logo-white">-->
+<!--                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">-->
+<!--                </a>-->
+<!--                <a href="/index.html" class="logo-dark">-->
+<!--                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">-->
+<!--                </a>-->
+<!--            </div>-->
+<!--            <div class="d-flex align-items-center gap-4">-->
+<!--                <div class="btn-group">-->
+<!--                    <button-->
+<!--                            class="btn btn-secondary toggle-menu round-45 p-2 d-flex align-items-center justify-content-center bg-white rounded-circle"-->
+<!--                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">-->
+<!--                        <iconify-icon icon="solar:hamburger-menu-line-duotone" class="menu-icon fs-8 text-dark"></iconify-icon>-->
+<!--                    </button>-->
+<!--                    <ul class="dropdown-menu dropdown-menu-end p-4">-->
+<!--                        <div class="d-flex flex-column gap-6">-->
+<!--                            <div class="hstack justify-content-between border-bottom pb-6">-->
+<!--                                <p class="mb-0 fs-5 text-dark">Menu</p>-->
+<!--                                <button type="button" class="btn-close opacity-75" aria-label="Close"></button>-->
+<!--                            </div>-->
+<!--                            <div class="d-flex flex-column gap-3">-->
+<!--                                <ul class="header-menu list-unstyled mb-0 d-flex flex-column gap-2">-->
+<!--                                    <li class="header-item">-->
+<!--                                        <a href="index.html" aria-current="true"-->
+<!--                                           class="header-link active hstack gap-2 fs-7 fw-bold text-dark"><img-->
+<!--                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"-->
+<!--                                                class="img-fluid animate-spin">홈</a>-->
+<!--                                    </li>-->
+<!--                                    <li class="header-item" id="patientMenuItem">-->
+<!--                                        <a href="/patient/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="patientMenuLink"><img-->
+<!--                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"-->
+<!--                                                class="img-fluid animate-spin">환자 대시보드</a>-->
+<!--                                    </li>-->
+<!--                                    <li class="header-item" id="managerMenuItem">-->
+<!--                                        <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="managerMenuLink"><img-->
+<!--                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"-->
+<!--                                                class="img-fluid animate-spin">관리자 대시보드</a>-->
+<!--                                    </li>-->
+<!--                                    <li class="header-item" id="myPageMenuItem">-->
+<!--                                        <a href="../user/mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img-->
+<!--                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"-->
+<!--                                                class="img-fluid animate-spin">마이 페이지</a>-->
+<!--                                    </li>-->
+<!--                                </ul>-->
+<!--                                <div class="hstack gap-3" id="auth-btn-group">-->
+<!--                                    <a href="sign-in.html"-->
+<!--                                       class="btn btn-outline-light fs-6 bg-white px-3 py-2 text-dark w-50 hstack justify-content-center">로그인</a>-->
+<!--                                    <a href="sign-up.html"-->
+<!--                                       class="btn btn-dark text-white fs-6 bg-dark px-3 py-2 w-50 hstack justify-content-center">회원가입</a>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </ul>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</header>-->
+
+<!--<div class="container my-5 pt-5">-->
+
+<!--    <div class="row mb-4 justify-content-center">-->
+<!--        <div class="col-12 col-md-10 fade-in-up">-->
+
+<!--            <div class="d-flex justify-content-center align-items-start gap-4 flex-wrap flex-lg-nowrap main-flex-area">-->
+
+<!--                <div class="p-3 p-md-5 bg-white rounded shadow camera-control-card">-->
+
+<!--                    <div class="d-flex align-items-center mb-3 control-header">-->
+<!--                        <div class="d-flex align-items-center detection-toggle-area-inner">-->
+<!--                            <div class="checkbox-wrapper-5">-->
+<!--                                <div class="check">-->
+<!--                                    <input id="detectionToggle" type="checkbox">-->
+<!--                                    <label for="detectionToggle"></label>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                            <span id="detectionStatus" class="ms-3 fw-bold text-stopped">동작 인식 정지 중</span>-->
+<!--                        </div>-->
+<!--                    </div>-->
+
+<!--                    <div id="container" class="mx-auto">-->
+<!--                        <video id="webcam" autoplay playsinline></video>-->
+<!--                        <canvas id="output_canvas"></canvas>-->
+<!--                    </div>-->
+
+<!--                    <div id="status" class="mt-3">상태: 카메라 연결 대기 중</div>-->
+<!--                </div>-->
+
+<!--                <div class="d-flex flex-column gap-4 right-side-column">-->
+
+<!--                    <div class="p-4 rounded shadow range-select-card">-->
+<!--                        <h5 class="mb-3 text-center text-dark fw-bold">인식 범위를 선택하세요</h5>-->
+<!--                        <div class="detect-btns-select" id="detectAreaBtns">-->
+<!--                            <button class="detect-btn active" data-value="hands" id="detectHandsBtn">손</button>-->
+<!--                            <button class="detect-btn" data-value="face" id="detectFaceBtn">얼굴</button>-->
+<!--                            <button class="detect-btn" data-value="eyes" id="detectEyesBtn">눈</button>-->
+<!--                        </div>-->
+<!--                    </div>-->
+
+<!--                    <div class="p-4 bg-primary rounded shadow text-white detected-phrase-card">-->
+<!--                        <h5 class="mb-2 text-center text-white-75">인식된 문장</h5>-->
+<!--                        <div id="detectedPhrase" class="text-center">인식 대기 중</div>-->
+<!--                    </div>-->
+
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+<!--<footer class="footer bg-dark py-5 py-lg-11 py-xl-5">-->
+<!--    <div class="container">-->
+<!--        <div class="row">-->
+<!--            <div class="col-xl-5 mb-8 mb-xl-0">-->
+<!--                <div class="d-flex flex-column gap-8 pe-xl-5">-->
+<!--                    <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용-->
+<!--                        <br>공모전 출품작입니다</h4>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-6 col-xl-4 mb-8 mb-xl-0">-->
+<!--                <div class="d-flex flex-column gap-2">-->
+<!--                    <a href="https://contest.k-paas.org/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">-->
+<!--                        <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>-->
+<!--                        https://contest.k-paas.org/-->
+<!--                    </a>-->
+<!--                    <a href="https://buly.kr/Awg81rV" target="_blank"-->
+<!--                       class="link-hover hstack gap-3 text-white fs-5">-->
+<!--                        <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>-->
+<!--                        우장산 산신령들-->
+<!--                    </a>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4 col-xl-3 mb-8 mb-xl-0">-->
+<!--                <p class="mb-0 text-white text-opacity-70 text-md-end">© CueCode copyright 2025</p>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--    <p class="mb-0 text-white text-opacity-70 text-md-center mt-10">Distributed by <a class="text-white"  target="_blank">Team Ujangsan Spirit</a></p>-->
+<!--</footer>-->
+<!--<div class="get-template hstack gap-2">-->
+<!--    <button class="btn bg-primary p-2 round-52 rounded-circle hstack justify-content-center flex-shrink-0"-->
+<!--            id="scrollToTopBtn">-->
+<!--        <iconify-icon icon="lucide:arrow-up" class="fs-7 text-dark"></iconify-icon>-->
+<!--    </button>-->
+<!--</div>-->
+
+
+<!--<script src="../js/user/index.js"></script>-->
+<!--<script src="../js/config.js"></script>-->
+<!--<script src="../libs/jquery/dist/jquery.min.js"></script>-->
+<!--<script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>-->
+<!--<script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>-->
+<!--<script src="../libs/aos-master/dist/aos.js"></script>-->
+
+<!--<script type="module" src="/vendor/mediapipe/js/vision_bundle.js"></script>-->
+
+<!--<script type="module">-->
+<!--    // MotionLink Demo v0.6의 JavaScript 코드 + CueCode 토글 스위치 연동 로직-->
+
+<!--    // Pick the correct backend port!-->
+<!--    // const WEBSOCKET_URL = "ws://localhost:8000/ws/motion";-->
+<!--    // const WEBSOCKET_URL = "ws://localhost:13000/ws/motion";-->
+<!--    const WEBSOCKET_URL = "ws://localhost:15000/ws/motion";-->
+
+<!--    const SEND_INTERVAL_MS = 100;-->
+<!--    const SEGMENT_MS = 1000; // send "end" every 1s while streaming-->
+<!--    let lastSegmentTs = 0;-->
+
+<!--    const video = document.getElementById("webcam");-->
+<!--    const canvasElement = document.getElementById("output_canvas");-->
+<!--    const canvasCtx = canvasElement.getContext("2d");-->
+
+<!--    // MotionLink 내부 상태 메시지 (Detailed)-->
+<!--    const statusDiv = document.getElementById("status");-->
+<!--    // CueCode UI 상단 동작 인식 상태 텍스트 (UI/Styling)-->
+<!--    const detectionStatusSpan = document.getElementById("detectionStatus");-->
+<!--    // CueCode 토글 스위치 요소-->
+<!--    const toggle = document.getElementById('detectionToggle');-->
+
+<!--    const phraseDiv = document.getElementById("detectedPhrase");-->
+
+
+<!--    const { FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils } =-->
+<!--        await import("/vendor/mediapipe/js/vision_bundle.js");-->
+
+<!--    let faceLandmarker, handLandmarker, drawingUtils, socket;-->
+<!--    let detectionActive = false;-->
+<!--    let lastVideoTime = -1, lastSendTime = 0;-->
+<!--    let selectedDetectionArea = 'hands'; // 'hands' | 'face' | 'eyes'-->
+
+<!--    function getNormalizedDetectionArea(raw) {-->
+<!--        if (!raw) return 'hand';-->
+<!--        if (raw === 'hands') return 'hand';-->
+<!--        return 'face'; // treat face/eyes the same for backend-->
+<!--    }-->
+
+<!--    function sendEnd(area = getNormalizedDetectionArea(selectedDetectionArea)) {-->
+<!--        if (socket && socket.readyState === WebSocket.OPEN) {-->
+<!--            socket.send(JSON.stringify({ type: "end", detectionArea: area }));-->
+<!--        }-->
+<!--    }-->
+
+<!--    /**-->
+<!--     * UI 상태를 업데이트합니다. (토글, 상단 텍스트, 색상)-->
+<!--     * @param {boolean} isRunning - 인식이 실행 중인지 여부-->
+<!--     */-->
+<!--    function setUIStatus(isRunning) {-->
+<!--        toggle.checked = isRunning;-->
+<!--        if (isRunning) {-->
+<!--            detectionStatusSpan.textContent = "동작 인식 중";-->
+<!--            detectionStatusSpan.classList.remove('text-stopped');-->
+<!--            detectionStatusSpan.classList.add('text-running');-->
+<!--        } else {-->
+<!--            detectionStatusSpan.textContent = "동작 인식 정지 중";-->
+<!--            detectionStatusSpan.classList.remove('text-running');-->
+<!--            detectionStatusSpan.classList.add('text-stopped');-->
+<!--        }-->
+<!--    }-->
+
+<!--    function setupDetectAreaButtons() {-->
+<!--        const container = document.getElementById('detectAreaBtns');-->
+<!--        if (!container) return;-->
+<!--        container.querySelectorAll('.detect-btn').forEach(btn => {-->
+<!--            btn.addEventListener('click', () => {-->
+<!--                const prevArea = getNormalizedDetectionArea(selectedDetectionArea);-->
+<!--                container.querySelectorAll('.detect-btn').forEach(b => b.classList.remove('active'));-->
+<!--                btn.classList.add('active');-->
+<!--                selectedDetectionArea = btn.dataset.value || 'hands';-->
+<!--                const nextArea = getNormalizedDetectionArea(selectedDetectionArea);-->
+<!--                // When switching modes, close the current segment explicitly-->
+<!--                if (detectionActive && prevArea !== nextArea) {-->
+<!--                    sendEnd(prevArea);-->
+<!--                    lastSegmentTs = performance.now();-->
+<!--                }-->
+<!--            });-->
+<!--        });-->
+<!--    }-->
+
+<!--    async function createLandmarkers() {-->
+<!--        const vision = await FilesetResolver.forVisionTasks("/vendor/mediapipe/wasm");-->
+<!--        drawingUtils = new DrawingUtils(canvasCtx);-->
+<!--        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {-->
+<!--            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/face_landmarker.task`, delegate: "GPU" },-->
+<!--            outputFaceBlendshapes: true,-->
+<!--            runningMode: "VIDEO",-->
+<!--            numFaces: 1-->
+<!--        });-->
+<!--        handLandmarker = await HandLandmarker.createFromOptions(vision, {-->
+<!--            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/hand_landmarker.task`, delegate: "GPU" },-->
+<!--            runningMode: "VIDEO",-->
+<!--            numHands: 2-->
+<!--        });-->
+<!--        statusDiv.textContent = "상태: 웹캠 로딩 중...";-->
+<!--    }-->
+
+<!--    function enableCam() {-->
+<!--        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {-->
+<!--            video.srcObject = stream;-->
+<!--            video.addEventListener("loadeddata", predictWebcam);-->
+<!--            statusDiv.textContent = "상태: 웹캠 활성화됨";-->
+<!--        }).catch((err) => {-->
+<!--            statusDiv.textContent = "오류: 웹캠 접근 실패";-->
+<!--            console.error(err);-->
+<!--        });-->
+<!--    }-->
+
+<!--    async function predictWebcam() {-->
+<!--        // Keep canvas in sync with video-->
+<!--        if (canvasElement.width !== video.videoWidth || canvasElement.height !== video.videoHeight) {-->
+<!--            canvasElement.width = video.videoWidth || 640;-->
+<!--            canvasElement.height = video.videoHeight || 480;-->
+<!--        }-->
+
+<!--        const nowPerf = performance.now();-->
+
+<!--        if (lastVideoTime !== video.currentTime && detectionActive) {-->
+<!--            lastVideoTime = video.currentTime;-->
+
+<!--            // Run detectors-->
+<!--            const faceResults = faceLandmarker.detectForVideo(video, nowPerf);-->
+<!--            const handResults = handLandmarker.detectForVideo(video, nowPerf);-->
+
+<!--            // Draw results-->
+<!--            canvasCtx.save();-->
+<!--            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);-->
+
+<!--            if (handResults.landmarks) {-->
+<!--                for (const landmarks of handResults.landmarks) {-->
+<!--                    drawingUtils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: "#FFFFFF", lineWidth: 2 });-->
+<!--                    drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 1 });-->
+<!--                }-->
+<!--            }-->
+<!--            if (faceResults.faceLandmarks) {-->
+<!--                for (const landmarks of faceResults.faceLandmarks) {-->
+<!--                    drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });-->
+<!--                }-->
+<!--            }-->
+<!--            canvasCtx.restore();-->
+
+<!--            // Throttle frame sending-->
+<!--            if (nowPerf - lastSendTime > SEND_INTERVAL_MS) {-->
+<!--                lastSendTime = nowPerf;-->
+<!--                processAndSend(faceResults, handResults);-->
+<!--            }-->
+
+<!--            // Periodic segment boundary-->
+<!--            if (nowPerf - lastSegmentTs > SEGMENT_MS) {-->
+<!--                sendEnd();-->
+<!--                lastSegmentTs = nowPerf;-->
+<!--            }-->
+<!--        }-->
+
+<!--        window.requestAnimationFrame(predictWebcam);-->
+<!--    }-->
+
+<!--    function processAndSend(faceResults, handResults) {-->
+<!--        const faceBlendshapes = faceResults.faceBlendshapes.length > 0-->
+<!--            ? Object.fromEntries(faceResults.faceBlendshapes[0].categories.map(c => [c.categoryName, c.score]))-->
+<!--            : {};-->
+
+<!--        const getHandData = (handednesses, landmarks, handName) => {-->
+<!--            if (!handednesses || !landmarks) return null;-->
+<!--            const idx = handednesses.findIndex(h => (h[0] && h[0].categoryName) === handName);-->
+<!--            return idx > -1 ? landmarks[idx].map(p => [p.x, p.y, p.z]) : null;-->
+<!--        };-->
+
+<!--        const frame = {-->
+<!--            timestamp_ms: Date.now(),-->
+<!--            face_blendshapes: faceBlendshapes,-->
+<!--            left_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Left"),-->
+<!--            right_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Right")-->
+<!--        };-->
+
+<!--        if (!socket || socket.readyState !== WebSocket.OPEN) return;-->
+
+<!--        const normalizedArea = getNormalizedDetectionArea(selectedDetectionArea);-->
+<!--        let features = null;-->
+
+<!--        if (normalizedArea === 'face') {-->
+<!--            if (Object.keys(faceBlendshapes).length === 0) return;-->
+<!--            const featureKeys = Object.keys(faceBlendshapes).sort();-->
+<!--            features = featureKeys.map(k => Number(faceBlendshapes[k] || 0));-->
+
+<!--            socket.send(JSON.stringify({-->
+<!--                type: "frame",-->
+<!--                detectionArea: normalizedArea,-->
+<!--                timestamp_ms: frame.timestamp_ms,-->
+<!--                featureKeys: featureKeys,-->
+<!--                features: features-->
+<!--            }));-->
+<!--        } else { // hand-->
+<!--            const right = frame.right_hand_landmarks || null;-->
+<!--            const left = frame.left_hand_landmarks || null;-->
+<!--            if ((!Array.isArray(right) || right.length === 0) && (!Array.isArray(left) || left.length === 0)) {-->
+<!--                return;-->
+<!--            }-->
+<!--            const pointCount = Math.max((right && right.length) || 0, (left && left.length) || 0);-->
+<!--            const vec = [];-->
+<!--            for (let i = 0; i < pointCount; i++) {-->
+<!--                if (right && right[i] && right[i].length >= 3) { vec.push(+right[i][0]||0, +right[i][1]||0, +right[i][2]||0); }-->
+<!--                else { vec.push(0,0,0); }-->
+<!--            }-->
+<!--            for (let i = 0; i < pointCount; i++) {-->
+<!--                if (left && left[i] && left[i].length >= 3) { vec.push(+left[i][0]||0, +left[i][1]||0, +left[i][2]||0); }-->
+<!--                else { vec.push(0,0,0); }-->
+<!--            }-->
+<!--            features = vec;-->
+
+<!--            socket.send(JSON.stringify({-->
+<!--                type: "frame",-->
+<!--                detectionArea: normalizedArea,-->
+<!--                timestamp_ms: frame.timestamp_ms,-->
+<!--                features: features-->
+<!--            }));-->
+<!--        }-->
+<!--    }-->
+
+<!--    function getCookie(name) {-->
+<!--        const value = `; ${document.cookie}`;-->
+<!--        const parts = value.split(`; ${name}=`);-->
+<!--        if (parts.length === 2) return parts.pop().split(';').shift();-->
+<!--    }-->
+
+<!--    function speak(text) {-->
+<!--        if ('speechSynthesis' in window) {-->
+<!--            const utterance = new SpeechSynthesisUtterance(text);-->
+<!--            utterance.lang = 'ko-KR';-->
+<!--            window.speechSynthesis.speak(utterance);-->
+<!--        }-->
+<!--    }-->
+
+<!--    function initWebSocket() {-->
+<!--        const token = getCookie('jwtAccessToken');-->
+<!--        const url = token ? `${WEBSOCKET_URL}?token=${encodeURIComponent(token)}` : WEBSOCKET_URL;-->
+
+<!--        socket = new WebSocket(url);-->
+<!--        socket.onopen = () => {-->
+<!--            detectionActive = true;-->
+<!--            lastSegmentTs = performance.now();-->
+
+<!--            // -&#45;&#45; UI Bridge: Start 상태 업데이트 -&#45;&#45;-->
+<!--            phraseDiv.textContent = "-";-->
+<!--            statusDiv.textContent = "상태: 서버 연결됨 (인식 중)";-->
+<!--            setUIStatus(true); // 토글과 상단 텍스트를 "인식 중"으로 업데이트-->
+<!--            // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--        };-->
+<!--        socket.onmessage = (event) => {-->
+<!--            try {-->
+<!--                const data = JSON.parse(event.data);-->
+<!--                if (data.type === "match") {-->
+<!--                    const phrase = data.matched && data.phrase ? data.phrase : "인식된 문장이 없습니다.";-->
+<!--                    phraseDiv.textContent = phrase;-->
+<!--                    if (data.matched && data.phrase) speak(data.phrase);-->
+<!--                }-->
+<!--            } catch {-->
+<!--                phraseDiv.textContent = "서버 응답 오류";-->
+<!--            }-->
+<!--        };-->
+<!--        socket.onerror = () => {-->
+<!--            // Try to close the current segment before closing the socket-->
+<!--            sendEnd();-->
+<!--            if (socket && socket.readyState === WebSocket.OPEN) socket.close();-->
+<!--            phraseDiv.textContent = "WebSocket 오류";-->
+<!--        };-->
+<!--        socket.onclose = () => {-->
+<!--            detectionActive = false;-->
+
+<!--            // -&#45;&#45; UI Bridge: Stop 상태 업데이트 -&#45;&#45;-->
+<!--            statusDiv.textContent = "상태: 연결 종료됨";-->
+<!--            setUIStatus(false); // 토글과 상단 텍스트를 "정지 중"으로 업데이트-->
+<!--            // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--        };-->
+<!--    }-->
+
+
+<!--    // -&#45;&#45; 토글 스위치 이벤트 리스너: UI 및 기능 연동 -&#45;&#45;-->
+<!--    if (toggle) {-->
+<!--        // 페이지 로드 시 초기 상태 설정 (unchecked = 정지 중)-->
+<!--        setUIStatus(toggle.checked);-->
+
+<!--        toggle.addEventListener('change', (event) => {-->
+<!--            const isChecked = event.target.checked;-->
+
+<!--            // 1. UI 상태를 즉시 업데이트-->
+<!--            setUIStatus(isChecked);-->
+
+<!--            if (isChecked) {-->
+<!--                // 토글 켜짐: 동작 인식 시작-->
+<!--                if (!socket || socket.readyState === WebSocket.CLOSED) {-->
+<!--                    initWebSocket();-->
+<!--                }-->
+<!--            } else {-->
+<!--                // 토글 꺼짐: 동작 인식 종료-->
+<!--                if (socket && socket.readyState === WebSocket.OPEN) {-->
+<!--                    detectionActive = false;-->
+<!--                    sendEnd();-->
+<!--                    socket.close();-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
+<!--    }-->
+<!--    // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+
+
+<!--    // Also close segment on page hide/unload-->
+<!--    window.addEventListener('visibilitychange', () => {-->
+<!--        if (document.hidden) sendEnd();-->
+<!--    });-->
+<!--    window.addEventListener('beforeunload', () => {-->
+<!--        sendEnd();-->
+<!--    });-->
+
+<!--    // === initialize ===-->
+<!--    await createLandmarkers();-->
+<!--    enableCam();-->
+<!--    setupDetectAreaButtons();-->
+<!--</script>-->
+<!--<script src="../js/custom.js"></script>-->
+<!--</body>-->
+<!--</html>-->
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
