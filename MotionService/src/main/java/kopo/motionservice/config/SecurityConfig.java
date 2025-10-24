@@ -46,6 +46,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
                 .requestMatchers("/health").permitAll()
+                .requestMatchers("/ws/motion").permitAll()
                 .anyRequest().authenticated()
         );
 
