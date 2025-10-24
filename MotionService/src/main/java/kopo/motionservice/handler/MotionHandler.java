@@ -41,11 +41,26 @@ public class MotionHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
-        // userId 추출 및 로깅 (새로운 로직)
-        String userId = Optional.ofNullable(session.getPrincipal())
-                .map(Principal::getName)
-                .orElse("anonymous");
+        // userId 추출 (attributes에서 가져오기 - HttpHandshakeInterceptor가 설정함)
+        String userId = (String) session.getAttributes().get("userId");
+        if (userId == null) {
+            userId = Optional.ofNullable(session.getPrincipal())
+                    .map(Principal::getName)
+                    .orElse("anonymous");
+        }
+
         log.info("[MotionHandler] New client connected: {}, userId: {}", session.getId(), userId);
+
+        // 해당 사용자의 캐시를 로드 (중요!)
+        if (userId != null && !"anonymous".equals(userId)) {
+            try {
+                log.info("[MotionHandler] Loading cache for userId: {}", userId);
+                matchingService.reloadCache(userId);
+            } catch (Exception e) {
+                log.error("[MotionHandler] Failed to load cache for userId: {}", userId, e);
+            }
+        }
+
         buffers.put(session.getId(), new ArrayList<>());
     }
 
@@ -59,12 +74,15 @@ public class MotionHandler extends TextWebSocketHandler {
     protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws Exception {
         String payload = message.getPayload();
 
-        // userId 추출 (새로운 로직)
-        String userId = Optional.ofNullable(session.getPrincipal())
-                .map(Principal::getName)
-                .orElse(null);
+        // userId 추출 (attributes에서 가져오기)
+        String userId = (String) session.getAttributes().get("userId");
+        if (userId == null) {
+            userId = Optional.ofNullable(session.getPrincipal())
+                    .map(Principal::getName)
+                    .orElse(null);
+        }
 
-        // 로깅에 userId 포함 (새로운 로직)
+        // 로깅에 userId 포함
         log.info("[MotionHandler] Received data from client {}({}): {}", session.getId(), userId, payload);
 
         try {
@@ -72,7 +90,6 @@ public class MotionHandler extends TextWebSocketHandler {
             String type = root.has("type") ? root.get("type").asText() : "frame";
 
             if ("frame".equalsIgnoreCase(type)) {
-                // ... (이전과 동일한 프레임 처리 로직) ...
                 JsonNode featuresNode = root.get("features");
                 if (featuresNode == null || !featuresNode.isArray()) {
                     session.sendMessage(new TextMessage(mapper.writeValueAsString(Map.of("error", "missing features array"))));
@@ -90,7 +107,7 @@ public class MotionHandler extends TextWebSocketHandler {
             }
 
             if ("end".equalsIgnoreCase(type)) {
-                // 이전과 동일: 'end'가 왔을 때만 매칭 수행
+                // 'end'가 왔을 때만 매칭 수행
                 String detectionArea = root.has("detectionArea") ? root.get("detectionArea").asText() : null;
                 List<double[]> seq = buffers.getOrDefault(session.getId(), Collections.emptyList());
 
@@ -99,10 +116,10 @@ public class MotionHandler extends TextWebSocketHandler {
                     return;
                 }
 
-                // ✨ userId를 포함하여 매칭 서비스 호출 (새로운 로직)
+                // ✨ userId를 포함하여 매칭 서비스 호출 (중요!)
                 MatchResultDTO res = matchingService.matchSequence(seq, detectionArea == null ? "face" : detectionArea, userId);
 
-                // 이전 코드에서 Map에 직접 넣던 로직을 헬퍼 함수로 대체 (내용은 동일)
+                // 응답 전송
                 Map<String, Object> out = buildMatchResponse(res);
                 session.sendMessage(new TextMessage(mapper.writeValueAsString(out)));
 

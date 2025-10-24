@@ -44,6 +44,10 @@ public class JwtAuthenticationFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+
+        // 디버깅: 요청 헤더 출력
+        log.debug("[JwtAuthenticationFilter] Incoming Request Headers: {}", request.getHeaders());
+
         String path = request.getURI().getPath();
 
         if (skipPaths.stream().anyMatch(path::startsWith)) {
@@ -82,6 +86,8 @@ public class JwtAuthenticationFilter implements WebFilter {
                                 .collect(Collectors.joining(",")))
                         .header("X-Gateway-Secret", this.gatewayTrustedSecret) // <--- 이 부분이 추가됨
                         .build();
+
+                log.debug("[JwtAuthenticationFilter] Modified Request Headers: {}", mutatedRequest.getHeaders());
 
                 ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
 
