@@ -22,39 +22,120 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private final IMotionService motionService;
 
-    // In-memory cache of precomputed sequences by recordId
-    private final Map<String, CachedMotion> cache = new ConcurrentHashMap<>();
+    // 사용자별 캐시: userId -> Map<recordId, CachedMotion>
+    private final Map<String, Map<String, CachedMotion>> userCaches = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
-        reloadCache();
+        log.info("[MotionDetectorServiceImpl] Initialized with user-based cache system.");
+        // 초기화 시에는 빈 상태로 시작 - 각 사용자 연결 시 해당 사용자의 캐시를 로드
     }
 
-    public void reloadCache() {
-        log.info("[MotionDetectorServiceImpl] Reloading cache from DB via IMotionService...");
+    /**
+     * 특정 사용자의 캐시를 리로드합니다.
+     * userId가 null이면 전체 사용자의 데이터를 로드합니다.
+     */
+    public void reloadCache(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            log.info("[MotionDetectorServiceImpl] Reloading cache for ALL users...");
+            reloadAllUserCaches();
+            return;
+        }
+
+        log.info("[MotionDetectorServiceImpl] Reloading cache from DB for userId={}...", userId);
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
-        Map<String, CachedMotion> tmp = new HashMap<>();
+        Map<String, CachedMotion> userCache = new HashMap<>();
+        int loadedCount = 0;
+
         for (RecordedMotionDocument doc : all) {
+            // userId가 일치하는 레코드만 처리
+            if (!userId.equals(doc.getUserId())) {
+                continue;
+            }
+
             try {
                 CachedMotion cm = buildCachedMotion(doc);
-                if (cm != null) tmp.put(doc.getRecordId(), cm);
+                if (cm != null) {
+                    userCache.put(doc.getRecordId(), cm);
+                    loadedCount++;
+                }
             } catch (Exception e) {
                 log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
             }
         }
-        cache.clear();
-        cache.putAll(tmp);
-        log.info("[MotionDetectorServiceImpl] Cache loaded. {} motions cached.", cache.size());
+
+        // 해당 사용자의 캐시를 업데이트
+        userCaches.put(userId, userCache);
+        log.info("[MotionDetectorServiceImpl] Cache loaded for userId={}. {} motions cached.", userId, loadedCount);
+    }
+
+    /**
+     * 모든 사용자의 캐시를 리로드 (관리자 용도)
+     */
+    private void reloadAllUserCaches() {
+        List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
+        Map<String, Map<String, CachedMotion>> tempCaches = new HashMap<>();
+
+        for (RecordedMotionDocument doc : all) {
+            String docUserId = doc.getUserId();
+            if (docUserId == null || docUserId.isEmpty()) {
+                log.warn("[MotionDetectorServiceImpl] Skipping record {} with null/empty userId", doc.getRecordId());
+                continue;
+            }
+
+            try {
+                CachedMotion cm = buildCachedMotion(doc);
+                if (cm != null) {
+                    tempCaches.computeIfAbsent(docUserId, k -> new HashMap<>())
+                              .put(doc.getRecordId(), cm);
+                }
+            } catch (Exception e) {
+                log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
+            }
+        }
+
+        userCaches.clear();
+        userCaches.putAll(tempCaches);
+        log.info("[MotionDetectorServiceImpl] Cache loaded for all users. {} users, total {} motions cached.",
+                userCaches.size(),
+                userCaches.values().stream().mapToInt(Map::size).sum());
     }
 
     @Override
-    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
-        if (liveSequence == null || liveSequence.isEmpty()) return MatchResultDTO.noMatch();
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea, String userId) {
+        if (liveSequence == null || liveSequence.isEmpty()) {
+            log.debug("[MotionDetectorServiceImpl] Empty live sequence for userId={}", userId);
+            return MatchResultDTO.noMatch();
+        }
+
+        // userId가 없으면 매칭 불가
+        if (userId == null || userId.isEmpty()) {
+            log.warn("[MotionDetectorServiceImpl] No userId provided for matching");
+            return MatchResultDTO.noMatch();
+        }
+
+        // 해당 사용자의 캐시 가져오기
+        Map<String, CachedMotion> userCache = userCaches.get(userId);
+
+        // 캐시가 없으면 로드 시도
+        if (userCache == null || userCache.isEmpty()) {
+            log.info("[MotionDetectorServiceImpl] No cache found for userId={}. Loading cache...", userId);
+            reloadCache(userId);
+            userCache = userCaches.get(userId);
+
+            if (userCache == null || userCache.isEmpty()) {
+                log.warn("[MotionDetectorServiceImpl] No recorded motions found for userId={}", userId);
+                return MatchResultDTO.noMatch();
+            }
+        }
 
         double bestScore = Double.POSITIVE_INFINITY;
         CachedMotion best = null;
 
-        for (CachedMotion cm : cache.values()) {
+        log.debug("[MotionDetectorServiceImpl] Matching against {} cached motions for userId={}", userCache.size(), userId);
+
+        // 해당 사용자의 캐시에서만 매칭 수행
+        for (CachedMotion cm : userCache.values()) {
             if (!matchesArea(cm.motionType, detectionArea)) continue;
 
             // If cached motion is hand-type, align and normalize the live sequence to cached dimensionality
@@ -72,9 +153,21 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             }
         }
 
-        if (best == null) return MatchResultDTO.noMatch();
+        if (best == null) {
+            log.debug("[MotionDetectorServiceImpl] No match found for userId={}, detectionArea={}", userId, detectionArea);
+            return MatchResultDTO.noMatch();
+        }
 
+        log.info("[MotionDetectorServiceImpl] Match found for userId={}. recordId={}, phrase={}, score={}",
+                userId, best.recordId, best.phrase, bestScore);
         return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
+    }
+
+    @Override
+    public MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea) {
+        // userId 없이 호출된 경우 - 레거시 호환성을 위해 유지하지만 경고 로그
+        log.warn("[MotionDetectorServiceImpl] matchSequence called without userId - matching will fail");
+        return MatchResultDTO.noMatch();
     }
 
     // simple matching rule: motionType contains detectionArea (case-insensitive)

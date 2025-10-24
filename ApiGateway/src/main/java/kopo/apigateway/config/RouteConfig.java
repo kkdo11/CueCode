@@ -66,6 +66,7 @@ public class RouteConfig {
                         .filters(f -> f.rewritePath("/motion/upload", "/motion/motion-upload.html"))
                         .uri(frontUiServiceUri))
 
+
                 // Vendor static assets (e.g., FFmpeg)
                 .route("front-ui-vendor-assets", r -> r
                         .path("/vendor/**")
@@ -86,10 +87,17 @@ public class RouteConfig {
                         .path("/reg/**")
                         .uri(userServiceUri))
 
-                // MotionService 라우팅
+//                // MotionService 라우팅
+//                .route("motion-service", r -> r
+//                        .path("/motions/**")
+//                        .uri(motionServiceUri))
+
+                // 💡 [수정] MotionService 라우팅 : /api/motions/** 경로를 받고 /motions/** 로 재작성하여 전달
                 .route("motion-service", r -> r
-                        .path("/motions/**")
+                        .path("/api/motions/**")
+                        .filters(f -> f.rewritePath("/api/motions/(?<segment>.*)", "/motions/${segment}"))
                         .uri(motionServiceUri))
+
                 // Patient-service 라우팅 추가
                 .route("patient-service", r -> r
                         .path("/patient/**")

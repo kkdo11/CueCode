@@ -17,6 +17,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(motionHandler, "/ws/motion")
-                .setAllowedOrigins("*"); // 데모를 위해 모든 오리진 허용
+                .setAllowedOrigins("*")
+                .addInterceptors(new HttpHandshakeInterceptor())
+                .setHandshakeHandler(new CustomHandshakeHandler());
     }
 }
