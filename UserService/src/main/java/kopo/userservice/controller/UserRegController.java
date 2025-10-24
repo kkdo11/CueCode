@@ -368,16 +368,19 @@ public class UserRegController {
         if (redisCode == null) {
             log.warn("[verifyEmailAuth] 인증번호가 Redis에 없음 (만료 또는 저장 실패)");
             msg = "인증번호가 만료되었거나 존재하지 않습니다. 인증번호를 다시 요청해주세요.";
-        } else if (inputCode.equals(redisCode) || String.valueOf(Integer.parseInt(inputCode)).equals(redisCode)) {
-            // 문자열 비교와 숫자 변환 후 비교 모두 시도
-            log.info("[verifyEmailAuth] 인증번호 일치 확인: {} == {}", inputCode, redisCode);
-            msg = "인증번호가 일치합니다.";
-            result = 1;
-            redisUtil.delete(key); // 인증 성공 시 인증번호 삭제
-            log.info("[verifyEmailAuth] 인증 성공으로 Redis 키 삭제: {}", key);
         } else {
-            log.warn("[verifyEmailAuth] 인증번호 불일치: 입력값={}, 저장값={}", inputCode, redisCode);
-            msg = "인증번호가 일치하지 않습니다.";
+            boolean isNumeric = inputCode != null && !inputCode.isBlank() && inputCode.matches("\\d+");
+            if (isNumeric && (inputCode.equals(redisCode) || String.valueOf(Integer.parseInt(inputCode)).equals(redisCode))) {
+                // 문자열 비교와 숫자 변환 후 비교 모두 시도
+                log.info("[verifyEmailAuth] 인증번호 일치 확인: {} == {}", inputCode, redisCode);
+                msg = "인증번호가 일치합니다.";
+                result = 1;
+                redisUtil.delete(key); // 인증 성공 시 인증번호 삭제
+                log.info("[verifyEmailAuth] 인증 성공으로 Redis 키 삭제: {}", key);
+            } else {
+                log.warn("[verifyEmailAuth] 인증번호 불일치: 입력값={}, 저장값={}", inputCode, redisCode);
+                msg = "인증번호가 일치하지 않습니다.";
+            }
         }
 
         return MsgDTO.builder().result(result).msg(msg).build();
@@ -420,6 +423,43 @@ public class UserRegController {
         } else {
             result.put("result", 0);
             result.put("msg", "일치하는 회원 정보가 없습니다.");
+        }
+        return result;
+    }
+
+    @Operation(summary = "아이디 찾기 API", description = "이메일로 사용자 아이디를 찾습니다.")
+    @PostMapping("/findIdByEmail")
+    public Map<String, Object> findIdByEmail(@RequestBody Map<String, String> req) {
+        log.info(this.getClass().getName() + ".findIdByEmail start!");
+        Map<String, Object> result = new HashMap<>();
+        String email = req.getOrDefault("email", "").trim();
+
+        if (email.isEmpty()) {
+            log.warn("[findIdByEmail] 이메일 파라미터가 비어 있습니다.");
+            result.put("result", 0);
+            result.put("msg", "이메일 주소가 입력되지 않았습니다.");
+            return result;
+        }
+
+        try {
+            String userId = userService.findUserIdByEmail(email);
+            if (userId != null) {
+                result.put("result", 1);
+                result.put("msg", "아이디를 찾았습니다.");
+                result.put("userId", userId);
+                log.info("[findIdByEmail] 아이디 찾기 성공: email={}, userId={}", email, userId);
+            }
+            else {
+                result.put("result", 0);
+                result.put("msg", "일치하는 아이디를 찾을 수 없습니다.");
+                log.info("[findIdByEmail] 아이디 찾기 실패: email={}", email);
+            }
+        } catch (Exception e) {
+            log.error("[findIdByEmail] 아이디 찾기 중 예외 발생", e);
+            result.put("result", 0);
+            result.put("msg", "아이디 찾기 중 오류 발생: " + e.getMessage());
+        } finally {
+            log.info(this.getClass().getName() + ".findIdByEmail End!");
         }
         return result;
     }

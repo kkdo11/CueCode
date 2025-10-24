@@ -261,6 +261,44 @@ public class UserService implements IUserService {
         log.info("sendEmailAuthCode End!");
         return authCode;
     }
+
+    @Override
+    public String findUserIdByEmail(String email) {
+        log.info("[findUserIdByEmail] 이메일로 사용자 ID 찾기 시도: {}", email);
+        if (email == null || email.isBlank()) {
+            log.warn("[findUserIdByEmail] 이메일 파라미터가 비어 있습니다.");
+            return null;
+        }
+
+        String encryptedEmail;
+        try {
+            encryptedEmail = kopo.userservice.util.EncryptUtil.encAES128CBC(email);
+            log.info("[findUserIdByEmail] 암호화된 이메일: {}", encryptedEmail);
+        } catch (Exception e) {
+            log.error("[findUserIdByEmail] 이메일 암호화 실패", e);
+            return null;
+        }
+
+        // 1. 환자(Patient)에서 검색
+        Optional<PatientDocument> patientOpt = patientRepository.findByEmail(encryptedEmail);
+        if (patientOpt.isPresent()) {
+            String userId = patientOpt.get().getId();
+            log.info("[findUserIdByEmail] 환자 ID 찾기 성공: {}", userId);
+            return userId;
+        }
+
+        // 2. 관리자(Manager)에서 검색
+        Optional<ManagerDocument> managerOpt = managerRepository.findByEmail(encryptedEmail);
+        if (managerOpt.isPresent()) {
+            String userId = managerOpt.get().getId();
+            log.info("[findUserIdByEmail] 관리자 ID 찾기 성공: {}", userId);
+            return userId;
+        }
+
+        log.info("[findUserIdByEmail] 이메일 {}에 해당하는 사용자 ID를 찾을 수 없습니다.", email);
+        return null;
+    }
+
     /**
      * 로그아웃 시 Access Token과 Refresh Token을 블랙리스트에 등록합니다.
      */
@@ -322,16 +360,20 @@ public class UserService implements IUserService {
             try {
                 decryptedEmail = kopo.userservice.util.EncryptUtil.decAES128CBC(patient.getEmail());
             } catch (Exception e) {
-                log.error("이메일 복호화 실패", e);
-                decryptedEmail = patient.getEmail();
+                log.error("환자 이메일 복호화 실패: userId={}", userId, e);
+                // 복호화 실패 시 원본 또는 마스킹된 값 반환 고려
+                decryptedEmail = "[복호화 오류]"; // 또는 patient.getEmail();
             }
+            // 환자의 경우 managerId는 null 또는 빈 값이어야 함
             return kopo.userservice.dto.UserInfoDTO.builder()
                     .id(patient.getId())
                     .email(decryptedEmail)
                     .name(patient.getName())
                     .userType("patient")
+                    .managerId(null) // 환자는 managerId가 없음
                     .build();
         }
+
         Optional<ManagerDocument> managerOpt = managerRepository.findById(userId);
         if (managerOpt.isPresent()) {
             ManagerDocument manager = managerOpt.get();
@@ -339,19 +381,26 @@ public class UserService implements IUserService {
             try {
                 decryptedEmail = kopo.userservice.util.EncryptUtil.decAES128CBC(manager.getEmail());
             } catch (Exception e) {
-                log.error("이메일 복호화 실패", e);
-                decryptedEmail = manager.getEmail();
+                log.error("관리자 이메일 복호화 실패: userId={}", userId, e);
+                decryptedEmail = "[복호화 오류]"; // 또는 manager.getEmail();
             }
+
+            // 💡 [수정] managerId를 DTO 빌더에 추가
             return kopo.userservice.dto.UserInfoDTO.builder()
                     .id(manager.getId())
                     .email(decryptedEmail)
                     .name(manager.getName())
                     .userType("manager")
+                    .managerId(manager.getManagerId()) // managerId 필드 추가 (ManagerDocument의 실제 필드명 확인 필요)
                     .build();
         }
+
         log.info("getUserInfo: userId={}에 해당하는 사용자 없음", userId);
         return null;
     }
+
+    // ... (다른 메서드)
+
 
     @Override
     public boolean updateName(String userId, String newName) {
@@ -492,5 +541,45 @@ public class UserService implements IUserService {
             log.error("회원탈퇴 중 오류", e);
             return MsgDTO.builder().result(0).msg("회원탈퇴 처리 중 오류 발생").build();
         }
+    }
+
+    @Override
+    public java.util.Map<String, Boolean> getDetectionArea(String userId) {
+        log.info("[getDetectionArea] 감지 범위 조회 시작: userId={}", userId);
+        Optional<DetectionAreaDocument> doc = detectionAreaRepository.findByPatientId(userId);
+        if (doc.isPresent()) {
+            DetectionAreaDocument area = doc.get();
+            java.util.Map<String, Boolean> result = new java.util.HashMap<>();
+            result.put("hand", area.isHand());
+            result.put("face", area.isFace());
+            result.put("both", area.isBoth());
+            log.info("[getDetectionArea] 감지 범위 조회 성공: {}", result);
+            return result;
+        }
+        log.warn("[getDetectionArea] 감지 범위 정보를 찾을 수 없음: userId={}", userId);
+        return java.util.Collections.emptyMap();
+    }
+
+    @Override
+    public boolean updateDetectionArea(String userId, String detectionAreaType) {
+        log.info("[updateDetectionArea] 감지 범위 업데이트 시작: userId={}, type={}", userId, detectionAreaType);
+        Optional<DetectionAreaDocument> existing = detectionAreaRepository.findByPatientId(userId);
+        if (existing.isEmpty()) {
+            log.warn("[updateDetectionArea] 업데이트할 감지 범위 문서가 없음: userId={}", userId);
+            return false;
+        }
+
+        DetectionAreaDocument detectionArea = existing.get();
+        boolean hand = "hand".equalsIgnoreCase(detectionAreaType) || "both".equalsIgnoreCase(detectionAreaType);
+        boolean face = "face".equalsIgnoreCase(detectionAreaType) || "both".equalsIgnoreCase(detectionAreaType);
+        boolean both = "both".equalsIgnoreCase(detectionAreaType);
+
+        detectionArea.setHand(hand);
+        detectionArea.setFace(face);
+        detectionArea.setBoth(both);
+
+        detectionAreaRepository.save(detectionArea);
+        log.info("[updateDetectionArea] 감지 범위 업데이트 성공");
+        return true;
     }
 }

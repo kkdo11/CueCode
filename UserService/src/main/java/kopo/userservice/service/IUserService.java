@@ -4,6 +4,8 @@ import kopo.userservice.dto.PatientDTO;
 import kopo.userservice.dto.ManagerDTO;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Map;
+
 public interface IUserService {
     // 환자 회원가입
     int insertPatient(PatientDTO dto);
@@ -24,6 +26,10 @@ public interface IUserService {
     boolean existsUserId(String userId);
     // 이메일 인증 코드 전송
     int sendEmailAuthCode(String email) throws Exception;
+
+    // 이메일로 사용자 ID 찾기
+    String findUserIdByEmail(String email);
+
     /**
      * 로그아웃 시 Access/Refresh Token 블랙리스트 등록
      */
@@ -42,6 +48,10 @@ public interface IUserService {
     boolean updateId(String userId, String newId);
     // 비밀번호 변경
     boolean updatePassword(String userId, String currentPassword, String newPassword);
-    // 회원 탈퇴
+
     kopo.userservice.dto.MsgDTO withdrawalUser(String userId);
+
+    Map<String, Boolean> getDetectionArea(String userId);
+
+    boolean updateDetectionArea(String userId, String detectionAreaType);
 }

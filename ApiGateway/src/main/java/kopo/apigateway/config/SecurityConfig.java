@@ -38,31 +38,49 @@ public class SecurityConfig {
         http.exceptionHandling(e -> e.authenticationEntryPoint(loginServerAuthenticationEntryPoint));
         http.securityContextRepository(NoOpServerSecurityContextRepository.getInstance());
         http.authorizeExchange(authz -> authz
-                        .pathMatchers(
-                                "/user/reg/**",      // 회원가입
-                                "/api/login/**",
-                                "/api/reg/**",
-                                "/user/actuator/**", // ✅ 게이트웨이 경유 액추에이터
-                                "/actuator/**",
-                                "/swagger-ui/**", "/v3/api-docs/**"
-                        ).permitAll()
-                        .pathMatchers("/user/dashboard").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
-                        .pathMatchers("/patient/list").hasAuthority("ROLE_USER_MANAGER") // 보호자만 접근
-                        .pathMatchers("/patient/dashboard.html").hasAuthority("ROLE_USER") // 환자만 접근
-                        .pathMatchers("/user/me").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
-                        .pathMatchers("/patient/detection-area/update").hasAuthority("ROLE_USER") // 보호자와 환자 모두 접근
-                        .pathMatchers("/user/info").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 정보조회
-                        .pathMatchers("/user/verify-password").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER") // 환자+관리자 본인확인
-                        .pathMatchers("/user/update-name").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
-                        .pathMatchers("/user/**").hasAuthority("ROLE_USER")         // 환자만 접근
-                        .pathMatchers("/motions/upload").hasAuthority("ROLE_USER")         // 환자만 접근
+                .pathMatchers(
+                        // 🚨 인증 없이 접근 허용 (permitAll)
+                        "/api/user/reg/**",          // 회원가입 관련
+                        "/api/login/**",             // 로그인 관련
+                        "/api/reg/**",               // 회원가입 관련
+                        "/api/user/actuator/**",     // User Service 액추에이터
+                        "/api/actuator/**",          // 게이트웨이 자체 액추에이터
+                        "/api/swagger-ui/**", "/api/v3/api-docs/**", // API 문서
+                        "/api/user/me",               // 로그인 상태 확인용 (인증 필수는 아님)
+                        "/api/user/v1/logout"
+                ).permitAll()
 
+                // 👨‍👩‍👧‍👦 관리자(보호자)만 접근 허용 (ROLE_USER_MANAGER)
+                .pathMatchers(
+                        "/api/user/dashboard",
+                        "/api/patient/list",
+                        "/api/manager/addPatient",
+                        "/api/patient/**"
+                ).hasAuthority("ROLE_USER_MANAGER")
 
+                // 🧑‍⚕️ 환자만 접근 허용 (ROLE_USER)
+                .pathMatchers(
+                        "/api/patient/dashboard.html",
+                        "/api/patient/detection-area/update",
+                        "/api/motions/upload"
+                ).hasAuthority("ROLE_USER")
 
+                // 🤝 환자 또는 관리자 모두 접근 허용 (ROLE_USER, ROLE_USER_MANAGER)
+                .pathMatchers(
+                        "/api/user/info",
+                        "/api/user/verify-password",
+                        "/api/user/update-name",
+                        "/api/user/update-email",
+                        "/api/user/detection-area",
+                        "/api/user/update-detection-area",
+                        "/api/user/update-password"
+                ).hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
 
-                        .anyExchange().permitAll()
-//                .anyExchange().denyAll()
+                // ⚠️ '/api/user/' 하위 경로 중 위에 명시되지 않은 나머지 경로는 환자만 접근
+                .pathMatchers("/api/user/**").hasAuthority("ROLE_USER")
 
+                // 🚫 명시적으로 허용/권한 부여되지 않은 모든 요청은 차단 (denyAll)
+                .anyExchange().denyAll()
         );
         http.addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.HTTP_BASIC);
         log.info(this.getClass().getName() + ".filterChain End!");
