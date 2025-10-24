@@ -1,5 +1,7 @@
 package kopo.motionservice.config;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -21,7 +23,7 @@ public class HttpHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(@NonNull ServerHttpRequest request, @NonNull ServerHttpResponse response, @NonNull WebSocketHandler wsHandler, @NonNull Map<String, Object> attributes) {
         String userId = null;
 
-        // 1. 먼저 쿼리 파라미터에서 토큰 확인
+        // 1. 먼저 쿼리 파라미터에서 토큰 확인 (기존 로직 유지)
         URI uri = request.getURI();
         String query = uri.getQuery();
 
@@ -33,13 +35,29 @@ public class HttpHandshakeInterceptor implements HandshakeInterceptor {
                     log.info("[Handshake] Extracted User-Id from query parameter token: {}", userId);
                 }
             } catch (Exception e) {
-                log.warn("[Handshake] Failed to extract userId from token: {}", e.getMessage());
+                log.warn("[Handshake] Failed to extract userId from token in query: {}", e.getMessage());
             }
         }
 
-        // 2. 토큰에서 추출 실패 시 SecurityContext에서 시도
+        // 2. 쿼리 파라미터에서 추출 실패 시, HttpOnly 쿠키에서 토큰 확인
         if (userId == null || "anonymousUser".equals(userId)) {
             if (request instanceof ServletServerHttpRequest) {
+                HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
+                String jwtAccessToken = getCookieValue(servletRequest, "jwtAccessToken");
+                if (jwtAccessToken != null && !jwtAccessToken.isEmpty()) {
+                    try {
+                        userId = extractUserIdFromToken(jwtAccessToken);
+                        log.info("[Handshake] Extracted User-Id from HttpOnly cookie: {}", userId);
+                    } catch (Exception e) {
+                        log.warn("[Handshake] Failed to extract userId from token in HttpOnly cookie: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // 3. 토큰에서 추출 실패 시 SecurityContext에서 시도 (기존 로직 유지)
+        if (userId == null || "anonymousUser".equals(userId)) {
+            if (request instanceof ServletServerHttpRequest) { // This check is redundant here, but kept for consistency
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
                 if (authentication != null && authentication.isAuthenticated()) {
                     userId = authentication.getName();
@@ -50,7 +68,7 @@ public class HttpHandshakeInterceptor implements HandshakeInterceptor {
             }
         }
 
-        // 3. userId를 attributes에 저장
+        // 4. userId를 attributes에 저장 (기존 로직 유지)
         if (userId != null && !userId.isEmpty() && !"anonymousUser".equals(userId)) {
             attributes.put("userId", userId);
             log.info("[Handshake] Final User-Id set in attributes: {}", userId);
@@ -75,6 +93,18 @@ public class HttpHandshakeInterceptor implements HandshakeInterceptor {
             String[] keyValue = param.split("=", 2);
             if (keyValue.length == 2 && "token".equals(keyValue[0])) {
                 return java.net.URLDecoder.decode(keyValue[1], java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return null;
+    }
+
+    // Helper method to extract cookie value
+    private String getCookieValue(HttpServletRequest request, String name) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (cookie.getName().equals(name)) {
+                    return cookie.getValue();
+                }
             }
         }
         return null;
