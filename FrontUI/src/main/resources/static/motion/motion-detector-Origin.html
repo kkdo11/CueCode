@@ -1,0 +1,633 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <link rel="icon" href="data:,">-->
+<!--    <title>MotionLink Demo v0.6 - Detection Only</title>-->
+<!--    <style>-->
+<!--        body { font-family: sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 2em; }-->
+<!--        #container { position: relative; display: inline-block; width: 640px; height: 480px; border: 2px solid #333; }-->
+<!--        #webcam, #output_canvas { width: 100%; height: 100%; transform: scaleX(-1); }-->
+<!--        #output_canvas { position: absolute; top: 0; left: 0; }-->
+<!--        button { padding: 10px 20px; font-size: 1em; color: white; border: none; border-radius: 8px; margin: 0 5px; cursor: pointer; }-->
+<!--        #startDetectionBtn { background-color: #10B981; }-->
+<!--        #stopDetectionBtn { background-color: #EF4444; }-->
+<!--        #status { margin-top: 10px; color: #555; }-->
+<!--        #detectedPhrase { font-size: 1.5rem; color: #007bff; margin-top: 15px; min-height: 2em; }-->
+
+<!--        /* detect button styles (added) */-->
+<!--        .detect-btns { display:flex; gap:12px; justify-content:center; margin: 12px 0; }-->
+<!--        .detect-btn { padding:8px 14px; border-radius:8px; border:1px solid #e0e0e0; background:#fff; color:#333; cursor:pointer; min-width:88px; font-weight:600; }-->
+<!--        .detect-btn.active { background:#6FC8F8; color:#fff; border-color:#6FC8F8; }-->
+<!--    </style>-->
+<!--    <script type="module" src="/vendor/mediapipe/js/vision_bundle.js"></script>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<h2>MotionLink 실시간 동작 인식 데모 (v0.6 - Detection Only)</h2>-->
+<!--<div id="container">-->
+<!--    <video id="webcam" autoplay playsinline></video>-->
+<!--    <canvas id="output_canvas"></canvas>-->
+<!--</div>-->
+
+<!--<div>-->
+<!--    <button id="startDetectionBtn">동작 인식 시작</button>-->
+<!--    <button id="stopDetectionBtn" disabled>동작 인식 종료</button>-->
+<!--</div>-->
+
+<!--<div class="detect-btns" id="detectAreaBtns">-->
+<!--    <button class="detect-btn active" data-value="hands" id="detectHandsBtn">손</button>-->
+<!--    <button class="detect-btn" data-value="face" id="detectFaceBtn">얼굴</button>-->
+<!--    <button class="detect-btn" data-value="eyes" id="detectEyesBtn">눈</button>-->
+<!--</div>-->
+
+<!--<div id="status">상태: 대기 중</div>-->
+<!--<div><strong>인식된 문장:</strong> <span id="detectedPhrase">-</span></div>-->
+
+<!--<script type="module">-->
+<!--    // WebSocket URL 설정 (사용하시는 포트에 맞게 주석을 해제하세요)-->
+<!--    // const WEBSOCKET_URL = "ws://localhost:8000/ws/motion";-->
+<!--    const WEBSOCKET_URL = "ws://localhost:13000/ws/motion";-->
+<!--    // const WEBSOCKET_URL = "ws://localhost:15000/ws/motion";-->
+<!--    const SEND_INTERVAL_MS = 100;-->
+
+<!--    const video = document.getElementById("webcam");-->
+<!--    const canvasElement = document.getElementById("output_canvas");-->
+<!--    const canvasCtx = canvasElement.getContext("2d");-->
+<!--    const statusDiv = document.getElementById("status");-->
+<!--    const phraseDiv = document.getElementById("detectedPhrase");-->
+<!--    const startBtn = document.getElementById("startDetectionBtn");-->
+<!--    const stopBtn = document.getElementById("stopDetectionBtn");-->
+
+<!--    const { FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils } = await import("/vendor/mediapipe/js/vision_bundle.js");-->
+<!--    let faceLandmarker, handLandmarker, drawingUtils, socket;-->
+<!--    let detectionActive = false;-->
+<!--    let lastVideoTime = -1, lastSendTime = 0;-->
+<!--    // 이전 버전에서 사용되던 frameCount와 FRAMES_BEFORE_END 변수는 실시간 스트림에 불필요하므로 제거했습니다.-->
+<!--    // let frameCount = 0;-->
+<!--    // const FRAMES_BEFORE_END = 10;-->
+
+<!--    // user-selected detection area: 'hands' | 'face' | 'eyes' (default: hands)-->
+<!--    let selectedDetectionArea = 'hands';-->
+
+<!--    function getNormalizedDetectionArea(raw) {-->
+<!--        if (!raw) return 'hand';-->
+<!--        if (raw === 'hands') return 'hand';-->
+<!--        return 'face'; // 'face'와 'eyes' 모두 백엔드에서 'face'로 처리될 것으로 가정-->
+<!--    }-->
+
+<!--    // wire up detect buttons-->
+<!--    function setupDetectAreaButtons() {-->
+<!--        const container = document.getElementById('detectAreaBtns');-->
+<!--        if (!container) return;-->
+<!--        container.querySelectorAll('.detect-btn').forEach(btn => {-->
+<!--            btn.addEventListener('click', () => {-->
+<!--                container.querySelectorAll('.detect-btn').forEach(b => b.classList.remove('active'));-->
+<!--                btn.classList.add('active');-->
+<!--                selectedDetectionArea = btn.dataset.value || 'hands';-->
+<!--            });-->
+<!--        });-->
+<!--    }-->
+
+<!--    async function createLandmarkers() {-->
+<!--        const vision = await FilesetResolver.forVisionTasks("/vendor/mediapipe/wasm");-->
+<!--        drawingUtils = new DrawingUtils(canvasCtx);-->
+<!--        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {-->
+<!--            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/face_landmarker.task`, delegate: "GPU" },-->
+<!--            outputFaceBlendshapes: true,-->
+<!--            runningMode: "VIDEO",-->
+<!--            numFaces: 1-->
+<!--        });-->
+<!--        handLandmarker = await HandLandmarker.createFromOptions(vision, {-->
+<!--            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/hand_landmarker.task`, delegate: "GPU" },-->
+<!--            runningMode: "VIDEO",-->
+<!--            numHands: 2-->
+<!--        });-->
+<!--        statusDiv.textContent = "상태: 웹캠 로딩 중...";-->
+<!--    }-->
+
+<!--    function enableCam() {-->
+<!--        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {-->
+<!--            video.srcObject = stream;-->
+<!--            video.addEventListener("loadeddata", predictWebcam);-->
+<!--            statusDiv.textContent = "상태: 웹캠 활성화됨";-->
+<!--        }).catch((err) => {-->
+<!--            statusDiv.textContent = "오류: 웹캠 접근 실패";-->
+<!--            console.error(err);-->
+<!--        });-->
+<!--    }-->
+
+<!--    async function predictWebcam() {-->
+<!--        // Set canvas dimensions to match video-->
+<!--        canvasElement.width = video.videoWidth;-->
+<!--        canvasElement.height = video.videoHeight;-->
+
+<!--        const startTimeMs = performance.now();-->
+
+<!--        // Only process if detection is active and video has a new frame-->
+<!--        if (lastVideoTime !== video.currentTime && detectionActive) {-->
+<!--            lastVideoTime = video.currentTime;-->
+
+<!--            // Detect landmarks-->
+<!--            const faceResults = faceLandmarker.detectForVideo(video, startTimeMs);-->
+<!--            const handResults = handLandmarker.detectForVideo(video, startTimeMs);-->
+
+<!--            // Clear canvas and draw results-->
+<!--            canvasCtx.save();-->
+<!--            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);-->
+
+<!--            // Draw hand landmarks-->
+<!--            if (handResults.landmarks) {-->
+<!--                for (const landmarks of handResults.landmarks) {-->
+<!--                    drawingUtils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: "#FFFFFF", lineWidth: 2 });-->
+<!--                    drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 1 });-->
+<!--                }-->
+<!--            }-->
+
+<!--            // Draw face landmarks-->
+<!--            if (faceResults.faceLandmarks) {-->
+<!--                for (const landmarks of faceResults.faceLandmarks) {-->
+<!--                    drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });-->
+<!--                }-->
+<!--            }-->
+
+<!--            canvasCtx.restore();-->
+
+<!--            // Send data at a controlled interval-->
+<!--            if (startTimeMs - lastSendTime > SEND_INTERVAL_MS) {-->
+<!--                lastSendTime = startTimeMs;-->
+<!--                processAndSend(faceResults, handResults);-->
+<!--            }-->
+<!--        }-->
+
+<!--        // Request next frame for continuous prediction-->
+<!--        window.requestAnimationFrame(predictWebcam);-->
+<!--    }-->
+
+<!--    // -&#45;&#45; Process results and send compact data -&#45;&#45;-->
+<!--    function processAndSend(faceResults, handResults) {-->
+<!--        const faceBlendshapes = faceResults.faceBlendshapes.length > 0-->
+<!--            ? Object.fromEntries(faceResults.faceBlendshapes[0].categories.map(c => [c.categoryName, c.score]))-->
+<!--            : {};-->
+
+<!--        const getHandData = (handednesses, landmarks, handName) => {-->
+<!--            if (!handednesses || !landmarks) return null;-->
+<!--            const idx = handednesses.findIndex(h => (h[0] && h[0].categoryName) === handName);-->
+<!--            return idx > -1 ? landmarks[idx].map(p => [p.x, p.y, p.z]) : null;-->
+<!--        };-->
+
+<!--        const frame = {-->
+<!--            timestamp_ms: Date.now(),-->
+<!--            face_blendshapes: faceBlendshapes,-->
+<!--            left_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Left"),-->
+<!--            right_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Right")-->
+<!--        };-->
+
+<!--        if (!socket || socket.readyState !== WebSocket.OPEN) return;-->
+
+<!--        const normalizedArea = getNormalizedDetectionArea(selectedDetectionArea);-->
+<!--        let features = null;-->
+
+<!--        if (normalizedArea === 'face') {-->
+<!--            if (Object.keys(faceBlendshapes).length === 0) return;-->
+<!--            const featureKeys = Object.keys(faceBlendshapes).sort();-->
+<!--            features = featureKeys.map(k => Number(faceBlendshapes[k] || 0));-->
+
+<!--            socket.send(JSON.stringify({-->
+<!--                type: "frame",-->
+<!--                detectionArea: normalizedArea,-->
+<!--                timestamp_ms: frame.timestamp_ms,-->
+<!--                featureKeys: featureKeys,-->
+<!--                features: features-->
+<!--            }));-->
+<!--            return; // 핸들링 완료-->
+<!--        } else { // 'hand'-->
+<!--            const right = frame.right_hand_landmarks || null;-->
+<!--            const left = frame.left_hand_landmarks || null;-->
+<!--            if ((!Array.isArray(right) || right.length === 0) && (!Array.isArray(left) || left.length === 0)) {-->
+<!--                return;-->
+<!--            }-->
+<!--            const pointCount = Math.max((right && right.length) || 0, (left && left.length) || 0);-->
+<!--            const vec = [];-->
+<!--            for (let i = 0; i < pointCount; i++) {-->
+<!--                if (right && right[i] && right[i].length >= 3) { vec.push(Number(right[i][0]||0), Number(right[i][1]||0), Number(right[i][2]||0)); }-->
+<!--                else { vec.push(0,0,0); }-->
+<!--            }-->
+<!--            for (let i = 0; i < pointCount; i++) {-->
+<!--                if (left && left[i] && left[i].length >= 3) { vec.push(Number(left[i][0]||0), Number(left[i][1]||0), Number(left[i][2]||0)); }-->
+<!--                else { vec.push(0,0,0); }-->
+<!--            }-->
+<!--            features = vec;-->
+<!--        }-->
+
+<!--        if (!features) return;-->
+
+<!--        socket.send(JSON.stringify({-->
+<!--            type: "frame",-->
+<!--            detectionArea: normalizedArea,-->
+<!--            timestamp_ms: frame.timestamp_ms,-->
+<!--            features: features-->
+<!--        }));-->
+<!--        // 자동 END 전송 로직이 완전히 제거되었는지 확인! (이곳에는 없어야 합니다)-->
+<!--    }-->
+
+<!--    function getCookie(name) {-->
+<!--        const value = `; ${document.cookie}`;-->
+<!--        const parts = value.split(`; ${name}=`);-->
+<!--        if (parts.length === 2) return parts.pop().split(';').shift();-->
+<!--    }-->
+
+<!--    function speak(text) {-->
+<!--        if ('speechSynthesis' in window) {-->
+<!--            const utterance = new SpeechSynthesisUtterance(text);-->
+<!--            utterance.lang = 'ko-KR'; // Set the language to Korean-->
+<!--            window.speechSynthesis.speak(utterance);-->
+<!--        } else {-->
+<!--            console.error("Browser does not support speech synthesis.");-->
+<!--        }-->
+<!--    }-->
+
+<!--    function initWebSocket() {-->
+<!--        const token = getCookie('jwtAccessToken');-->
+<!--        const url = token ? `${WEBSOCKET_URL}?token=${token}` : WEBSOCKET_URL;-->
+
+<!--        socket = new WebSocket(url);-->
+<!--        socket.onopen = () => {-->
+<!--            detectionActive = true;-->
+<!--            startBtn.disabled = true;-->
+<!--            stopBtn.disabled = false;-->
+<!--            phraseDiv.textContent = "-";-->
+<!--            statusDiv.textContent = "상태: 서버 연결됨 (인식 중)";-->
+<!--        };-->
+<!--        socket.onmessage = (event) => {-->
+<!--            try {-->
+<!--                const data = JSON.parse(event.data);-->
+<!--                if (data.type === "match") {-->
+<!--                    const phrase = data.matched && data.phrase ? data.phrase : "인식된 문장이 없습니다.";-->
+<!--                    phraseDiv.textContent = phrase;-->
+<!--                    if (data.matched && data.phrase) {-->
+<!--                        speak(data.phrase);-->
+<!--                    }-->
+<!--                }-->
+<!--                // 'match' 메시지를 받았을 때만 문장 업데이트-->
+<!--            } catch {-->
+<!--                phraseDiv.textContent = "서버 응답 오류";-->
+<!--            }-->
+<!--        };-->
+<!--        socket.onclose = () => {-->
+<!--            detectionActive = false;-->
+<!--            startBtn.disabled = false;-->
+<!--            stopBtn.disabled = true;-->
+<!--            statusDiv.textContent = "상태: 연결 종료됨";-->
+<!--        };-->
+<!--        socket.onerror = (err) => {-->
+<!--            console.error("[WS 오류]", err);-->
+<!--            phraseDiv.textContent = "WebSocket 오류";-->
+<!--            socket.close();-->
+<!--        };-->
+<!--    }-->
+
+<!--    startBtn.onclick = () => {-->
+<!--        if (!socket || socket.readyState === WebSocket.CLOSED) {-->
+<!--            initWebSocket();-->
+<!--        }-->
+<!--    };-->
+
+<!--    stopBtn.onclick = () => {-->
+<!--        if (socket && socket.readyState === WebSocket.OPEN) {-->
+<!--            detectionActive = false;-->
+<!--            // send explicit end with the user-selected area-->
+<!--            socket.send(JSON.stringify({ type: "end", detectionArea: getNormalizedDetectionArea(selectedDetectionArea) }));-->
+<!--            socket.close();-->
+<!--        }-->
+<!--    };-->
+
+<!--    // === initialize ===-->
+<!--    await createLandmarkers();-->
+<!--    enableCam();-->
+<!--    setupDetectAreaButtons();-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:,">
+    <title>MotionLink Demo v0.6 - Detection Only</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 2em; }
+        #container { position: relative; display: inline-block; width: 640px; height: 480px; border: 2px solid #333; }
+        #webcam, #output_canvas { width: 100%; height: 100%; transform: scaleX(-1); }
+        #output_canvas { position: absolute; top: 0; left: 0; }
+        button { padding: 10px 20px; font-size: 1em; color: white; border: none; border-radius: 8px; margin: 0 5px; cursor: pointer; }
+        #startDetectionBtn { background-color: #10B981; }
+        #stopDetectionBtn { background-color: #EF4444; }
+        #status { margin-top: 10px; color: #555; }
+        #detectedPhrase { font-size: 1.5rem; color: #007bff; margin-top: 15px; min-height: 2em; }
+        .detect-btns { display:flex; gap:12px; justify-content:center; margin: 12px 0; }
+        .detect-btn { padding:8px 14px; border-radius:8px; border:1px solid #e0e0e0; background:#fff; color:#333; cursor:pointer; min-width:88px; font-weight:600; }
+        .detect-btn.active { background:#6FC8F8; color:#fff; border-color:#6FC8F8; }
+    </style>
+    <script type="module" src="/vendor/mediapipe/js/vision_bundle.js"></script>
+</head>
+<body>
+
+<h2>MotionLink 실시간 동작 인식 데모 (v0.6 - Detection Only)</h2>
+<div id="container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="output_canvas"></canvas>
+</div>
+
+<div>
+    <button id="startDetectionBtn">동작 인식 시작</button>
+    <button id="stopDetectionBtn" disabled>동작 인식 종료</button>
+</div>
+
+<div class="detect-btns" id="detectAreaBtns">
+    <button class="detect-btn active" data-value="hands" id="detectHandsBtn">손</button>
+    <button class="detect-btn" data-value="face" id="detectFaceBtn">얼굴</button>
+    <button class="detect-btn" data-value="eyes" id="detectEyesBtn">눈</button>
+</div>
+
+<div id="status">상태: 대기 중</div>
+<div><strong>인식된 문장:</strong> <span id="detectedPhrase">-</span></div>
+
+<script type="module">
+    // Pick the correct backend port!
+    // const WEBSOCKET_URL = "ws://localhost:8000/ws/motion";
+    // const WEBSOCKET_URL = "ws://localhost:13000/ws/motion";
+    const WEBSOCKET_URL = "ws://localhost:15000/ws/motion";
+
+    const SEND_INTERVAL_MS = 100;
+    const SEGMENT_MS = 1000; // send "end" every 1s while streaming (like old FRAMES_BEFORE_END)
+    let lastSegmentTs = 0;
+
+    const video = document.getElementById("webcam");
+    const canvasElement = document.getElementById("output_canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+    const statusDiv = document.getElementById("status");
+    const phraseDiv = document.getElementById("detectedPhrase");
+    const startBtn = document.getElementById("startDetectionBtn");
+    const stopBtn = document.getElementById("stopDetectionBtn");
+
+    const { FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils } =
+        await import("/vendor/mediapipe/js/vision_bundle.js");
+
+    let faceLandmarker, handLandmarker, drawingUtils, socket;
+    let detectionActive = false;
+    let lastVideoTime = -1, lastSendTime = 0;
+    let selectedDetectionArea = 'hands'; // 'hands' | 'face' | 'eyes'
+
+    function getNormalizedDetectionArea(raw) {
+        if (!raw) return 'hand';
+        if (raw === 'hands') return 'hand';
+        return 'face'; // treat face/eyes the same for backend
+    }
+
+    function sendEnd(area = getNormalizedDetectionArea(selectedDetectionArea)) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "end", detectionArea: area }));
+        }
+    }
+
+    function setupDetectAreaButtons() {
+        const container = document.getElementById('detectAreaBtns');
+        if (!container) return;
+        container.querySelectorAll('.detect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prevArea = getNormalizedDetectionArea(selectedDetectionArea);
+                container.querySelectorAll('.detect-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedDetectionArea = btn.dataset.value || 'hands';
+                const nextArea = getNormalizedDetectionArea(selectedDetectionArea);
+                // When switching modes, close the current segment explicitly
+                if (detectionActive && prevArea !== nextArea) {
+                    sendEnd(prevArea);
+                    lastSegmentTs = performance.now();
+                }
+            });
+        });
+    }
+
+    async function createLandmarkers() {
+        const vision = await FilesetResolver.forVisionTasks("/vendor/mediapipe/wasm");
+        drawingUtils = new DrawingUtils(canvasCtx);
+        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/face_landmarker.task`, delegate: "GPU" },
+            outputFaceBlendshapes: true,
+            runningMode: "VIDEO",
+            numFaces: 1
+        });
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: `/vendor/mediapipe/models/hand_landmarker.task`, delegate: "GPU" },
+            runningMode: "VIDEO",
+            numHands: 2
+        });
+        statusDiv.textContent = "상태: 웹캠 로딩 중...";
+    }
+
+    function enableCam() {
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", predictWebcam);
+            statusDiv.textContent = "상태: 웹캠 활성화됨";
+        }).catch((err) => {
+            statusDiv.textContent = "오류: 웹캠 접근 실패";
+            console.error(err);
+        });
+    }
+
+    async function predictWebcam() {
+        // Keep canvas in sync with video
+        if (canvasElement.width !== video.videoWidth || canvasElement.height !== video.videoHeight) {
+            canvasElement.width = video.videoWidth || 640;
+            canvasElement.height = video.videoHeight || 480;
+        }
+
+        const nowPerf = performance.now();
+
+        if (lastVideoTime !== video.currentTime && detectionActive) {
+            lastVideoTime = video.currentTime;
+
+            // Run detectors
+            const faceResults = faceLandmarker.detectForVideo(video, nowPerf);
+            const handResults = handLandmarker.detectForVideo(video, nowPerf);
+
+            // Draw results
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (handResults.landmarks) {
+                for (const landmarks of handResults.landmarks) {
+                    drawingUtils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: "#FFFFFF", lineWidth: 2 });
+                    drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 1 });
+                }
+            }
+            if (faceResults.faceLandmarks) {
+                for (const landmarks of faceResults.faceLandmarks) {
+                    drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });
+                }
+            }
+            canvasCtx.restore();
+
+            // Throttle frame sending
+            if (nowPerf - lastSendTime > SEND_INTERVAL_MS) {
+                lastSendTime = nowPerf;
+                processAndSend(faceResults, handResults);
+            }
+
+            // Periodic segment boundary (restores old behavior)
+            if (nowPerf - lastSegmentTs > SEGMENT_MS) {
+                sendEnd();
+                lastSegmentTs = nowPerf;
+            }
+        }
+
+        window.requestAnimationFrame(predictWebcam);
+    }
+
+    function processAndSend(faceResults, handResults) {
+        const faceBlendshapes = faceResults.faceBlendshapes.length > 0
+            ? Object.fromEntries(faceResults.faceBlendshapes[0].categories.map(c => [c.categoryName, c.score]))
+            : {};
+
+        const getHandData = (handednesses, landmarks, handName) => {
+            if (!handednesses || !landmarks) return null;
+            const idx = handednesses.findIndex(h => (h[0] && h[0].categoryName) === handName);
+            return idx > -1 ? landmarks[idx].map(p => [p.x, p.y, p.z]) : null;
+        };
+
+        const frame = {
+            timestamp_ms: Date.now(),
+            face_blendshapes: faceBlendshapes,
+            left_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Left"),
+            right_hand_landmarks: getHandData(handResults.handednesses, handResults.landmarks, "Right")
+        };
+
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        const normalizedArea = getNormalizedDetectionArea(selectedDetectionArea);
+        let features = null;
+
+        if (normalizedArea === 'face') {
+            if (Object.keys(faceBlendshapes).length === 0) return;
+            const featureKeys = Object.keys(faceBlendshapes).sort();
+            features = featureKeys.map(k => Number(faceBlendshapes[k] || 0));
+
+            socket.send(JSON.stringify({
+                type: "frame",
+                detectionArea: normalizedArea,
+                timestamp_ms: frame.timestamp_ms,
+                featureKeys: featureKeys,
+                features: features
+            }));
+        } else { // hand
+            const right = frame.right_hand_landmarks || null;
+            const left = frame.left_hand_landmarks || null;
+            if ((!Array.isArray(right) || right.length === 0) && (!Array.isArray(left) || left.length === 0)) {
+                return;
+            }
+            const pointCount = Math.max((right && right.length) || 0, (left && left.length) || 0);
+            const vec = [];
+            for (let i = 0; i < pointCount; i++) {
+                if (right && right[i] && right[i].length >= 3) { vec.push(+right[i][0]||0, +right[i][1]||0, +right[i][2]||0); }
+                else { vec.push(0,0,0); }
+            }
+            for (let i = 0; i < pointCount; i++) {
+                if (left && left[i] && left[i].length >= 3) { vec.push(+left[i][0]||0, +left[i][1]||0, +left[i][2]||0); }
+                else { vec.push(0,0,0); }
+            }
+            features = vec;
+
+            socket.send(JSON.stringify({
+                type: "frame",
+                detectionArea: normalizedArea,
+                timestamp_ms: frame.timestamp_ms,
+                features: features
+            }));
+        }
+    }
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function initWebSocket() {
+        const token = getCookie('jwtAccessToken');
+        const url = token ? `${WEBSOCKET_URL}?token=${encodeURIComponent(token)}` : WEBSOCKET_URL;
+
+        socket = new WebSocket(url);
+        socket.onopen = () => {
+            detectionActive = true;
+            lastSegmentTs = performance.now();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            phraseDiv.textContent = "-";
+            statusDiv.textContent = "상태: 서버 연결됨 (인식 중)";
+        };
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === "match") {
+                    const phrase = data.matched && data.phrase ? data.phrase : "인식된 문장이 없습니다.";
+                    phraseDiv.textContent = phrase;
+                    if (data.matched && data.phrase) speak(data.phrase);
+                }
+            } catch {
+                phraseDiv.textContent = "서버 응답 오류";
+            }
+        };
+        socket.onerror = () => {
+            // Try to close the current segment before closing the socket
+            sendEnd();
+            if (socket && socket.readyState === WebSocket.OPEN) socket.close();
+            phraseDiv.textContent = "WebSocket 오류";
+        };
+        socket.onclose = () => {
+            detectionActive = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusDiv.textContent = "상태: 연결 종료됨";
+        };
+    }
+
+    startBtn.onclick = () => {
+        if (!socket || socket.readyState === WebSocket.CLOSED) {
+            initWebSocket();
+        }
+    };
+
+    stopBtn.onclick = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            detectionActive = false;
+            sendEnd();
+            socket.close();
+        }
+    };
+
+    // Also close segment on page hide/unload
+    window.addEventListener('visibilitychange', () => {
+        if (document.hidden) sendEnd();
+    });
+    window.addEventListener('beforeunload', () => {
+        sendEnd();
+    });
+
+    await createLandmarkers();
+    enableCam();
+    setupDetectAreaButtons();
+</script>
+</body>
+</html>
