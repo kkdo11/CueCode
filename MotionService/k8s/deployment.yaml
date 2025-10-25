@@ -41,11 +41,11 @@ spec:
           httpGet:
             path: /actuator/health/readiness
             port: 15000
-          initialDelaySeconds: 30 # 시작 시 시간이 더 걸릴 수 있으므로 여유있게 설정
+          initialDelaySeconds: 60 # 시작 시 시간이 더 걸릴 수 있으므로 여유있게 설정
           periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 15000
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 15

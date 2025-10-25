@@ -50,7 +50,6 @@ public class SecurityConfig {
                         "/api/user/me",               // 로그인 상태 확인용 (인증 필수는 아님)
                         "/api/user/v1/logout"
                 ).permitAll()
-
                 // 👨‍👩‍👧‍👦 관리자(보호자)만 접근 허용 (ROLE_USER_MANAGER)
                 .pathMatchers(
                         "/api/user/dashboard",
