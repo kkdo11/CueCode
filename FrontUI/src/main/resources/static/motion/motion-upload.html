@@ -71,19 +71,33 @@
         }
 
         /* 동작 의미 입력 칸 테두리 강조 및 패딩 추가 */
-        #motionLabel {
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            padding-left: 12px;
-        }
+        /*#motionLabel {*/
+        /*    border: 2px solid #ccc;*/
+        /*    border-radius: 8px;*/
+        /*    transition: border-color 0.3s, box-shadow 0.3s;*/
+        /*    padding-left: 12px;*/
+        /*}*/
         .form-control {
             padding-left: 12px;
         }
-        #motionLabel:focus {
-            border-color: #6FC8F8;
-            box-shadow: 0 0 0 0.25rem rgba(111, 200, 248, 0.25);
+        /*#motionLabel:focus {*/
+        /*    border-color: #6FC8F8;*/
+        /*    box-shadow: 0 0 0 0.25rem rgba(111, 200, 248, 0.25);*/
+        /*}*/
+
+        input.form-control,
+        textarea.form-control {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding-left: 12px;
+            transition: border-color .3s, box-shadow .3s;
         }
+        input.form-control:focus,
+        textarea.form-control:focus {
+            border-color: #6FC8F8;
+            box-shadow: 0 0 0 .25rem rgba(111,200,248,.25);
+        }
+
 
         /* 비디오 및 컨트롤 스타일 */
         .video-upload-area { margin-top: 18px; display:flex; flex-direction:column; align-items:center; position:relative; }
@@ -296,7 +310,7 @@
                             </div>
 
                             <div class="form-group mb-4">
-                                <label for="motionDescription" class="form-label">간단한 설명 (선택)</label>
+                                <label for="motionDescription" class="form-label fw-bold">간단한 설명 (선택)</label>
                                 <textarea id="motionDescription" name="motionDescription" class="form-control"
                                           placeholder="동작에 대한 간단한 설명을 입력하세요 (예: 손을 높이 들고 인사함)" rows="3"></textarea>
                             </div>
