@@ -4,6 +4,7 @@ import kopo.motionservice.security.TrustedHeaderAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -11,10 +12,6 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
-/**
- * MotionService 시큐리티 설정: 게이트웨이가 전달한 X-User-Id/X-Authorities 헤더를
- * 복원하는 필터를 등록하고, /motions/upload 엔드포인트에 ROLE_USER 권한을 요구합니다.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -24,30 +21,51 @@ public class SecurityConfig {
         return new TrustedHeaderAuthenticationFilter(gatewayTrustedSecret);
     }
 
+    /**
+     * @Order(1) - 1순위 필터 체인: 인증이 필요 없는 공개 엔드포인트
+     * /actuator/**, /swagger-ui/** 등 헬스 체크와 API 문서는 이 체인에서 처리됩니다.
+     * 여기에는 TrustedHeaderAuthenticationFilter가 등록되지 않습니다.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, TrustedHeaderAuthenticationFilter trustedHeaderAuthenticationFilter) throws Exception {
-        // 최신 Spring Security 6.1+ 스타일로 구성 (deprecated API 사용 회피)
-        http.csrf(csrf -> csrf.disable());
+    @Order(1)
+    public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
+        http
+                // 1순위 체인이 처리할 경로들만 명시적으로 지정
+                .securityMatcher("/actuator/**", "/health", "/swagger-ui/**", "/v3/api-docs/**", "/ws/motion")
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll() // 위 경로들은 모두 허용
+                )
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .httpBasic(basic -> basic.disable())
+                .formLogin(form -> form.disable());
 
-        // Disable default HTTP Basic to avoid WWW-Authenticate header being sent on 401
-        http.httpBasic(httpBasic -> httpBasic.disable());
-        // Disable form login as well (not used)
-        http.formLogin(form -> form.disable());
+        return http.build();
+    }
 
-        // Return 401 without WWW-Authenticate by using HttpStatusEntryPoint
-        http.exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
+    /**
+     * @Order(2) - 2순위 필터 체인: 인증이 필요한 나머지 모든 API 엔드포인트
+     * 1순위에서 처리되지 않은 모든 요청(/**)이 이 체인으로 넘어옵니다.
+     * 여기에는 TrustedHeaderAuthenticationFilter가 등록되어 게이트웨이 인증을 검사합니다.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain protectedApiFilterChain(HttpSecurity http, TrustedHeaderAuthenticationFilter trustedHeaderAuthenticationFilter) throws Exception {
+        http
+                // 1순위에서 놓친 나머지 모든 경로(/**)를 처리
+                .csrf(csrf -> csrf.disable())
+                .httpBasic(basic -> basic.disable())
+                .formLogin(form -> form.disable())
+                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-        // stateless (no session)
-        http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // 핵심: 인증 필터를 2순위 체인에만 등록
+                .addFilterBefore(trustedHeaderAuthenticationFilter, org.springframework.security.web.context.SecurityContextPersistenceFilter.class)
 
-        // TrustedHeaderAuthenticationFilter를 SecurityContextPersistenceFilter 앞에 추가하여 순서를 명시
-        http.addFilterBefore(trustedHeaderAuthenticationFilter, org.springframework.security.web.context.SecurityContextPersistenceFilter.class);
-
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
-                .requestMatchers("/actuator/**", "/health", "/swagger-ui/**", "/v3/api-docs/**", "/ws/motion").permitAll()
-                .anyRequest().authenticated()
-        );
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
+                        .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
+                );
 
         return http.build();
     }
