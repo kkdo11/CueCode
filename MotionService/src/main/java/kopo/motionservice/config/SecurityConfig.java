@@ -64,6 +64,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
+                        .requestMatchers("/motions/alerts").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
                         .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
                 );
 
