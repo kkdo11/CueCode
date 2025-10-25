@@ -15,8 +15,8 @@
 
 <script>
     function getCookie(name) {
-        const value = 8; ${document.cookie}9;
-        const parts = value.split(8; ${name}=9");
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
         return null;
     }
@@ -50,9 +50,7 @@
             resultsContainer.textContent = JSON.stringify(data, null, 2);
         })
         .catch(error => {
-            resultsContainer.textContent = `Error: ${error.message}
-
-Check the browser console for more details.`;
+            resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;
             console.error('Error fetching history:', error);
         });
     }

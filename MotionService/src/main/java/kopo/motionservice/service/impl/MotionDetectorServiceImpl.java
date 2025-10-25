@@ -22,12 +22,16 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import kopo.motionservice.repository.PhraseHistoryRepository;
+import kopo.motionservice.repository.document.PhraseHistoryDocument;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private final IMotionService motionService;
+    private final PhraseHistoryRepository phraseHistoryRepository; // Add repository for history
     @Autowired
     private RedisUtil redisUtil;
     @Autowired
@@ -212,6 +216,19 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             DangerousPhraseAlertDocument alert = new DangerousPhraseAlertDocument(userId, best.phrase, LocalDateTime.now());
             dangerousPhraseAlertRepository.save(alert);
             log.info("[MotionDetectorServiceImpl] Dangerous phrase alert saved to MongoDB for userId={}", userId);
+        }
+
+        // Save all detected phrases to history
+        try {
+            log.info("[MotionDetectorServiceImpl] Saving phrase to history for userId={}: {}", userId, best.phrase);
+            PhraseHistoryDocument historyDoc = new PhraseHistoryDocument();
+            historyDoc.setUserId(userId);
+            historyDoc.setPhrase(best.phrase);
+            historyDoc.setDetectedTime(LocalDateTime.now());
+            phraseHistoryRepository.save(historyDoc);
+            log.info("[MotionDetectorServiceImpl] Phrase history saved to MongoDB for userId={}", userId);
+        } catch (Exception e) {
+            log.error("[MotionDetectorServiceImpl] Failed to save phrase history for userId={}: {}", userId, e.getMessage());
         }
 
         return new MatchResultDTO(best.recordId, best.phrase, best.motionType, bestScore);
