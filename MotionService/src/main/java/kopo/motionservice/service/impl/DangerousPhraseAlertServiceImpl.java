@@ -48,13 +48,6 @@ public class DangerousPhraseAlertServiceImpl implements IDangerousPhraseAlertSer
         return alerts;
     }
 
-    @Override
-    @Scheduled(fixedRate = 300000) // 5 minutes = 300000 ms
-    public void refreshDangerousPhraseAlertCache(String userId) {
-        log.info("[DangerousPhraseAlertServiceImpl] Refreshing dangerous phrase alerts cache for userId: {}", userId);
-        List<DangerousPhraseAlertDocument> alerts = fetchAlertsFromDb(userId);
-        saveAlertsToRedis(userId, alerts);
-    }
 
     private List<DangerousPhraseAlertDocument> fetchAlertsFromDb(String userId) {
         LocalDateTime twoHoursAgo = LocalDateTime.now().minusHours(2);
