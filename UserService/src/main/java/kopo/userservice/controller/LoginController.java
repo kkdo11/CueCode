@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.util.Optional;
 
-@Tag(name = "로그인 관련 API", description = "로그인 관련 API 설명입��다.")
+@Tag(name = "로그인 관련 API", description = "로그인 관련 API 설명입니다.")
 @Slf4j
 @RequestMapping(value = "/login")
 @RequiredArgsConstructor
