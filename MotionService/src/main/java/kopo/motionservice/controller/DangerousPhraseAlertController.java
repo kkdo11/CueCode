@@ -21,7 +21,7 @@ public class DangerousPhraseAlertController {
 
     private final IDangerousPhraseAlertService dangerousPhraseAlertService;
 
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<List<DangerousPhraseAlertDocument>> getDangerousPhraseAlerts(Principal principal) {
         if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

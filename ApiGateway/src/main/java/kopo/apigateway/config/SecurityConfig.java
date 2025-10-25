@@ -74,7 +74,7 @@ public class SecurityConfig {
                         "/api/user/detection-area",
                         "/api/user/update-detection-area",
                         "/api/users/contact",
-                        "/api/motions/alerts",
+                        "/api/motions/**",
                         "/api/user/update-password"
                 ).hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
 

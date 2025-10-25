@@ -1,54 +1,4 @@
-//package kopo.motionservice.config;
-//
-//import jakarta.servlet.FilterChain;
-//import jakarta.servlet.ServletException;
-//import jakarta.servlet.http.HttpServletRequest;
-//import jakarta.servlet.http.HttpServletResponse;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-//import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-//import org.springframework.security.core.authority.SimpleGrantedAuthority;
-//import org.springframework.security.core.context.SecurityContextHolder;
-//import org.springframework.web.filter.OncePerRequestFilter;
-//
-//import java.io.IOException;
-//import java.util.Arrays;
-//import java.util.List;
-//import java.util.stream.Collectors;
-//
-///**
-// * 게이트웨이가 전달한 X-User-Id / X-Authorities 헤더를 이용해 인증을 복원하는 간단한 필터.
-// * 주의: 내부 네트워크에서 게이트웨이를 신뢰할 수 있을 때만 사용하세요.
-// */
-//public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
-//
-//    private static final Logger log = LoggerFactory.getLogger(TrustedHeaderAuthenticationFilter.class);
-//
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-//        String userId = request.getHeader("X-User-Id");
-//        String authorities = request.getHeader("X-Authorities");
-//
-//        if (userId != null && !userId.isBlank()) {
-//            List<SimpleGrantedAuthority> auths = List.of();
-//            if (authorities != null && !authorities.isBlank()) {
-//                auths = Arrays.stream(authorities.split(","))
-//                        .map(String::trim)
-//                        .filter(s -> !s.isEmpty())
-//                        .map(SimpleGrantedAuthority::new)
-//                        .collect(Collectors.toList());
-//            }
-//
-//            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null, auths);
-//            SecurityContextHolder.getContext().setAuthentication(auth);
-//            log.debug("Restored authentication from headers: user={} authorities={}", userId, authorities);
-//        }
-//
-//        filterChain.doFilter(request, response);
-//    }
-//}
-//
-package kopo.motionservice.config;
+package kopo.motionservice.config; // Ensure this package matches your project structure
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -64,74 +14,121 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections; // Import Collections for emptyList
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 게이트웨이가 전달한 X-User-Id / X-Authorities 헤더를 이용해 인증을 복원하는 필터.
- * 게이트웨이 비밀키(X-Gateway-Secret)를 통해 요청의 신뢰성을 검증합니다.
+ * Filter that restores authentication using X-User-Id / X-Authorities headers sent by the gateway.
+ * Verifies the trustworthiness of the request via the gateway secret key (X-Gateway-Secret).
+ * Includes detailed logging for debugging purposes.
  */
 public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(TrustedHeaderAuthenticationFilter.class);
 
-    // Spring SecurityConfig에서 @Value("${gateway.trusted.secret}")로 주입받는 비밀키
+    // Secret key injected from Spring SecurityConfig via @Value("${gateway.trusted.secret}")
     private final String gatewayTrustedSecret;
     private static final String GATEWAY_SECRET_HEADER = "X-Gateway-Secret";
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String AUTHORITIES_HEADER = "X-Authorities";
+
 
     /**
-     * 필터 생성자: SecurityConfig에서 @Value로 설정된 비밀키를 주입받습니다.
-     * @param gatewayTrustedSecret 애플리케이션 설정 파일에 정의된 공유 비밀키
+     * Filter constructor: Injects the secret key set via @Value in SecurityConfig.
+     * @param gatewayTrustedSecret Shared secret key defined in the application configuration file.
      */
     public TrustedHeaderAuthenticationFilter(String gatewayTrustedSecret) {
-        // null 또는 빈 문자열을 방지하고 항상 비교 가능하도록 초기화
+        // Initialize to prevent null or blank strings, ensuring comparability
         this.gatewayTrustedSecret = (gatewayTrustedSecret == null) ? "" : gatewayTrustedSecret.trim();
-        log.info("TrustedHeaderAuthenticationFilter initialized. Secret status: {}",
-                this.gatewayTrustedSecret.isBlank() ? "BLANK (DANGER!)" : "SET");
+        log.info("✅ TrustedHeaderAuthenticationFilter initialized.");
+        if (this.gatewayTrustedSecret.isBlank()) {
+            // Log a strong warning if the secret key is not configured
+            log.warn("🚨 [SECURITY WARNING] Gateway trusted secret ('gateway.trusted.secret') is BLANK or not configured. " +
+                    "The service is VULNERABLE as it cannot verify requests from the gateway!");
+        } else {
+            // Log confirmation that the secret key is set
+            log.info("🔑 Gateway trusted secret is configured. Length: {} characters.", this.gatewayTrustedSecret.length());
+        }
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // 1. 게이트웨이 신뢰성 검증: X-Gateway-Secret 헤더 확인
-        String requestSecret = request.getHeader(GATEWAY_SECRET_HEADER);
+        // --- 💡 [Added Debug Logging] ---
+        log.info("==================== TrustedHeaderAuthenticationFilter - START ====================");
+        log.info("➡️ Request URI: {} {}", request.getMethod(), request.getRequestURI());
 
-        // 환경 변수로 비밀키가 설정되어 있고 (실제 운영 환경), 요청 헤더의 비밀키와 일치하지 않으면 401 오류 반환
-        if (!this.gatewayTrustedSecret.isBlank() && !this.gatewayTrustedSecret.equals(requestSecret)) {
-            log.warn("Unauthorized access: Mismatched or missing trusted secret header. Request secret: {}", requestSecret);
-            // 401 UNAUTHORIZED 반환
+        // 1. Verify Gateway Trustworthiness: Check X-Gateway-Secret header
+        String receivedSecret = request.getHeader(GATEWAY_SECRET_HEADER);
+
+        // Clearly log the expected value (from config) and the received value (from header)
+        log.info("🔑 Expected Secret (from motion-dev.yml): '{}' (Length: {})",
+                this.gatewayTrustedSecret, this.gatewayTrustedSecret.length());
+        log.info("🔑 Received Secret (from {} Header): '{}' (Length: {})",
+                GATEWAY_SECRET_HEADER,
+                receivedSecret, (receivedSecret != null ? receivedSecret.length() : "null"));
+
+        // Explicitly perform the comparison and log the result
+        boolean isSecretMatch = this.gatewayTrustedSecret.equals(receivedSecret);
+        log.info("🔑 Secret Key Match Result: {}", isSecretMatch ? "✅ SUCCESS" : "❌ FAILED");
+
+        // If the secret key is configured (not blank) AND the received key does not match
+        if (!this.gatewayTrustedSecret.isBlank() && !isSecretMatch) {
+            log.warn("🚨 UNAUTHORIZED ACCESS BLOCKED: Mismatched or missing trusted secret header ({}). Expected '{}' but received '{}'. Responding with 401.",
+                    GATEWAY_SECRET_HEADER, this.gatewayTrustedSecret, receivedSecret);
+            log.info("==================== TrustedHeaderAuthenticationFilter - END (BLOCKED) ====================");
+
+            // Return 401 UNAUTHORIZED
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.getWriter().write("Invalid Gateway Secret");
-            return;
+            response.getWriter().write("Invalid or Missing Gateway Secret"); // Send a clear error message
+            return; // Stop filter chain execution
+        } else if (this.gatewayTrustedSecret.isBlank()) {
+            log.warn("🚨 Proceeding WITHOUT secret validation because 'gateway.trusted.secret' is not set in configuration.");
+        } else {
+            log.info("✅ Gateway trust validated successfully.");
         }
 
-        // 2. 인증 정보 추출 및 등록
-        String userId = request.getHeader("X-User-Id");
-        String authorities = request.getHeader("X-Authorities");
 
-        // 신뢰성 검증을 통과하고, 사용자 ID가 있을 경우에만 인증 처리
+        // 2. Extract and Register Authentication Information (only if trust is verified or not required)
+        String userId = request.getHeader(USER_ID_HEADER);
+        String authoritiesHeader = request.getHeader(AUTHORITIES_HEADER);
+
+        log.info("👤 Received {}: '{}'", USER_ID_HEADER, userId);
+        log.info("🛡️ Received {}: '{}'", AUTHORITIES_HEADER, authoritiesHeader);
+
+        // Proceed with authentication restoration only if userId is present
         if (userId != null && !userId.isBlank()) {
-            List<SimpleGrantedAuthority> auths = List.of();
+            List<SimpleGrantedAuthority> authorities = Collections.emptyList(); // Default to empty list
 
-            // 권한(Authorities) 정보 파싱 (콤마로 구분된 문자열을 List<SimpleGrantedAuthority>로 변환)
-            if (authorities != null && !authorities.isBlank()) {
-                auths = Arrays.stream(authorities.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .map(SimpleGrantedAuthority::new)
+            // Parse Authorities (convert comma-separated string to List<SimpleGrantedAuthority>)
+            if (authoritiesHeader != null && !authoritiesHeader.isBlank()) {
+                authorities = Arrays.stream(authoritiesHeader.split(","))
+                        .map(String::trim) // Remove leading/trailing whitespace
+                        .filter(s -> !s.isEmpty()) // Filter out empty strings
+                        .map(SimpleGrantedAuthority::new) // Create authority objects
                         .collect(Collectors.toList());
+            } else {
+                log.warn("❓ {} header was present, but {} header was missing or empty. User will have no authorities.", USER_ID_HEADER, AUTHORITIES_HEADER);
             }
 
-            // Spring Security Context에 인증 정보 등록
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null, auths);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            log.debug("Restored authentication from headers: user={} authorities={}", userId, authorities);
+            // Register authentication information in Spring Security Context
+            // The principal is the userId, credentials are null (not needed), and authorities list
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("✅ Authentication context successfully set for user: '{}', Granted Authorities: {}", userId, authorities);
+
         } else if (!this.gatewayTrustedSecret.isBlank()) {
-            // 신뢰성 검증은 통과했지만, 사용자 ID 헤더가 없는 경우 (경고성 로그)
-            log.debug("Trusted request did not contain X-User-Id. Proceeding without authentication.");
+            // If trust was verified but X-User-Id is missing, log a debug message (might be expected for some endpoints)
+            log.debug("❓ Trusted request received, but {} header was missing or blank. Proceeding without setting authentication context.", USER_ID_HEADER);
+        } else if (userId == null || userId.isBlank()){
+            // If secret is blank AND userId is missing
+            log.debug("❓ No secret validation required and {} header missing. Proceeding without authentication.", USER_ID_HEADER);
         }
 
-        // 다음 필터 체인으로 요청 전달
+        log.info("==================== TrustedHeaderAuthenticationFilter - END (PASSED) =====================");
+
+        // Continue the filter chain
         filterChain.doFilter(request, response);
     }
 }

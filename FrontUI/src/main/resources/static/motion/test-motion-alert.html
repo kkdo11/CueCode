@@ -14,7 +14,8 @@
 <pre id="results"></pre>
 
 <script>
-    // 1. HttpOnly 쿠키는 JS로 읽을 수 없으므로 getCookie 함수는 삭제합니다.
+    // 💡 [수정]: HttpOnly 쿠키에 접근하는 로직과 수동 토큰 코드를 완전히 제거했습니다.
+    // 브라우저의 기본 보안 기능에 쿠키 전송을 완전히 위임합니다.
 
     function getAlerts() {
         const resultsContainer = document.getElementById('results');
@@ -22,20 +23,48 @@
 
         const url = `http://localhost:13000/api/motions/alerts`;
 
-        // 2. 수동으로 Authorization 헤더를 만드는 로직을 모두 삭제합니다.
-        //    브라우저가 'credentials: include' 옵션에 따라 자동으로 처리합니다.
+        // Content-Type만 지정합니다. Authorization 헤더는 브라우저가 Cookie 헤더를 통해 자동 처리합니다.
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        // 💡 [로그] 요청 정보 확인
+        console.log("--------------------------------------------------");
+        console.log(`[Alerts] ➡️ Request URL: ${url}`);
+        console.log(`[Alerts] 🗝️ Sending with credentials: 'include' (Browser will automatically attach cookies)`);
+        console.log("--------------------------------------------------");
+
+
         fetch(url, {
             method: 'GET',
-            credentials: 'include' // <-- 이 옵션 하나로 충분합니다!
+            credentials: 'include', // 브라우저가 인증 쿠키를 'Cookie' 헤더에 자동으로 첨부
+            headers: headers
         })
             .then(response => {
+                // 💡 [로그] 응답 상태 확인
+                console.log(`[Alerts] Received HTTP Status: ${response.status}`);
+
                 if (!response.ok) {
+                    // 서버가 401을 반환했다면, 이곳에서 에러를 던집니다.
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                return response.json();
+
+                // 응답 본문 처리 (JSON 파싱 오류 방지 로직 포함)
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json();
+                } else {
+                    return response.text();
+                }
             })
             .then(data => {
-                resultsContainer.textContent = JSON.stringify(data, null, 2);
+                // 결과 출력
+                if (typeof data === 'object' && data !== null) {
+                    resultsContainer.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultsContainer.textContent = `Success (Non-JSON Response): ${data}`;
+                }
+                console.log("[Alerts] API Call Succeeded.");
             })
             .catch(error => {
                 resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;

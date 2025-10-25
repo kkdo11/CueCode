@@ -21,7 +21,7 @@ public class PhraseHistoryController {
 
     private final IPhraseHistoryService phraseHistoryService;
 
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<List<PhraseHistoryDocument>> getPhraseHistory(Principal principal) {
         if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

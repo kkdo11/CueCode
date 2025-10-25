@@ -14,47 +14,56 @@
 <pre id="results"></pre>
 
 <script>
-    function getCookie(name) {
-        const value = 8; ${document.cookie}9;
-        const parts = value.split(8; ${name}=9");
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
+    // 💡 [수정됨]: HttpOnly 쿠키에 접근하는 getCookie 함수는 삭제되었습니다.
+    // 쿠키 전송은 fetch의 credentials: 'include' 옵션에 위임됩니다.
 
     function getHistory() {
         const resultsContainer = document.getElementById('results');
         resultsContainer.textContent = 'Loading...';
 
         const url = `http://localhost:13000/api/motions/history`;
-        const token = getCookie('jwtAccessToken');
 
+        // 💡 [수정됨]: Authorization 헤더 수동 구성 로직을 제거하고 Content-Type만 남깁니다.
         const headers = {
             'Content-Type': 'application/json'
         };
-        if (token) {
-            headers['Authorization'] = 'Bearer ' + token;
-        }
+
+        // 💡 [로그 추가] 요청 정보 확인
+        console.log("--------------------------------------------------");
+        console.log(`[History] ➡️ Request URL: ${url}`);
+        console.log(`[History] 🗝️ Sending with credentials: 'include' (Browser will automatically attach cookies)`);
+        console.log("--------------------------------------------------");
+
 
         fetch(url, {
             method: 'GET',
-            credentials: 'include',
+            credentials: 'include', // 브라우저가 HttpOnly 쿠키를 'Cookie' 헤더에 자동으로 첨부
             headers: headers
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            resultsContainer.textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(error => {
-            resultsContainer.textContent = `Error: ${error.message}
+            .then(response => {
+                // 💡 [로그 추가] 응답 상태 확인
+                console.log(`[History] Received HTTP Status: ${response.status}`);
 
-Check the browser console for more details.`;
-            console.error('Error fetching history:', error);
-        });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Content-Type 확인 후 JSON 파싱 (test-motion-alert.html과 유사하게 처리)
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json();
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                resultsContainer.textContent = JSON.stringify(data, null, 2);
+                console.log("[History] API Call Succeeded.");
+            })
+            .catch(error => {
+                resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;
+                console.error('Error fetching history:', error);
+            });
     }
 </script>
 

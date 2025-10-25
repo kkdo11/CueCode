@@ -43,31 +43,35 @@ public class JwtAuthenticationFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
+        log.info("[JwtFilter] --------------------------------------------------");
+        log.info("[JwtFilter] Request Path: {}", path);
 
         // skipPaths에 해당하는 경로는 JWT 인증 필터를 건너뜀
         if (skipPaths.stream().anyMatch(path::startsWith)) {
+            log.info("[JwtFilter] Path is in skipPaths. Skipping filter.");
             return chain.filter(exchange);
         }
 
         String token = null;
         try {
             token = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
+            log.info("[JwtFilter] Resolved Token: {}", (token != null && !token.isEmpty()) ? "Present" : "Not Present");
         } catch (Exception e) {
-            log.debug("Failed to resolve token for path {}: {}", path, e.getMessage());
-            // 토큰 추출 실패 시에도 응답을 완료하지 않고 체인 계속 진행
-            // Spring Security의 authorizeExchange가 처리하도록 함
+            log.error("[JwtFilter] Failed to resolve token for path {}: {}", path, e.getMessage(), e);
         }
 
-        if (token != null) {
+        if (token != null && !token.isEmpty()) {
             try {
-                if (jwtTokenProvider.validateToken(token) == JwtStatus.ACCESS) {
+                JwtStatus validationResult = jwtTokenProvider.validateToken(token);
+                log.info("[JwtFilter] Token validation result: {}", validationResult);
+
+                if (validationResult == JwtStatus.ACCESS) {
                     Authentication authentication = jwtTokenProvider.getAuthentication(token);
                     TokenDTO tokenInfo = jwtTokenProvider.getTokenInfo(token);
                     String userId = tokenInfo.userId() == null ? "" : tokenInfo.userId();
                     String roles = tokenInfo.role() == null ? "" : tokenInfo.role();
 
-                    log.debug("Authenticated user: {}, roles: {} for path: {}", authentication.getName(),
-                            authentication.getAuthorities(), path);
+                    log.info("[JwtFilter] Authentication successful. User: {}, Roles: {}", authentication.getName(), authentication.getAuthorities());
 
                     // 인증된 사용자 정보를 헤더에 담아 요청 변형 (Downstream 서비스 전달용)
                     ServerHttpRequest mutatedRequest = request.mutate()
@@ -79,24 +83,20 @@ public class JwtAuthenticationFilter implements WebFilter {
                     ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
 
                     // Security Context에 Authentication 객체를 설정하고 필터 체인 계속 진행
+                    log.info("[JwtFilter] Setting Authentication in context and continuing chain.");
                     return chain.filter(mutatedExchange)
                             .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
                 } else {
-                    log.debug("Token invalid or not ACCESS for path: {}. Continuing chain.", path);
-                    // 토큰 유효성 검증 실패 시에도 응답을 완료하지 않고 체인 계속 진행
+                    log.warn("[JwtFilter] Token is invalid or not an ACCESS token. Status: {}. Continuing chain without authentication.", validationResult);
                 }
             } catch (Exception ex) {
-                log.debug("Token validation/authentication error for path {}: {}", path, ex.getMessage());
-                // 토큰 처리 중 예외 발생 시에도 응답을 완료하지 않고 체인 계속 진행
+                log.error("[JwtFilter] Token validation/authentication error for path {}: {}", path, ex.getMessage(), ex);
             }
         } else {
-            log.debug("No token present for path: {}. Continuing chain.", path);
-            // 토큰이 없는 경우에도 응답을 완료하지 않고 체인 계속 진행
+            log.info("[JwtFilter] No token present. Continuing chain without authentication.");
         }
 
-        // 토큰이 없거나 유효하지 않거나 처리 중 오류가 발생했더라도,
-        // 필터 체인을 계속 진행하여 Spring Security의 authorizeExchange가 처리하도록 함.
-        // authorizeExchange는 Authentication 객체가 없으면 authenticationEntryPoint(401)를 호출할 것임.
+        log.warn("[JwtFilter] Authentication not set. Continuing chain for authorization check by Spring Security.");
         return chain.filter(exchange);
     }
 }

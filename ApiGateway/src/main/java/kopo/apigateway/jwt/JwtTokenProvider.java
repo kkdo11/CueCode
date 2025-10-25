@@ -23,6 +23,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
@@ -124,6 +127,7 @@ public class JwtTokenProvider {
 
     // 토큰 상태 검증
     public JwtStatus validateToken(String token) {
+        log.info("[JwtTokenProvider] Validating token with secret key: {}", secretKey);
         if (!token.isEmpty()) {
             try {
                 SecretKey secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
@@ -136,6 +140,7 @@ public class JwtTokenProvider {
             } catch (ExpiredJwtException e) {
                 return JwtStatus.EXPIRED;
             } catch (JwtException | IllegalArgumentException e) {
+                log.error("[JwtTokenProvider] Token validation failed", e);
                 return JwtStatus.DENIED;
             }
         } else {
