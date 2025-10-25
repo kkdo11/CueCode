@@ -43,13 +43,6 @@ public class JwtTokenProvider {
 
     public static final String HEADER_PREFIX = "Bearer ";
 
-    private SecretKey secret;
-
-    @PostConstruct
-    protected void init() {
-        secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
-    }
-
     // null 또는 빈 문자열을 안전하게 처리하는 유틸리티 메서드
     private String nvl(String str) {
         return (str == null) ? "" : str;
@@ -63,6 +56,7 @@ public class JwtTokenProvider {
         claims.put("roles", roles);
         claims.put("managerId", managerId); // managerId 클레임 추가
         Date now = new Date();
+        SecretKey secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
@@ -73,6 +67,7 @@ public class JwtTokenProvider {
 
     // 토큰 정보 추출
     public TokenDTO getTokenInfo(String token) {
+        SecretKey secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
         Claims claims = Jwts.parserBuilder().setSigningKey(secret).build().parseClaimsJws(token).getBody();
         String userId = nvl(claims.getSubject());
         String role = nvl((String) claims.get("roles"));
@@ -131,6 +126,7 @@ public class JwtTokenProvider {
     public JwtStatus validateToken(String token) {
         if (!token.isEmpty()) {
             try {
+                SecretKey secret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
                 Claims claims = Jwts.parserBuilder().setSigningKey(secret).build().parseClaimsJws(token).getBody();
                 if (claims.getExpiration().before(new Date())) {
                     return JwtStatus.EXPIRED;

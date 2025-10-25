@@ -14,45 +14,33 @@
 <pre id="results"></pre>
 
 <script>
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
+    // 1. HttpOnly 쿠키는 JS로 읽을 수 없으므로 getCookie 함수는 삭제합니다.
 
     function getAlerts() {
         const resultsContainer = document.getElementById('results');
         resultsContainer.textContent = 'Loading...';
 
         const url = `http://localhost:13000/api/motions/alerts`;
-        const token = getCookie('jwtAccessToken');
 
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        if (token) {
-            headers['Authorization'] = 'Bearer ' + token;
-        }
-
+        // 2. 수동으로 Authorization 헤더를 만드는 로직을 모두 삭제합니다.
+        //    브라우저가 'credentials: include' 옵션에 따라 자동으로 처리합니다.
         fetch(url, {
             method: 'GET',
-            credentials: 'include',
-            headers: headers
+            credentials: 'include' // <-- 이 옵션 하나로 충분합니다!
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            resultsContainer.textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(error => {
-            resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;
-            console.error('Error fetching alerts:', error);
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultsContainer.textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;
+                console.error('Error fetching alerts:', error);
+            });
     }
 </script>
 
