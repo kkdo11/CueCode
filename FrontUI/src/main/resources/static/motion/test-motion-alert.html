@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Motion Alert</title>
+</head>
+<body>
+
+<h1>Test Dangerous Phrase Alerts</h1>
+
+<button onclick="getAlerts()">Get Alerts for Logged-in User</button>
+
+<h2>Results:</h2>
+<pre id="results"></pre>
+
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    function getAlerts() {
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.textContent = 'Loading...';
+
+        const url = `http://localhost:13000/api/motions/alerts`;
+        const token = getCookie('jwtAccessToken');
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+
+        fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: headers
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            resultsContainer.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            resultsContainer.textContent = `Error: ${error.message}\n\nCheck the browser console for more details.`;
+            console.error('Error fetching alerts:', error);
+        });
+    }
+</script>
+
+</body>
+</html>

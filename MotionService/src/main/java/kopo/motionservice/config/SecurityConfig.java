@@ -40,11 +40,12 @@ public class SecurityConfig {
         // stateless (no session)
         http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // TrustedHeaderAuthenticationFilter를 SecurityContextPersistenceFilter 앞에 추가하여 순서를 명시
-        http.addFilterBefore(trustedHeaderAuthenticationFilter, org.springframework.security.web.context.SecurityContextPersistenceFilter.class);
+        // TrustedHeaderAuthenticationFilter를 AuthorizationFilter 앞에 추가하여, 인증 헤더 처리가 인가 규칙보다 먼저 실행되도록 보장
+        http.addFilterBefore(trustedHeaderAuthenticationFilter, org.springframework.security.web.access.intercept.AuthorizationFilter.class);
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
+                .requestMatchers("/motions/alerts").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/ws/motion").permitAll()
                 .anyRequest().authenticated()
