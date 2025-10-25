@@ -45,6 +45,7 @@ public class SecurityConfig {
         return cfg.getAuthenticationManager();
     }
 
+
     @Bean
     @Order(1)
     public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
