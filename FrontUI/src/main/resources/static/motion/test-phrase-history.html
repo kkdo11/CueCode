@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Phrase History</title>
+</head>
+<body>
+
+<h1>Test Phrase History</h1>
+
+<button onclick="getHistory()">Get History for Logged-in User</button>
+
+<h2>Results:</h2>
+<pre id="results"></pre>
+
+<script>
+    function getCookie(name) {
+        const value = 8; ${document.cookie}9;
+        const parts = value.split(8; ${name}=9");
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    function getHistory() {
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.textContent = 'Loading...';
+
+        const url = `http://localhost:13000/api/motions/history`;
+        const token = getCookie('jwtAccessToken');
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+
+        fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: headers
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            resultsContainer.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            resultsContainer.textContent = `Error: ${error.message}
+
+Check the browser console for more details.`;
+            console.error('Error fetching history:', error);
+        });
+    }
+</script>
+
+</body>
+</html>
