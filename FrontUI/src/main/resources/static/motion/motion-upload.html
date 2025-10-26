@@ -71,19 +71,9 @@
         }
 
         /* 동작 의미 입력 칸 테두리 강조 및 패딩 추가 */
-        /*#motionLabel {*/
-        /*    border: 2px solid #ccc;*/
-        /*    border-radius: 8px;*/
-        /*    transition: border-color 0.3s, box-shadow 0.3s;*/
-        /*    padding-left: 12px;*/
-        /*}*/
         .form-control {
             padding-left: 12px;
         }
-        /*#motionLabel:focus {*/
-        /*    border-color: #6FC8F8;*/
-        /*    box-shadow: 0 0 0 0.25rem rgba(111, 200, 248, 0.25);*/
-        /*}*/
 
         input.form-control,
         textarea.form-control {
@@ -101,9 +91,11 @@
 
         /* 비디오 및 컨트롤 스타일 */
         .video-upload-area { margin-top: 18px; display:flex; flex-direction:column; align-items:center; position:relative; }
-        .video-upload-area video {
+        .video-upload-area video
+        {
             background: #111;
             border-radius: 10px;
+            transform: scaleX(-1);
         }
         .video-controls {
             margin-top:10px;
@@ -180,6 +172,31 @@
         .step-btns .next-btn.visible {
             visibility: visible;
             opacity: 1;
+        }
+
+        /* 💡 SweetAlert 버튼 스타일 수정 */
+        .swal2-actions {
+            /* 버튼 컨테이너 강제 가운데 정렬 */
+            justify-content: center !important;
+            /* 버튼들이 세로로 배치되도록 flex-direction 변경 (옵션) */
+            /* SweetAlert2가 기본적으로 'row'를 사용하여 줄바꿈이 안 되면 옆으로 나열됨 */
+            flex-direction: column;
+            align-items: center;
+        }
+        /* 개별 버튼에 마진을 주어 간격 확보 */
+        .swal2-actions button {
+            margin: 10px 5px !important; /* 위아래 10px, 좌우 5px 마진 */
+            min-width: 250px; /* 버튼 최소 너비 설정 (선택 사항) */
+        }
+        .swal2-actions .btn-primary {
+            background-color: #6FC8F8 !important;
+            border-color: #6FC8F8 !important;
+            color: white !important;
+        }
+        .swal2-actions .btn-secondary {
+            background-color: #e0e0e0 !important;
+            border-color: #e0e0e0 !important;
+            color: #333 !important;
         }
     </style>
 </head>
@@ -400,14 +417,6 @@
                                     <iconify-icon icon="fa:arrow-left" width="28" height="28"></iconify-icon>
                                 </button>
                             </div>
-
-                            <!--                            <div style="width: 100%; margin-top: 30px;">-->
-                            <!--                                <button type="submit" class="submit-btn" disabled id="finalUploadButton">-->
-                            <!--                                    모든 영상 최종 제출-->
-                            <!--                                </button>-->
-                            <!--                            </div>-->
-
-                            <!--                            <div class="hint text-center mt-3">로컬에서는 파일을 직접 열지 말고, <code>http://localhost:8080</code>처럼 <strong>HTTP 서버</strong>에서 실행하세요.</div>-->
                         </section>
                     </div>
                 </form>
@@ -508,6 +517,7 @@
             return true;
         }
         try {
+            // 서버에 /user/me 엔드포인트가 있다고 가정
             const resp = await fetch(`${apiBase}/user/me`, { method: 'GET', credentials: 'include' });
             if (resp.ok) {
                 console.log('HTTP-Only 쿠키를 통한 서버 인증 성공.');
@@ -645,7 +655,7 @@
         });
     }
 
-    // 모든 단계가 녹화 및 업로드되었는지 확인 (최종 제출 버튼용)
+    // 모든 단계가 녹화 및 업로드되었는지 확인 (최종 제출 버튼용 - 현재 미사용)
     function isAllUploaded() {
         return recordedVideos[2]?.isUploaded && recordedVideos[3]?.isUploaded && recordedVideos[4]?.isUploaded;
     }
@@ -663,7 +673,8 @@
         const nextBtn = document.getElementById(`nextBtn${stepNumber}`);
         const countdownOverlay = document.getElementById(`countdownOverlay${stepNumber}`);
         const isFinalStep = stepNumber === totalSteps;
-        const finalUploadBtn = document.getElementById('finalUploadButton');
+        // 최종 제출 버튼은 주석 처리되어 있으므로 미사용
+        // const finalUploadBtn = document.getElementById('finalUploadButton');
 
         if (!preview || !startBtn || !uploadBtn) {
             console.error(`DOM elements for step ${stepNumber} not found.`);
@@ -692,7 +703,7 @@
         enable(startBtn, false);
         enable(resetBtn, false);
         enable(uploadBtn, false);
-        if (isFinalStep) enable(finalUploadBtn, isAllUploaded());
+        // if (isFinalStep) enable(finalUploadBtn, isAllUploaded()); // 최종 제출 버튼 미사용
         if (nextBtn) setNextButtonVisibility(nextBtn, isUploaded);
 
 
@@ -788,7 +799,7 @@
                 enable(uploadBtn, true); // 💡 업로드 버튼 활성화
                 uploadBtn.classList.add('pulse-effect'); // 💡 반짝임 효과 추가
                 if (nextBtn) setNextButtonVisibility(nextBtn, false); // 💡 다음 버튼 숨김
-                if (isFinalStep) enable(finalUploadBtn, false);
+                // if (isFinalStep) enable(finalUploadBtn, false); // 최종 제출 버튼 미사용
 
                 statusDiv.textContent = "✅ 녹화 완료! 영상을 확인 후 업로드 버튼을 눌러주세요.";
             };
@@ -798,7 +809,7 @@
             if (nextBtn) setNextButtonVisibility(nextBtn, false); // 💡 녹화 시작 시 다음 버튼 숨김
             enable(resetBtn, false);
             enable(uploadBtn, false); // 💡 업로드 버튼 비활성화
-            if(isFinalStep) enable(finalUploadBtn, false);
+            // if(isFinalStep) enable(finalUploadBtn, false); // 최종 제출 버튼 미사용
             countdownOverlay.style.display = 'block';
 
             // countdown
@@ -838,7 +849,7 @@
             preview.controls = false;
 
             if (nextBtn) setNextButtonVisibility(nextBtn, false);
-            if (isFinalStep) enable(finalUploadBtn, false);
+            // if (isFinalStep) enable(finalUploadBtn, false); // 최종 제출 버튼 미사용
             enable(resetBtn, false);
             enable(uploadBtn, false);
             uploadBtn.classList.remove('pulse-effect'); // 💡 반짝임 제거
@@ -848,7 +859,7 @@
             await setupCamera();
         };
 
-        // --- 업로드 이벤트 핸들러 ---
+        // --- 업로드 이벤트 핸들러 (수정된 부분) ---
         uploadBtn.onclick = async () => {
             // read latest inputs (motionLabel and motionDescription)
             const label = document.getElementById('motionLabel').value?.trim();
@@ -892,13 +903,43 @@
 
                 if (response.ok) {
                     recordedVideos[stepNumber].isUploaded = true;
-                    statusDiv.textContent = `⭐ 업로드 성공! 다음 단계로 넘어가 주세요.`;
+                    enable(resetBtn, true); // 재촬영은 가능
 
-                    enable(resetBtn, true);
-                    setNextButtonVisibility(nextBtn, true);
-                    if (isFinalStep) enable(finalUploadBtn, isAllUploaded());
+                    // 4단계(최종) 업로드 성공 시 특수 처리
+                    if (stepNumber === totalSteps) {
+                        statusDiv.textContent = `⭐ 3차 영상 업로드 성공! 최종 동작 등록 완료.`;
+                        // SweetAlert2 알림창 띄우기 및 버튼 경로 설정
+                        Swal.fire({
+                            title: '🎉 모든 영상 업로드 및 등록 완료!',
+                            html: '이제 실시간 동작 인식을 시작하거나, 다른 동작을 업로드할 수 있습니다.',
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: '실시간 동작 인식 시작하기',
+                            cancelButtonText: '동작 업로드 이어서 하기',
+                            reverseButtons: true,
+                            customClass: {
+                                // SweetAlert2 기본 버튼 클래스를 재정의
+                                confirmButton: 'btn btn-primary swal2-confirm',
+                                cancelButton: 'btn btn-secondary swal2-cancel'
+                            },
+                            buttonsStyling: false, // 커스텀 클래스를 적용하기 위해 false 설정
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // "실시간 동작 인식 시작하기" 클릭 시
+                                window.location.href = '../motion/motion-detector.html';
+                            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                                // "동작 업로드 이어서 하기" 클릭 시 (페이지 초기화)
+                                window.location.href = '../motion/motion-upload.html';
+                            }
+                        });
 
-                    await Swal.fire('업로드 완료', `${stepNumber-1}차 영상이 성공적으로 업로드되었습니다.`, 'success');
+                    } else {
+                        // 2, 3단계 업로드 성공
+                        statusDiv.textContent = `⭐ 업로드 성공! 다음 단계로 넘어가 주세요.`;
+                        if (nextBtn) setNextButtonVisibility(nextBtn, true);
+                        await Swal.fire('업로드 완료', `${stepNumber-1}차 영상이 성공적으로 업로드되었습니다. 다음 단계로 진행해주세요.`, 'success');
+                    }
+
                 } else if (response.status === 401) {
                     redirectToSignInWithDelay(statusDiv, SIGN_IN_PAGE_URL, 10);
                 } else {
@@ -926,84 +967,23 @@
     }
 
 
-    // ---- 최종 제출 로직 ----
+    // ---- 최종 제출 로직 (현재는 4단계 업로드 성공에 통합되어 미사용) ----
 
     document.addEventListener('DOMContentLoaded', async () => {
         setupStepEventListeners();
 
+        // 폼 제출 이벤트를 비활성화 (4단계 개별 업로드 버튼에 로직 통합)
         document.getElementById('uploadForm').onsubmit = async (e) => {
             e.preventDefault();
-
-            const finalStatusDiv = document.getElementById('status4');
-            const finalUploadBtn = document.getElementById('finalUploadButton');
-
-            const label = document.getElementById('motionLabel').value?.trim();
-            const description = document.getElementById('motionDescription').value?.trim();
-            const detectionArea = document.getElementById('detectionArea').value;
-
-
-            if (!label) {
-                await Swal.fire('경고', '1단계에서 동작 의미를 입력해주세요.', 'warning');
-                showStep(1);
-                return;
+            // 최종 제출 로직이 개별 업로드 버튼에 통합되었으므로, 여기서는 경고만 띄웁니다.
+            console.warn("Final form submission is disabled and handled by the Step 4 upload button.");
+            // 4단계 업로드 버튼을 다시 누르도록 유도
+            if (currentStep === totalSteps && !recordedVideos[totalSteps]?.isUploaded) {
+                await Swal.fire('알림', '3차 영상의 "업로드" 버튼을 눌러 최종 등록을 완료해주세요.', 'info');
+            } else if (currentStep !== totalSteps) {
+                await Swal.fire('알림', '모든 단계(1~4단계)를 완료해야 합니다.', 'info');
             }
-            if (!isAllUploaded()) {
-                await Swal.fire('경고', '1차, 2차, 3차 영상을 모두 촬영 및 업로드해주세요.', 'warning');
-                return;
-            }
-
-            let loggedIn = await checkAuth(API_GATEWAY_URL);
-            if (!loggedIn) {
-                redirectToSignInWithDelay(finalStatusDiv, SIGN_IN_PAGE_URL, 10);
-                return;
-            }
-
-            try {
-                finalStatusDiv.textContent = "📤 최종 제출 및 학습 요청 중입니다. 잠시만 기다려주세요...";
-                enable(finalUploadBtn, false);
-
-                const formData = new FormData();
-                formData.append('motionLabel', label);
-                formData.append('motionDescription', description);
-                formData.append('detectionArea', detectionArea);
-
-                // 💡 최종 제출 시, 서버에서 3개의 파일을 구분하여 처리하도록 다시 필드명을 구분하여 전송
-                formData.append('videoFile1', recordedVideos[2].blob, 'motion_1.webm');
-                formData.append('videoFile2', recordedVideos[3].blob, 'motion_2.webm');
-                formData.append('videoFile3', recordedVideos[4].blob, 'motion_3.webm');
-
-                const token = getAccessToken();
-                const headers = {};
-                if (token) {
-                    headers['Authorization'] = 'Bearer ' + token;
-                }
-
-                // 💡 단일 최종 엔드포인트 사용
-                const response = await fetch(`${API_GATEWAY_URL}/motions/upload`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: headers,
-                    body: formData
-                });
-
-                if (response.ok) {
-                    await Swal.fire('🎉 성공!', '모든 동작 영상이 성공적으로 업로드 및 제출되었습니다!', 'success');
-                    finalStatusDiv.textContent = `⭐ 업로드 성공: 학습을 시작합니다!`;
-                    // window.location.href = "/patient/dashboard.html"; // 성공 후 이동
-                } else if (response.status === 401) {
-                    redirectToSignInWithDelay(finalStatusDiv, SIGN_IN_PAGE_URL, 10);
-                } else {
-                    const text = await response.text().catch(() => '알 수 없는 오류');
-                    await Swal.fire('🚨 오류', `최종 제출 실패: 서버 오류 ${response.status} (${text})`, 'error');
-                    finalStatusDiv.textContent = `❌ 서버 오류가 발생했습니다: ${response.status}`;
-                }
-            } catch (error) {
-                console.error("Final upload error:", error);
-                await Swal.fire('🚨 오류', '최종 제출 중 네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.', 'error');
-                finalStatusDiv.textContent = "❌ 네트워크 오류로 최종 제출에 실패했습니다.";
-            } finally {
-                enable(finalUploadBtn, true);
-            }
+            return false;
         };
 
         // 초기 인증 확인

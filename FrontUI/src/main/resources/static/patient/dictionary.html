@@ -12,39 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="../css/patient/patient.css" />
     <style>
-        /** {*/
-        /*    margin: 0;*/
-        /*    padding: 0;*/
-        /*    box-sizing: border-box;*/
-        /*}*/
 
-        /*body {*/
-        /*    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;*/
-        /*    background-color: #f5f5f5;*/
-        /*    padding: 20px;*/
-        /*}*/
-
-        /*.container {*/
-        /*    max-width: 1200px;*/
-        /*    margin: 0 auto;*/
-        /*    background: white;*/
-        /*    border-radius: 10px;*/
-        /*    box-shadow: 0 4px 20px rgba(0,0,0,0.1);*/
-        /*    padding: 30px;*/
-        /*}*/
-
-        /*.header {*/
-        /*    text-align: center;*/
-        /*    margin-bottom: 30px;*/
-        /*    border-bottom: 2px solid #ddd;*/
-        /*    padding-bottom: 20px;*/
-        /*}*/
-
-        /*.header h1 {*/
-        /*    color: #333;*/
-        /*    margin-bottom: 10px;*/
-        /*    font-weight: 700;*/
-        /*}*/
 
         .user-controls {
             display: flex;
@@ -742,26 +710,50 @@
      * 단일 모션 삭제
      */
     async function deleteSingleMotion(motionId, motionPhrase) {
-        if (!confirm(`⚠️ "${motionPhrase}" 모션을 정말로 삭제하시겠습니까?`)) return;
+        const result = await Swal.fire({
+            title: '모션 삭제',
+            html: `<strong>"${motionPhrase}"</strong> 모션을 정말로 삭제하시겠습니까?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '삭제',
+            cancelButtonText: '취소',
+            reverseButtons: true
+        });
+
+        if (!result.isConfirmed) return;
 
         showLoading(true);
         try {
             // 개별 삭제 API 호출 (백엔드에 DELETE /api/v1/recorded-motions/{motionId} 구현 필요)
-            const result = await motionService.deleteRecordedMotionById(motionId);
-            showMessage(`✅ 모션 "${motionPhrase}"가 성공적으로 삭제되었습니다.`, 'success');
+            const response = await motionService.deleteRecordedMotionById(motionId);
+            await Swal.fire({
+                icon: 'success',
+                title: '삭제 완료',
+                text: `모션 "${motionPhrase}"가 성공적으로 삭제되었습니다.`,
+                timer: 2000,
+                showConfirmButton: false
+            });
             setTimeout(() => { loadUserMotions(); }, 500); // 0.5초 후 목록 새로고침
         } catch (error) {
             console.error('Error deleting single motion:', error);
             const status = error && error.status ? error.status : null;
+            let errorMessage = '';
             if (status === 401) {
-                showMessage('❌ **401 Unauthorized** — 인증 실패.', 'error');
+                errorMessage = '인증 실패. 로그인 상태를 확인하세요.';
             } else if (status === 403) {
-                showMessage('❌ **403 Forbidden** — 권한이 없거나, 본인 소유의 모션이 아닙니다.', 'error');
+                errorMessage = '권한이 없거나, 본인 소유의 모션이 아닙니다.';
             } else if (status === 404) {
-                showMessage('❌ **404 Not Found** — 삭제하려는 모션을 찾을 수 없습니다.', 'error');
+                errorMessage = '삭제하려는 모션을 찾을 수 없습니다.';
             } else {
-                showMessage(`❌ 모션 삭제 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+                errorMessage = `모션 삭제 중 오류가 발생했습니다: ${error.message || error}`;
             }
+            await Swal.fire({
+                icon: 'error',
+                title: '삭제 실패',
+                text: errorMessage
+            });
         } finally { showLoading(false); }
     }
 
@@ -814,27 +806,57 @@
 
     async function deleteAllMotions() {
         const userId = motionService.currentUserId;
-        if (!userId) { showMessage('먼저 모션을 조회해주세요.', 'error'); return; }
+        if (!userId) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '알림',
+                text: '먼저 모션을 조회해주세요.'
+            });
+            return;
+        }
 
-        // confirm 대신 모달 UI를 사용하는 것이 좋으나, 여기서는 confirm 유지
-        if (!confirm(`⚠️ 정말로 "${userId}" 사용자의 모든 녹화된 모션을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+        const result = await Swal.fire({
+            title: '모든 모션 삭제',
+            html: `정말로 <strong>"${userId}"</strong> 사용자의 모든 녹화된 모션을 삭제하시겠습니까?<br><br><span style="color: #dc3545;">⚠️ 이 작업은 되돌릴 수 없습니다.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '모두 삭제',
+            cancelButtonText: '취소',
+            reverseButtons: true
+        });
+
+        if (!result.isConfirmed) return;
 
         showLoading(true);
         try {
-            const result = await motionService.deleteRecordedMotions();
-            showMessage(`✅ ${result}`, 'success');
+            const response = await motionService.deleteRecordedMotions();
+            await Swal.fire({
+                icon: 'success',
+                title: '삭제 완료',
+                text: response,
+                timer: 2000,
+                showConfirmButton: false
+            });
             setTimeout(() => { loadUserMotions(); }, 1000);
         } catch (error) {
             console.error('Error deleting motions:', error);
             const status = error && error.status ? error.status : null;
 
+            let errorMessage = '';
             if (status === 401) {
-                showMessage('❌ **401 Unauthorized** — 인증 실패.', 'error');
+                errorMessage = '인증 실패. 로그인 상태를 확인하세요.';
             } else if (status === 403) {
-                showMessage('❌ **403 Forbidden** — 권한이 없습니다.', 'error');
+                errorMessage = '권한이 없습니다.';
             } else {
-                showMessage(`❌ 모션 데이터 삭제 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+                errorMessage = `모션 데이터 삭제 중 오류가 발생했습니다: ${error.message || error}`;
             }
+            await Swal.fire({
+                icon: 'error',
+                title: '삭제 실패',
+                text: errorMessage
+            });
         } finally { showLoading(false); }
     }
 
@@ -912,4 +934,5 @@
 <script src="../js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
+</body>
 </html>
