@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CueCode | 튜토리얼</title>
+    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg"/>
+    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
+    <link rel="stylesheet" href="../css/styles.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+    <link rel="stylesheet" href="../css/patient/patient.css"/>
+</head>
+<body>
+<header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100 fixed-header">
+    <div class="container">
+        <div class="header-wrapper d-flex align-items-center justify-content-between">
+            <div class="logo">
+                <a href="/index.html" class="logo-white">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+                <a href="/index.html" class="logo-dark">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-4">
+                <div class="btn-group">
+                    <button
+                            class="btn btn-secondary toggle-menu round-45 p-2 d-flex align-items-center justify-content-center bg-white rounded-circle"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
+                        <iconify-icon icon="solar:hamburger-menu-line-duotone"
+                                      class="menu-icon fs-8 text-dark"></iconify-icon>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-4">
+                        <div class="d-flex flex-column gap-6">
+                            <div class="hstack justify-content-between border-bottom pb-6">
+                                <p class="mb-0 fs-5 text-dark">Menu</p>
+                                <button type="button" class="btn-close opacity-75" aria-label="Close"></button>
+                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                <ul class="header-menu list-unstyled mb-0 d-flex flex-column gap-2">
+                                    <li class="header-item">
+                                        <a href="index.html" aria-current="true"
+                                           class="header-link active hstack gap-2 fs-7 fw-bold text-dark"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">홈</a>
+                                    </li>
+                                    <li class="header-item" id="patientMenuItem">
+                                        <a href="/patient/dashboard.html"
+                                           class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="patientMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">환자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="managerMenuItem">
+                                        <a href="../manager/dashboard.html"
+                                           class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="managerMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">관리자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="myPageMenuItem">
+                                        <a href="../user/mypage.html"
+                                           class="header-link hstack gap-2 fs-7 fw-bold text-dark"
+                                           id="myPageMenuLinkAnchor"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">마이 페이지</a>
+                                    </li>
+                                </ul>
+                                <div class="hstack gap-3" id="auth-btn-group">
+                                    <a href="sign-in.html"
+                                       class="btn btn-outline-light fs-6 bg-white px-3 py-2 text-dark w-50 hstack justify-content-center">로그인</a>
+                                    <a href="sign-up.html"
+                                       class="btn btn-dark text-white fs-6 bg-dark px-3 py-2 w-50 hstack justify-content-center">회원가입</a>
+                                </div>
+                            </div>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="row mb-4 justify-content-center">
+    <div class="col-12 col-md-10 fade-in-up">
+
+        <div class="d-flex flex-column align-items-center gap-4 main-flex-area">
+            <h2 class="text-dark fw-bold mt-5 mb-3">CueCode 튜토리얼</h2>
+
+            <video src="../images/backgrounds/cuecode-tutorial.mp4"
+                   controls
+                   autoplay
+                   loop
+                   style="width: 50%; max-width: 50%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+            >
+                죄송합니다. 사용하시는 브라우저는 비디오 태그를 지원하지 않습니다.
+            </video>
+
+            <a href="../motion/motion-upload.html"
+               class="btn fs-5 fw-bold py-3 px-5 mt-4 rounded-pill shadow-lg d-inline-flex align-items-center gap-2"
+               style="transition: all 0.3s ease-in-out; color: white !important;"
+               onmouseover="this.style.transform='translateY(-2px)'; this.style.color='white';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.color='white';">
+                <iconify-icon icon="lucide:upload-cloud" class="fs-6"></iconify-icon>
+                동작 업로드하러 가기
+            </a>
+
+        </div>
+    </div>
+</div>
+<footer class="footer bg-dark py-5 py-lg-11 py-xl-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-5 mb-8 mb-xl-0">
+                <div class="d-flex flex-column gap-8 pe-xl-5">
+                    <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용
+                        <br>공모전 출품작입니다</h4>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4 mb-8 mb-xl-0">
+                <div class="d-flex flex-column gap-2">
+                    <a href="https://contest.k-paas.org/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
+                        <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>
+                        https://contest.k-paas.org/
+                    </a>
+                    <a href="https://buly.kr/Awg81rV" target="_blank"
+                       class="link-hover hstack gap-3 text-white fs-5">
+                        <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>
+                        우장산 산신령들
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 col-xl-3 mb-8 mb-xl-0">
+                <p class="mb-0 text-white text-opacity-70 text-md-end">© CueCode copyright 2025</p>
+            </div>
+        </div>
+    </div>
+    <p class="mb-0 text-white text-opacity-70 text-md-center mt-10">Distributed by <a class="text-white"  target="_blank">Team Ujangsan Spirit</a></p>
+</footer>
+<div class="get-template hstack gap-2">
+    <button class="btn p-2 round-52 rounded-circle hstack justify-content-center flex-shrink-0"
+            id="scrollToTopBtn">
+        <iconify-icon icon="lucide:arrow-up" class="fs-7 text-dark"></iconify-icon>
+    </button>
+</div>
+
+
+<script src="../js/user/index.js"></script>
+<script src="../js/config.js"></script>
+<script src="../libs/jquery/dist/jquery.min.js"></script>
+<script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
+<script src="../libs/aos-master/dist/aos.js"></script>
+</body>
+</html>
