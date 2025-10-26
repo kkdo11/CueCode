@@ -36,6 +36,7 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/ws/motion",
+                        "/ws/alerts",
                         "/error"  // ✅ 추가: Spring Boot 기본 에러 페이지
                 )
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())

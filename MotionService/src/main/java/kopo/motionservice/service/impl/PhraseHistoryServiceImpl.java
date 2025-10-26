@@ -2,6 +2,7 @@ package kopo.motionservice.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kopo.motionservice.dto.LastPhraseDTO;
 import kopo.motionservice.repository.PhraseHistoryRepository;
 import kopo.motionservice.repository.document.PhraseHistoryDocument;
 import kopo.motionservice.service.IPhraseHistoryService;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -44,6 +46,16 @@ public class PhraseHistoryServiceImpl implements IPhraseHistoryService {
         List<PhraseHistoryDocument> history = fetchHistoryFromDb(userId);
         saveHistoryToRedis(userId, history);
         return history;
+    }
+
+    @Override
+    public LastPhraseDTO getLastPhraseForUser(String userId) {
+        log.info("[PhraseHistoryServiceImpl] Getting last phrase for userId: {}", userId);
+        Optional<PhraseHistoryDocument> lastPhraseDoc = phraseHistoryRepository.findTopByUserIdOrderByDetectedTimeDesc(userId);
+
+        return lastPhraseDoc
+                .map(doc -> new LastPhraseDTO(doc.getPhrase()))
+                .orElse(new LastPhraseDTO("기록 없음"));
     }
 
     private List<PhraseHistoryDocument> fetchHistoryFromDb(String userId) {

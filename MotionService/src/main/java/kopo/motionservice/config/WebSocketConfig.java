@@ -1,6 +1,6 @@
 package kopo.motionservice.config;
 
-import kopo.motionservice.handler.MotionHandler;
+import kopo.motionservice.handler.AlertWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -12,13 +12,10 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final MotionHandler motionHandler;
+    private final AlertWebSocketHandler alertWebSocketHandler;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(motionHandler, "/ws/motion")
-                .setAllowedOrigins("*")
-                .addInterceptors(new HttpHandshakeInterceptor())
-                .setHandshakeHandler(new CustomHandshakeHandler());
+        registry.addHandler(alertWebSocketHandler, "/ws/alerts").setAllowedOrigins("*");
     }
 }

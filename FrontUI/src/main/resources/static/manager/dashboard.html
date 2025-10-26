@@ -155,7 +155,8 @@
                 <thead>
                 <tr>
                     <th class="rounded-top-start">환자 ID</th>
-                    <th class="rounded-top-end">이름</th>
+                    <th>이름</th>
+                    <th class="rounded-top-end">환자 상태</th>
                 </tr>
                 </thead>
                 <tbody id="patient-list-tbody">
@@ -246,9 +247,31 @@
             </footer>
         </div>
     </div>
-    <!-- 환자 정보 모달창 section End!-->
-
-</main>
+        <!-- 환자 정보 모달창 section End!-->
+    
+        <!-- 응급 알러트 모달 -->
+        <div class="modal fade" id="emergency-alert-modal" tabindex="-1" aria-labelledby="emergencyAlertModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-danger border-4">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="emergencyAlertModalLabel">
+                            <iconify-icon icon="solar:alarm-bold-duotone" class="me-2"></iconify-icon>응급 알림
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center fs-5">
+                        <p>응급 상황이 발생했습니다!</p>
+                        <p><strong>환자 ID:</strong> <span id="alert-patient-id"></span></p>
+                        <p><strong>환자 이름:</strong> <span id="alert-patient-name"></span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="confirm-alert-btn">확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    </main>
 
 <!--footer start!-->
 <footer class="footer bg-dark py-5 py-lg-11 py-xl-5">

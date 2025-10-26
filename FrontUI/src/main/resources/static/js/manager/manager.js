@@ -13,7 +13,7 @@ function removeCookie(name) {
 // --- [3] DOMContentLoaded 메인 로직 ---
 window.addEventListener('DOMContentLoaded', async () => {
     const patientListBody = document.getElementById('patient-list-tbody');
-
+    let managedPatientIds = new Set(); // 관리하는 환자 ID 목록
 
     // ---- 유틸 ----
     const qs = (sel) => document.querySelector(sel);
@@ -24,7 +24,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (el) el.textContent = v ?? '';
     };
 
-    // null-safe 이벤트 바인딩
     function on(id, evt, handler, {assign = false} = {}) {
         const el = qid(id);
         if (!el) {
@@ -33,19 +32,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
         if (assign && evt === 'click') el.onclick = handler;
         else el.addEventListener(evt, handler);
-    }
-
-    // ---- 역할(임시) ----
-    window.userRole = 'ROLE_USER_MANAGER';
-    try {
-        const me = await fetch(API_BASE + '/user/me', {credentials: 'include'});
-        if (me.ok) {
-            const data = await me.json();
-            console.log('/user/me', data);
-            // server가 role 제공하면 아래 주석 해제
-            // window.userRole = data.role || data.roles || 'ROLE_USER_MANAGER';
-        }
-    } catch (_) {
     }
 
     // ---- API helpers ----
@@ -60,67 +46,138 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // ---- 목록 ----
+    // ---- 환자 목록 조회 ----
     async function fetchPatients() {
         try {
             const managerId = await getManagerIdFromAPI();
-            console.log('managerId:', managerId);
             if (!managerId) {
-                patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-danger">관리자 정보 없음</td></tr>`;
+                patientListBody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">관리자 정보 없음</td></tr>`;
                 return;
             }
 
-            const res = await fetch(API_BASE + `/patient/list?managerId=${encodeURIComponent(managerId)}`, {
-                credentials: 'include'
-            });
-
-            if (res.status === 403) {
-                alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-                location.href = 'sign-in.html';
-                return;
-            }
+            const res = await fetch(API_BASE + `/patient/list?managerId=${encodeURIComponent(managerId)}`, {credentials: 'include'});
             if (!res.ok) throw new Error('list failed');
 
             const arr = await res.json();
             patientListBody.innerHTML = '';
+            managedPatientIds.clear();
 
             if (!Array.isArray(arr) || arr.length === 0) {
-                patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-secondary">표시할 환자가 없습니다.</td></tr>`;
+                patientListBody.innerHTML = `<tr><td colspan="3" class="text-center text-secondary">표시할 환자가 없습니다.</td></tr>`;
                 return;
             }
 
             arr.forEach(p => {
                 if (!p?.id) return;
+                managedPatientIds.add(p.id);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-            <td class="whitespace-nowrap">${p.id}</td>
-            <td class="whitespace-nowrap">${p.name ?? ''}</td>
-          `;
+                    <td class="whitespace-nowrap">${p.id}</td>
+                    <td class="whitespace-nowrap">${p.name ?? ''}</td>
+                    <td class="whitespace-nowrap" id="status-${p.id}"><span class="spinner-border spinner-border-sm"></span></td>
+                `;
                 tr.addEventListener('click', async () => {
                     try {
-                        const d = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(p.id)}`, {
-                            credentials: 'include'
-                        });
-                        if (d.ok) {
-                            openPatientModal(await d.json());
-                        } else {
-                            alert('환자 상세 정보를 불러오는 데 실패했습니다.');
-                        }
+                        const d = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(p.id)}`, {credentials: 'include'});
+                        if (d.ok) openPatientModal(await d.json());
+                        else alert('환자 상세 정보를 불러오는 데 실패했습니다.');
                     } catch (e) {
                         console.error(e);
                         alert('환자 상세 정보를 요청하는 중 오류가 발생했습니다.');
                     }
                 });
                 patientListBody.appendChild(tr);
+                fetchAndSetPatientStatus(p.id, tr);
             });
         } catch (e) {
             console.error('fetchPatients error:', e);
-            patientListBody.innerHTML = `<tr><td colspan="2" class="text-center text-secondary">환자 목록을 불러오지 못했습니다.</td></tr>`;
+            patientListBody.innerHTML = `<tr><td colspan="3" class="text-center text-secondary">환자 목록을 불러오지 못했습니다.</td></tr>`;
         }
     }
 
-    // ---- 먼저 불러오기 (중간에 바인딩 에러가 있어도 목록은 뜨게) ----
-    fetchPatients().catch(console.error);
+    // ---- 환자 상태 조회 (마지막 구문) ----
+    async function fetchAndSetPatientStatus(patientId, tr) {
+        const statusCell = tr.querySelector(`#status-${patientId}`);
+        if (!statusCell) return;
+        try {
+            const response = await fetch(`${API_BASE}/motions/history/last?patientId=${patientId}`, {credentials: 'include'});
+            if (response.ok) {
+                const data = await response.json();
+                statusCell.textContent = data.phrase || '기록 없음';
+            } else {
+                statusCell.textContent = '정보 없음';
+            }
+        } catch (error) {
+            console.error(`Error fetching status for patient ${patientId}:`, error);
+            statusCell.textContent = '오류';
+        }
+    }
+
+    // ---- 응급 알러트 (웹소켓) ----
+    let currentAlertId = null;
+    const alertModalEl = document.getElementById('emergency-alert-modal');
+    const alertModal = new bootstrap.Modal(alertModalEl);
+
+    function connectWebSocket() {
+        const wsUrl = API_BASE.replace(/^http/, 'ws') + '/ws/alerts';
+        console.log('Connecting to WebSocket:', wsUrl);
+        const socket = new WebSocket(wsUrl);
+
+        socket.onmessage = (event) => {
+            console.log("[WebSocket] Raw message received:", event.data);
+            try {
+                const alert = JSON.parse(event.data);
+                console.log("[WebSocket] Parsed alert object:", alert);
+                console.log("[WebSocket] Current managed patient IDs:", Array.from(managedPatientIds));
+
+                if (alert && alert.userId) {
+                    const isManaged = managedPatientIds.has(alert.userId);
+                    console.log(`[WebSocket] Checking if patient ${alert.userId} is managed: ${isManaged}`);
+
+                    // 내가 관리하는 환자의 알림인지 확인
+                    if (isManaged) {
+                        console.log("[WebSocket] Alert is for a managed patient. Showing modal.");
+                        document.getElementById('alert-patient-id').textContent = alert.userId;
+                        document.getElementById('alert-patient-name').textContent = alert.userName || '(이름 정보 없음)';
+                        currentAlertId = alert.id; // alert.id가 alertId라고 가정
+                        alertModal.show();
+                    } else {
+                        console.log("[WebSocket] Alert is for a patient not managed by the current user. Ignoring.");
+                    }
+                } else {
+                    console.warn("[WebSocket] Received alert object is invalid or has no userId.", alert);
+                }
+            } catch (e) {
+                console.error('Error processing alert message:', e);
+            }
+        };
+
+        socket.onclose = (event) => {
+            console.log('WebSocket closed. Reconnecting in 5 seconds...', event.reason);
+            setTimeout(connectWebSocket, 5000);
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket Error:', error);
+            socket.close();
+        };
+    }
+
+    on('confirm-alert-btn', 'click', async () => {
+        if (currentAlertId) {
+            try {
+                await fetch(API_BASE + `/motions/alerts/confirm/${currentAlertId}`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                currentAlertId = null;
+                alertModal.hide();
+            } catch (e) {
+                console.error('Failed to confirm alert:', e);
+                alert('알러트 확인 처리에 실패했습니다.');
+            }
+        }
+    });
 
     // ---- 환자 추가 ----
     (function setupAdd() {
@@ -133,7 +190,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         const resultIcon = qid('check-icon');
         const resultTitle = qid('check-title');
         const resultDesc = qid('check-desc');
-        const fillBtn = qid('btn-fill');
 
         function setLoading(btn, on) {
             const label = btn?.querySelector('.btn-label');
@@ -179,25 +235,18 @@ window.addEventListener('DOMContentLoaded', async () => {
             resultIcon?.setAttribute('icon', 'solar:clock-circle-linear');
 
             try {
-                const res = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(id)}`, {
-                    credentials: 'include'
-                });
+                const res = await fetch(API_BASE + `/patient/detail?id=${encodeURIComponent(id)}`, {credentials: 'include'});
                 if (res.ok) {
                     const data = await res.json();
                     resultIcon?.setAttribute('icon', 'solar:shield-check-linear');
                     resultTitle.textContent = `${data.name ?? '이름 미등록'} (ID: ${data.id ?? id})`;
-                    // resultDesc.textContent  = `담당 매니저: ${(data.managerIds ?? []).join(', ') || '없음'} · 이메일: ${data.email ?? '정보 없음'}`;
                     resultDesc.textContent = `담당 매니저: ${(data.managerIds ?? []).join(', ') || '없음'}`;
-
                     show(resultBox, true);
                 } else if (res.status === 404) {
                     resultIcon?.setAttribute('icon', 'solar:danger-triangle-linear');
                     resultTitle.textContent = '등록되지 않은 환자입니다.';
                     resultDesc.textContent = 'ID를 확인 후 추가를 진행해주세요.';
                     show(resultBox, true);
-                } else if (res.status === 403) {
-                    await Swal.fire('세션 만료', '다시 로그인 해주세요.', 'warning');
-                    location.href = 'sign-in.html';
                 } else {
                     resultIcon?.setAttribute('icon', 'solar:danger-triangle-linear');
                     resultTitle.textContent = '조회 실패';
@@ -210,11 +259,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 resultDesc.textContent = '잠시 후 다시 시도해주세요.';
                 show(resultBox, true);
             }
-        });
-
-        fillBtn?.addEventListener('click', () => {
-            idInput?.focus();
-            idInput?.select();
         });
 
         addBtn?.addEventListener('click', async () => {
@@ -232,25 +276,13 @@ window.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify({patientId})
                 });
                 if (res.ok) {
-                    await Swal.fire({
-                        icon: 'success',
-                        title: '추가 완료',
-                        text: `${patientId} 환자가 연결되었습니다.`,
-                        timer: 1400,
-                        showConfirmButton: false
-                    });
+                    await Swal.fire({icon: 'success', title: '추가 완료', text: `${patientId} 환자가 연결되었습니다.`, timer: 1400, showConfirmButton: false});
                     if (idInput) idInput.value = '';
                     validate();
                     fetchPatients();
-                } else if (res.status === 403) {
-                    await Swal.fire('세션 만료', '다시 로그인 해주세요.', 'warning');
-                    location.href = 'sign-in.html';
                 } else {
                     let msg = '환자 추가 실패';
-                    try {
-                        msg = (await res.json()).msg || msg;
-                    } catch {
-                    }
+                    try { msg = (await res.json()).msg || msg; } catch {}
                     Swal.fire('실패', msg, 'error');
                 }
             } catch {
@@ -269,32 +301,21 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     window.openPatientModal = function openPatientModal(patient) {
         currentPatient = patient;
-
-        // --- 새 모달 UI에 데이터 채우기 ---
-        // 헤더
         text('modal-patient-name-title', patient?.name ?? '환자 정보');
         text('modal-patient-id-subtitle', `ID: ${patient?.id ?? '정보 없음'}`);
-
-        // 기본 정보
         text('modal-patient-name', patient?.name ?? '미등록');
         text('modal-patient-email', patient?.email ?? '정보 없음');
         text('modal-patient-managers', (patient?.managerIds ?? []).join(', ') || '없음');
-
-        // 의료 정보 (읽기 모드)
         text('modal-patient-history', patient?.medicalHistory || '기록 없음');
         text('modal-patient-medications', (patient?.medications ?? []).join(', ') || '해당 없음');
         text('modal-patient-allergies', (patient?.allergies ?? []).join(', ') || '해당 없음');
 
-        // 의료 정보 (편집 모드용 입력 필드)
         const historyInput = qid('modal-patient-history-input');
         if (historyInput) historyInput.value = patient?.medicalHistory ?? '';
-
         const medicationsInput = qid('modal-patient-medications-input');
         if (medicationsInput) medicationsInput.value = (patient?.medications ?? []).join(', ');
-
         const allergiesInput = qid('modal-patient-allergies-input');
         if (allergiesInput) allergiesInput.value = (patient?.allergies ?? []).join(', ');
-        // --- 데이터 채우기 끝 ---
 
         setEditMode(false);
         qid('patient-modal')?.classList.remove('d-none');
@@ -304,10 +325,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (editBtn) {
             editBtn.disabled = !isManager;
             editBtn.textContent = isManager ? '수정하기' : '수정 권한 없음';
-            editBtn.classList.toggle('bg-secondary', !isManager);
-            editBtn.classList.toggle('text-secondary-emphasis', !isManager);
-            editBtn.classList.toggle('bg-light', isManager);
-            editBtn.classList.toggle('text-dark', isManager);
         }
     };
 
@@ -324,28 +341,20 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (on) qid('modal-patient-history-input')?.focus();
     }
 
-    // 안전 바인딩
     on('modal-close-btn', 'click', () => qid('patient-modal')?.classList.add('d-none'), {assign: true});
     on('modal-edit-btn', 'click', () => setEditMode(true));
     on('modal-cancel-btn', 'click', () => setEditMode(false));
     on('modal-save-btn', 'click', async () => {
         const newHistory = qid('modal-patient-history-input')?.value.trim() ?? '';
-        const newMedications = (qid('modal-patient-medications-input')?.value || '')
-            .split(',').map(s => s.trim()).filter(Boolean);
-        const newAllergies = (qid('modal-patient-allergies-input')?.value || '')
-            .split(',').map(s => s.trim()).filter(Boolean);
+        const newMedications = (qid('modal-patient-medications-input')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        const newAllergies = (qid('modal-patient-allergies-input')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
 
         try {
             const res = await fetch(API_BASE + '/patient/update', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
-                body: JSON.stringify({
-                    id: currentPatient?.id,
-                    medicalHistory: newHistory,
-                    medications: newMedications,
-                    allergies: newAllergies
-                })
+                body: JSON.stringify({id: currentPatient?.id, medicalHistory: newHistory, medications: newMedications, allergies: newAllergies})
             });
             if (res.ok) {
                 text('modal-patient-history', newHistory);
@@ -389,4 +398,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             alert('서버 오류로 연결 해제에 실패했습니다.');
         }
     });
+
+    // ---- 초기화 ----
+    await fetchPatients();
+    connectWebSocket();
 });
