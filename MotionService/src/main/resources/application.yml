@@ -17,6 +17,10 @@ server:
   port: 15000
 #  address: 0.0.0.0
 
+api:
+  user-service:
+    url: http://localhost:13000/api
+
 
 #server:
 #  port: 15000

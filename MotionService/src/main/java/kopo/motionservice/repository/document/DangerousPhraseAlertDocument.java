@@ -13,11 +13,14 @@ public class DangerousPhraseAlertDocument {
     @Id
     private String id;
     private String userId;
+    private String userName;
     private String phrase;
     private LocalDateTime detectedTime;
+    private boolean confirmed = false;
 
-    public DangerousPhraseAlertDocument(String userId, String phrase, LocalDateTime detectedTime) {
+    public DangerousPhraseAlertDocument(String userId, String userName, String phrase, LocalDateTime detectedTime) {
         this.userId = userId;
+        this.userName = userName;
         this.phrase = phrase;
         this.detectedTime = detectedTime;
     }

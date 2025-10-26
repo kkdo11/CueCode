@@ -1,6 +1,7 @@
 package kopo.motionservice.service.impl;
 
 import kopo.motionservice.dto.MatchResultDTO;
+import kopo.motionservice.handler.AlertWebSocketHandler;
 import kopo.motionservice.repository.DangerousPhraseAlertRepository;
 import kopo.motionservice.repository.document.DangerousPhraseAlertDocument;
 import kopo.motionservice.repository.document.RecordedMotionDocument;
@@ -32,6 +33,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private final IMotionService motionService;
     private final PhraseHistoryRepository phraseHistoryRepository; // Add repository for history
+    private final AlertWebSocketHandler alertWebSocketHandler;
     @Autowired
     private RedisUtil redisUtil;
     @Autowired
@@ -213,9 +215,13 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         // Check for dangerous phrases and save alert
         if (DANGEROUS_PHRASES.contains(best.phrase)) {
             log.warn("[MotionDetectorServiceImpl] Dangerous phrase detected for userId={}: {}", userId, best.phrase);
-            DangerousPhraseAlertDocument alert = new DangerousPhraseAlertDocument(userId, best.phrase, LocalDateTime.now());
+            // TODO: userName을 실제 사용자 이름으로 바꾸는 로직 필요 (현재는 userId를 임시로 사용)
+            DangerousPhraseAlertDocument alert = new DangerousPhraseAlertDocument(userId, userId, best.phrase, LocalDateTime.now());
             dangerousPhraseAlertRepository.save(alert);
             log.info("[MotionDetectorServiceImpl] Dangerous phrase alert saved to MongoDB for userId={}", userId);
+
+            // Broadcast the alert to connected clients
+            alertWebSocketHandler.broadcast(alert);
         }
 
         // Save all detected phrases to history

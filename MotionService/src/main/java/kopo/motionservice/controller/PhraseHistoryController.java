@@ -1,5 +1,6 @@
 package kopo.motionservice.controller;
 
+import kopo.motionservice.dto.LastPhraseDTO;
 import kopo.motionservice.repository.document.PhraseHistoryDocument;
 import kopo.motionservice.service.IPhraseHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -30,5 +32,12 @@ public class PhraseHistoryController {
         log.info("[PhraseHistoryController] Request to get phrase history for userId: {}", userId);
         List<PhraseHistoryDocument> history = phraseHistoryService.getPhraseHistoryForUser(userId);
         return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/last")
+    public ResponseEntity<LastPhraseDTO> getLastPhrase(@RequestParam("patientId") String patientId) {
+        log.info("[PhraseHistoryController] Request to get last phrase for patientId: {}", patientId);
+        LastPhraseDTO lastPhrase = phraseHistoryService.getLastPhraseForUser(patientId);
+        return ResponseEntity.ok(lastPhrase);
     }
 }

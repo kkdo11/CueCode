@@ -52,6 +52,7 @@ public class SecurityConfig {
                 ).permitAll()
                 // 👨‍👩‍👧‍👦 관리자(보호자)만 접근 허용 (ROLE_USER_MANAGER)
                 .pathMatchers(
+                        "/api/ws/alerts",            // 실시간 응급 알림 웹소켓
                         "/api/user/dashboard",
                         "/api/patient/list",
                         "/api/manager/addPatient",

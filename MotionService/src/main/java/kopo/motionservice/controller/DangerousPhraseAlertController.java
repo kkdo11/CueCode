@@ -6,9 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
@@ -30,5 +28,22 @@ public class DangerousPhraseAlertController {
         log.info("[DangerousPhraseAlertController] Request to get dangerous phrase alerts for userId: {}", userId);
         List<DangerousPhraseAlertDocument> alerts = dangerousPhraseAlertService.getDangerousPhraseAlertsForUser(userId);
         return ResponseEntity.ok(alerts);
+    }
+
+    @GetMapping("/latest")
+    public ResponseEntity<DangerousPhraseAlertDocument> getLatestAlert(Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String managerId = principal.getName();
+        return dangerousPhraseAlertService.getLatestAlertForManager(managerId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/confirm/{alertId}")
+    public ResponseEntity<Void> confirmAlert(@PathVariable String alertId) {
+        dangerousPhraseAlertService.confirmAlert(alertId);
+        return ResponseEntity.ok().build();
     }
 }
