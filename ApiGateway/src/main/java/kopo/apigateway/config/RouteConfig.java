@@ -98,6 +98,13 @@ public class RouteConfig {
                         .filters(f -> f.rewritePath("/api/motions/(?<segment>.*)", "/motions/${segment}"))
                         .uri(motionServiceUri))
 
+                // 💡 [추가] 클라이언트 요청 경로(/api/v1/recorded-motions/**)를 처리하는 라우팅
+                .route("recorded-motions-v1", r -> r
+                        .path("/api/v1/recorded-motions/**")
+                        // Motion Service 컨트롤러가 @RequestMapping("/api/v1/recorded-motions")이므로,
+                        // 게이트웨이는 경로 재작성 없이 그대로 전달해야 매칭됩니다.
+                        .uri(motionServiceUri))
+
                 // Patient-service 라우팅 추가
                 .route("patient-service", r -> r
                         .path("/patient/**")

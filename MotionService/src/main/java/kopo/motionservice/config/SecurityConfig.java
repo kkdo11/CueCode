@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.web.filter.ForwardedHeaderFilter; // 추가된 import
 
 @Configuration
 @EnableWebSecurity
@@ -69,6 +70,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
+                        .requestMatchers("/api/v1/recorded-motions/**").hasAnyAuthority("ROLE_USER") // ✅ 명시적 경로
                         .requestMatchers("/motions/**").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
                         .anyRequest().authenticated()
                 );
