@@ -62,7 +62,8 @@ public class SecurityConfig {
                 .pathMatchers(
                         "/api/patient/dashboard.html",
                         "/api/patient/detection-area/update",
-                        "/api/motions/upload"
+                        "/api/motions/upload",
+                        "/api/v1/recorded-motions/**"
                 ).hasAuthority("ROLE_USER")
 
                 // 🤝 환자 또는 관리자 모두 접근 허용 (ROLE_USER, ROLE_USER_MANAGER)

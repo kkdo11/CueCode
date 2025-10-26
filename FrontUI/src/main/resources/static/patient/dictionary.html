@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CueCode | 나의 동작 사전</title>
+    <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg" />
+    <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
+    <link rel="stylesheet" href="../css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="../css/patient/patient.css" />
+    <style>
+        /** {*/
+        /*    margin: 0;*/
+        /*    padding: 0;*/
+        /*    box-sizing: border-box;*/
+        /*}*/
+
+        /*body {*/
+        /*    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;*/
+        /*    background-color: #f5f5f5;*/
+        /*    padding: 20px;*/
+        /*}*/
+
+        /*.container {*/
+        /*    max-width: 1200px;*/
+        /*    margin: 0 auto;*/
+        /*    background: white;*/
+        /*    border-radius: 10px;*/
+        /*    box-shadow: 0 4px 20px rgba(0,0,0,0.1);*/
+        /*    padding: 30px;*/
+        /*}*/
+
+        /*.header {*/
+        /*    text-align: center;*/
+        /*    margin-bottom: 30px;*/
+        /*    border-bottom: 2px solid #ddd;*/
+        /*    padding-bottom: 20px;*/
+        /*}*/
+
+        /*.header h1 {*/
+        /*    color: #333;*/
+        /*    margin-bottom: 10px;*/
+        /*    font-weight: 700;*/
+        /*}*/
+
+        .user-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .user-input input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            min-width: 200px;
+            transition: border-color 0.2s;
+        }
+
+        .user-input input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-icon {
+            padding: 8px 12px;
+            background: #f8d7da;
+            color: #721c24;
+            margin-left: 10px;
+        }
+
+        .btn-icon:hover {
+            background: #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* --- Tab Styles --- */
+        .tab-container {
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef; /* 탭 전체 경계선 추가 */
+        }
+
+        .tab-buttons {
+            display: flex;
+            background-color: #f8f9fa; /* 탭 버튼 배경 밝게 */
+            border-bottom: 1px solid #e9ecef;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-button {
+            flex-grow: 1;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+            border: none; /* 기본 테두리 제거 */
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            text-align: center;
+            background: transparent;
+        }
+
+        .tab-button.active {
+            color: #007bff;
+            background-color: white;
+            border-bottom: 3px solid #007bff;
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.05); /* 활성 탭에 그림자 추가 */
+        }
+
+        .tab-button:hover:not(.active) {
+            background-color: #f1f3f5;
+            color: #343a40;
+        }
+
+        .tab-content {
+            padding: 20px;
+            background: white;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+        /* --- End Tab Styles --- */
+
+        .motion-items {
+            padding: 0;
+        }
+
+        .motion-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .motion-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+
+        .motion-details {
+            flex-grow: 1;
+        }
+
+        .phrase {
+            font-size: 18px;
+            font-weight: bold;
+            color: #343a40;
+            margin-bottom: 5px;
+        }
+
+        .description {
+            color: #6c757d;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        /* .empty-state img { 스타일 제거됨 } */
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        /* 시각적으로 숨기되 스크린리더에 남기기 위한 유틸 클래스 */
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+    </style>
+</head>
+<body>
+<!--Header start!-->
+<header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100 fixed-header">
+    <div class="container">
+        <div class="header-wrapper d-flex align-items-center justify-content-between">
+            <div class="logo">
+                <a href="/index.html" class="logo-white">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+                <a href="/index.html" class="logo-dark">
+                    <img src="../images/logos/logo-dark.svg" alt="logo" class="img-fluid">
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-4">
+
+                <div class="btn-group">
+                    <button
+                            class="btn btn-secondary toggle-menu round-45 p-2 d-flex align-items-center justify-content-center bg-white rounded-circle"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
+                        <iconify-icon icon="solar:hamburger-menu-line-duotone" class="menu-icon fs-8 text-dark"></iconify-icon>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-4">
+                        <div class="d-flex flex-column gap-6">
+                            <div class="hstack justify-content-between border-bottom pb-6">
+                                <p class="mb-0 fs-5 text-dark">Menu</p>
+                                <button type="button" class="btn-close opacity-75" aria-label="Close"></button>
+                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                <ul class="header-menu list-unstyled mb-0 d-flex flex-column gap-2">
+                                    <li class="header-item">
+                                        <a href="index.html" aria-current="true"
+                                           class="header-link active hstack gap-2 fs-7 fw-bold text-dark"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">홈</a>
+                                    </li>
+                                    <li class="header-item" id="patientMenuItem">
+                                        <a href="/patient/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="patientMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">환자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="managerMenuItem">
+                                        <a href="../manager/dashboard.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="managerMenuLink"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">관리자 대시보드</a>
+                                    </li>
+                                    <li class="header-item" id="myPageMenuItem">
+                                        <a href="../user/mypage.html" class="header-link hstack gap-2 fs-7 fw-bold text-dark" id="myPageMenuLinkAnchor"><img
+                                                src="../images/svgs/secondary-leaf.svg" alt="" width="20" height="20"
+                                                class="img-fluid animate-spin">마이 페이지</a>
+                                    </li>
+                                </ul>
+                                <div class="hstack gap-3" id="auth-btn-group">
+                                    <a href="sign-in.html"
+                                       class="btn btn-outline-light fs-6 bg-white px-3 py-2 text-dark w-50 hstack justify-content-center">로그인</a>
+                                    <a href="sign-up.html"
+                                       class="btn btn-dark text-white fs-6 bg-dark px-3 py-2 w-50 hstack justify-content-center">회원가입</a>
+                                </div>
+                            </div>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+<!--Header End!-->
+<div class="container my-5">
+
+    <div class="user-controls">
+        <!-- 사용자 ID 입력 필드는 UI를 유지하되, 서버 통신에는 사용하지 않음 -->
+        <div class="user-input">
+            <!-- 화면에서 숨김: 스크린리더는 읽을 수 있도록 .visually-hidden 클래스 사용 -->
+            <label for="userIdInput" class="visually-hidden">사용자 ID (표시용):</label>
+            <input type="text" id="userIdInput" class="visually-hidden" value="" placeholder="사용자 ID" readonly>
+            <!-- 📋 아이콘 대신 🔄 아이콘 사용 -->
+            <button class="btn btn-primary" onclick="loadUserMotions()">🔄 동작 새로고침</button>
+        </div>
+        <button class="btn btn-danger" onclick="deleteAllMotions()" id="deleteBtn" disabled>
+            🗑️ 모든 동작 삭제
+        </button>
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <div id="statsContainer" style="display: none;">
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">총 동작 개수</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="typeCount">0</div>
+                <div class="stat-label">동작 종류 수</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingContainer" class="loading" style="display: none;">
+        <p>🔄 데이터를 불러오는 중...</p>
+    </div>
+
+    <div class="tab-container" id="motionTabContainer" style="display: none;">
+        <div class="tab-buttons">
+            <!-- data-type 속성으로 타입 키를 명시하여 텍스트 파싱으로 인한 'undefined' 문제 해결 -->
+            <button class="tab-button active" data-type="hands" onclick="openTab(event, 'Hands')">👋 손</button>
+            <button class="tab-button" data-type="eyes" onclick="openTab(event, 'Eyes')">👀 눈</button>
+            <button class="tab-button" data-type="face" onclick="openTab(event, 'Face')">😊 얼굴</button>
+        </div>
+
+        <div class="tab-content">
+            <div id="Hands" class="tab-pane active"></div>
+            <div id="Eyes" class="tab-pane"></div>
+            <div id="Face" class="tab-pane"></div>
+        </div>
+    </div>
+
+    <div id="motionContainer" class="motion-container">
+        <!-- 초기 Empty State 또는 오류 메시지 -->
+        <div class="empty-state">
+            <h3>사용자의 모션을 조회합니다.</h3>
+        </div>
+    </div>
+
+</div>
+
+<!--Footer Start!-->
+<footer class="footer bg-dark py-5 py-lg-11 py-xl-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-5 mb-8 mb-xl-0">
+                <div class="d-flex flex-column gap-8 pe-xl-5">
+                    <h4 class="mb-0 text-white">이 프로젝트는 <br> 개방형 클라우드 플랫폼(K-PaaS) 활용
+                        <br>공모전 출품작입니다</h4>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4 mb-8 mb-xl-0">
+                <div class="d-flex flex-column gap-2">
+                    <a href="https://contest.k-paas.org/" target="_blank" class="link-hover hstack gap-3 text-white fs-5">
+                        <iconify-icon icon="lucide:arrow-up-right" class="fs-7 text-primary"></iconify-icon>
+                        https://contest.k-paas.org/
+                    </a>
+                    <a href="https://buly.kr/Awg81rV" target="_blank"
+                       class="link-hover hstack gap-3 text-white fs-5">
+                        <iconify-icon icon="lucide:map-pin" class="fs-7 text-primary"></iconify-icon>
+                        우장산 산신령들
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 col-xl-3 mb-8 mb-xl-0">
+                <p class="mb-0 text-white text-opacity-70 text-md-end">© CueCode copyright 2025</p>
+            </div>
+        </div>
+    </div>
+    <p class="mb-0 text-white text-opacity-70 text-md-center mt-10">Distributed by <a class="text-white"  target="_blank">Team Ujangsan Spirit</a></p>
+</footer>
+<!--Footer End!-->
+
+<div class="get-template hstack gap-2">
+    <button class="btn bg-primary p-2 round-52 rounded-circle hstack justify-content-center flex-shrink-0"
+            id="scrollToTopBtn">
+        <iconify-icon icon="lucide:arrow-up" class="fs-7 text-dark"></iconify-icon>
+    </button>
+</div>
+
+
+
+<script>
+    // jwt_decode 라이브러리가 로드되었다고 가정
+
+    // API Gateway 및 인증 유틸 추가 (MSA 환경 대응)
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // 액세스 토큰 획득: cookie -> localStorage -> sessionStorage 순으로 폴백
+    function getAccessToken() {
+        try {
+            const cookieToken = getCookie('jwtAccessToken');
+            if (cookieToken) return cookieToken;
+        } catch (e) { /* ignore */ }
+        try {
+            const ls = localStorage.getItem('jwtAccessToken');
+            if (ls) return ls;
+        } catch (e) { /* ignore */ }
+        try {
+            const ss = sessionStorage.getItem('jwtAccessToken');
+            if (ss) return ss;
+        } catch (e) { /* ignore */ }
+
+        return null;
+    }
+
+    // 인증된 사용자 ID를 JWT에서 안전하게 추출합니다.
+    function getAuthenticatedUserId() {
+        const token = getAccessToken();
+        if (!token) return null;
+        try {
+            const decoded = jwt_decode(token);
+            // 흔히 사용하는 클레임 우선순위: sub, userId, preferred_username, username, name, uid
+            return decoded && (decoded.sub || decoded.userId || decoded.preferred_username || decoded.username || decoded.name || decoded.uid) || null;
+        } catch (e) {
+            console.debug('[Auth] Failed to decode token for userId extraction', e);
+            return null;
+        }
+    }
+
+    function logDecodedToken(token, source) {
+        try {
+            const decoded = jwt_decode(token);
+            console.group(`🔔 JWT 디코딩 (${source})`);
+            console.log('payload:', decoded);
+            console.groupEnd();
+            return decoded;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function isTokenValid(token) {
+        if (!token) return false;
+        try {
+            const decoded = jwt_decode(token);
+            if (!decoded) return false;
+            if (decoded.exp && (Date.now() / 1000) > decoded.exp) return false;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const API_GATEWAY_URL = typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:13000';
+
+    const API_ENDPOINTS = {
+        RECORDED_MOTIONS_BASE: '/api/v1/recorded-motions',
+    };
+
+    class RecordedMotionService {
+        constructor() {
+            this.apiBase = API_GATEWAY_URL;
+            this.currentUserId = null;
+        }
+
+        getAuthHeaders() {
+            const token = getAccessToken();
+            const headers = { 'Content-Type': 'application/json' };
+
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+                console.debug(`[Auth-Header] SET: Authorization: Bearer ${token.substring(0, 20)}...`);
+            } else {
+                console.debug('[Auth-Header] OMITTED: No jwtAccessToken found to set Bearer.');
+            }
+            return headers;
+        }
+
+        async getRecordedMotions() {
+            // userId를 URL에 포함하지 않고 인증된 사용자 정보에 의존
+            const url = `${this.apiBase}${API_ENDPOINTS.RECORDED_MOTIONS_BASE}`;
+            const resp = await fetch(url, {
+                method: 'GET',
+                headers: this.getAuthHeaders(),
+                credentials: 'include'
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                const err = new Error(`${resp.status} ${resp.statusText}: ${text}`);
+                err.status = resp.status;
+                throw err;
+            }
+            return await resp.json();
+        }
+
+        async deleteRecordedMotionById(motionId) {
+            // 개별 모션 삭제: DELETE /api/v1/recorded-motions/{motionId}
+            // 백엔드 컨트롤러에 이 경로가 필요하며, 인증된 사용자 소유인지 확인하는 로직이 필요합니다.
+            const url = `${this.apiBase}${API_ENDPOINTS.RECORDED_MOTIONS_BASE}/${encodeURIComponent(motionId)}`;
+            console.debug('[API-Call] DELETE Single Motion URL:', url);
+
+            const resp = await fetch(url, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders(),
+                credentials: 'include'
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                const err = new Error(`${resp.status} ${resp.statusText}: ${text}`);
+                err.status = resp.status;
+                throw err;
+            }
+
+            return await resp.text();
+        }
+
+        async deleteRecordedMotions() {
+            // 모든 모션 삭제 (DELETE /api/v1/recorded-motions)
+            const url = `${this.apiBase}${API_ENDPOINTS.RECORDED_MOTIONS_BASE}`;
+            const resp = await fetch(url, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders(),
+                credentials: 'include'
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                const err = new Error(`${resp.status} ${resp.statusText}: ${text}`);
+                err.status = resp.status;
+                throw err;
+            }
+
+            return await resp.text();
+        }
+    }
+
+    const motionService = new RecordedMotionService();
+
+    function showMessage(message, type = 'info') {
+        const container = document.getElementById('messageContainer');
+        const className = type === 'error' ? 'error-message' : 'success-message';
+        if (container) container.innerHTML = `<div class="${className}">${message}</div>`;
+        setTimeout(() => { if (container) container.innerHTML = ''; }, 5000);
+    }
+
+    function showLoading(show) { const el = document.getElementById('loadingContainer'); if (el) el.style.display = show ? 'block' : 'none'; }
+    function showTabContainer(show) { const el = document.getElementById('motionTabContainer'); if (el) el.style.display = show ? 'block' : 'none'; }
+
+
+    function updateStats(motions) {
+        const statsContainer = document.getElementById('statsContainer');
+        const totalCount = document.getElementById('totalCount');
+        const typeCount = document.getElementById('typeCount');
+        if (!statsContainer || !totalCount || !typeCount) return;
+
+        if (motions && motions.length > 0) {
+            const motionTypes = new Set(motions.map(m => m.motionType));
+            totalCount.textContent = motions.length;
+            typeCount.textContent = motionTypes.size;
+            statsContainer.style.display = 'block';
+        } else {
+            statsContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * 모션 데이터를 탭 영역에 맞게 렌더링하고, 첫 번째 탭을 활성화합니다.
+     */
+    function renderMotionList(motions) {
+        const mainContainer = document.getElementById('motionContainer');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const motionTypes = ['hands', 'eyes', 'face']; // 표시할 순서와 탭 이름
+
+        if (!mainContainer) return;
+
+        if (!motions || motions.length === 0) {
+            mainContainer.innerHTML = `<div class="empty-state"><h3>📭 녹화된 모션이 없습니다</h3><p>현재 사용자에게 등록된 수어 모션이 없습니다.</p></div>`;
+            if (deleteBtn) deleteBtn.disabled = true;
+            showTabContainer(false);
+            return;
+        }
+
+        if (deleteBtn) deleteBtn.disabled = false;
+        showTabContainer(true);
+        mainContainer.innerHTML = ''; // 기존 empty-state 제거
+
+        const motionsByType = motions.reduce((acc, motion) => {
+            const type = motion.motionType.toLowerCase();
+            if (motionTypes.includes(type)) { // 정의된 탭 타입만 처리
+                if (!acc[type]) acc[type] = [];
+                acc[type].push(motion);
+            }
+            return acc;
+        }, {});
+
+        const motionTypeEmojis = { 'hands': '👋','face': '😊','eyes': '👀' };
+
+        // 탭 버튼의 개수 업데이트
+        const tabButtons = document.querySelectorAll('.tab-buttons .tab-button');
+        // 한글 라벨을 위한 매핑
+        const typeLabels = { 'hands': '손', 'eyes': '눈', 'face': '얼굴' };
+        tabButtons.forEach(button => {
+            // 우선 data-type 속성을 사용하고, 없으면 기존 텍스트 파싱을 폴백로 사용
+            const typeKey = button.dataset.type || (button.textContent.toLowerCase().trim().split(/\s+/)[1] || 'hands');
+            const count = (motionsByType[typeKey] || []).length;
+            const displayLabel = typeLabels[typeKey] || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1));
+
+            // 전체 텍스트를 이모지, 지역화된 라벨, (개수) 형태로 재구성
+            button.innerHTML = `${motionTypeEmojis[typeKey] || ''} ${displayLabel} (${count}개)`;
+        });
+
+        motionTypes.forEach(type => {
+            const paneId = type.charAt(0).toUpperCase() + type.slice(1);
+            const paneEl = document.getElementById(paneId);
+            const typeMotions = motionsByType[type] || [];
+
+            if (paneEl) {
+                if (typeMotions.length === 0) {
+                    paneEl.innerHTML = `<div class="empty-state" style="padding: 20px;">
+                                            <p>${motionTypeEmojis[type]} ${paneId} 모션은 현재 등록된 항목이 없습니다.</p>
+                                        </div>`;
+                } else {
+                    paneEl.innerHTML = typeMotions.map(motion => `
+                        <div class="motion-item">
+                            <div class="motion-details">
+                                <div class="phrase">📝 ${motion.phrase}</div>
+                                <div class="description">💬 ${motion.description || '설명이 없습니다.'}</div>
+                            </div>
+                            ${motion.id ? `
+                            <button class="btn btn-icon"
+                                onclick="deleteSingleMotion('${motion.id}', '${motion.phrase}')">
+                                🗑️ 삭제
+                            </button>
+                            ` : `
+                            <button class="btn btn-icon" disabled title="삭제 불가: id 없음">
+                                🗑️ 삭제
+                            </button>
+                            `}
+                        </div>
+                    `).join('');
+                }
+            }
+        });
+
+        // 로드 후 Hands 탭이 자동으로 활성화되도록 설정
+        const defaultTabButton = document.querySelector('.tab-button');
+        if (defaultTabButton) {
+            defaultTabButton.click();
+        }
+    }
+
+    /**
+     * 탭 전환 로직
+     */
+    function openTab(evt, tabName) {
+        // 모든 탭 내용을 숨김
+        const tabpanes = document.getElementsByClassName("tab-pane");
+        for (let i = 0; i < tabpanes.length; i++) {
+            tabpanes[i].classList.remove('active');
+        }
+
+        // 모든 탭 버튼의 active 클래스를 제거
+        const tablinks = document.getElementsByClassName("tab-button");
+        for (let i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove('active');
+        }
+
+        // 현재 선택된 탭 내용을 표시하고 버튼에 active 클래스를 추가
+        document.getElementById(tabName).classList.add('active');
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add('active');
+        }
+    }
+
+    /**
+     * 단일 모션 삭제
+     */
+    async function deleteSingleMotion(motionId, motionPhrase) {
+        if (!confirm(`⚠️ "${motionPhrase}" 모션을 정말로 삭제하시겠습니까?`)) return;
+
+        showLoading(true);
+        try {
+            // 개별 삭제 API 호출 (백엔드에 DELETE /api/v1/recorded-motions/{motionId} 구현 필요)
+            const result = await motionService.deleteRecordedMotionById(motionId);
+            showMessage(`✅ 모션 "${motionPhrase}"가 성공적으로 삭제되었습니다.`, 'success');
+            setTimeout(() => { loadUserMotions(); }, 500); // 0.5초 후 목록 새로고침
+        } catch (error) {
+            console.error('Error deleting single motion:', error);
+            const status = error && error.status ? error.status : null;
+            if (status === 401) {
+                showMessage('❌ **401 Unauthorized** — 인증 실패.', 'error');
+            } else if (status === 403) {
+                showMessage('❌ **403 Forbidden** — 권한이 없거나, 본인 소유의 모션이 아닙니다.', 'error');
+            } else if (status === 404) {
+                showMessage('❌ **404 Not Found** — 삭제하려는 모션을 찾을 수 없습니다.', 'error');
+            } else {
+                showMessage(`❌ 모션 삭제 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+            }
+        } finally { showLoading(false); }
+    }
+
+
+    async function loadUserMotions() {
+        // JWT가 httpOnly 쿠키로 저장되어 JS에서 읽히지 않는 경우도 있으므로,
+        // 사용자 ID가 JS에서 추출되지 않더라도 서버에 요청을 보내 인증을 시도합니다.
+        const userIdInput = document.getElementById('userIdInput');
+        const extractedUserId = getAuthenticatedUserId();
+        // 화면/로깅에 사용할 표시명: JS에서 읽을 수 있는 경우 그 값을, 아니면 generic label 사용
+        const displayUser = extractedUserId || '사용자';
+
+        const token = getAccessToken();
+        if (token && isTokenValid(token)) {
+            // 디버그 로그: 토큰은 읽을 수 있음
+            logDecodedToken(token, 'local');
+        } else if (token && !isTokenValid(token)) {
+            console.warn('[Auth] 토큰이 존재하지만 만료되었거나 유효하지 않습니다. 서버가 쿠키 기반 인증을 사용하는지 확인하세요.');
+        } else {
+            // 토큰이 JS에서 읽히지 않아도, fetch에 credentials: 'include'가 설정되어 있다면 서버가 쿠키에서 인증을 처리할 수 있습니다.
+            console.debug('[Auth] 클라이언트에서 읽을 수 있는 토큰이 없습니다. 쿠키(httpOnly) 기반 인증일 수 있으므로 서버에 요청을 진행합니다.');
+        }
+
+        showLoading(true);
+        // 화면 표시용 ID(실제 삭제 등 서버 호출은 서버의 인증을 따름)
+        motionService.currentUserId = displayUser;
+
+        try {
+            const motions = await motionService.getRecordedMotions();
+            renderMotionList(motions);
+            updateStats(motions);
+            if (motions && motions.length > 0) showMessage(`✅ ${displayUser}의 모션 ${motions.length}개를 불러왔습니다.`, 'success');
+            else showMessage(`ℹ️ ${displayUser}의 녹화된 모션이 없습니다.`, 'info');
+        } catch (error) {
+            console.error('Error loading motions:', error);
+            const status = error && error.status ? error.status : null;
+
+            if (status === 401) {
+                showMessage('❌ 401 Unauthorized — 인증 실패. 로그인 상태를 확인하세요.', 'error');
+            } else if (status === 403) {
+                showMessage('❌ 403 Forbidden — 권한이 없습니다.', 'error');
+            } else {
+                showMessage(`❌ 모션 데이터를 불러오는 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+            }
+            const container = document.getElementById('motionContainer'); if (container) container.innerHTML = '';
+            showTabContainer(false);
+            updateStats([]);
+        } finally { showLoading(false); }
+    }
+
+    async function deleteAllMotions() {
+        const userId = motionService.currentUserId;
+        if (!userId) { showMessage('먼저 모션을 조회해주세요.', 'error'); return; }
+
+        // confirm 대신 모달 UI를 사용하는 것이 좋으나, 여기서는 confirm 유지
+        if (!confirm(`⚠️ 정말로 "${userId}" 사용자의 모든 녹화된 모션을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+        showLoading(true);
+        try {
+            const result = await motionService.deleteRecordedMotions();
+            showMessage(`✅ ${result}`, 'success');
+            setTimeout(() => { loadUserMotions(); }, 1000);
+        } catch (error) {
+            console.error('Error deleting motions:', error);
+            const status = error && error.status ? error.status : null;
+
+            if (status === 401) {
+                showMessage('❌ **401 Unauthorized** — 인증 실패.', 'error');
+            } else if (status === 403) {
+                showMessage('❌ **403 Forbidden** — 권한이 없습니다.', 'error');
+            } else {
+                showMessage(`❌ 모션 데이터 삭제 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+            }
+        } finally { showLoading(false); }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 페이지 로드 시 첫 번째 탭을 활성화합니다.
+        const defaultTabButton = document.querySelector('.tab-button');
+        if (defaultTabButton) defaultTabButton.click();
+
+        // 페이지 로드 시 토큰에서 인증된 사용자 ID를 추출하여 input(시각적으로 숨김)에 채워넣고, 실제 조회는 해당 ID를 사용해서 수행합니다.
+        const authUserId = getAuthenticatedUserId();
+        const userIdInput = document.getElementById('userIdInput');
+        if (userIdInput && authUserId) userIdInput.value = authUserId;
+        loadUserMotions();
+    });
+
+    const userIdInputEl = document.getElementById('userIdInput');
+    if (userIdInputEl) {
+        userIdInputEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') loadUserMotions(); });
+    }
+
+    // loadUserMotions: 사용자 ID는 우선적으로 JWT에서 추출된 인증된 ID를 사용하고, 없으면 숨겨진 input의 값을 폴백으로 사용합니다.
+    async function loadUserMotions() {
+        // JWT가 httpOnly 쿠키로 저장되어 JS에서 읽히지 않는 경우도 있으므로,
+        // 사용자 ID가 JS에서 추출되지 않더라도 서버에 요청을 보내 인증을 시도합니다.
+        const userIdInput = document.getElementById('userIdInput');
+        const extractedUserId = getAuthenticatedUserId();
+        // 화면/로깅에 사용할 표시명: JS에서 읽을 수 있는 경우 그 값을, 아니면 generic label 사용
+        const displayUser = extractedUserId || '인증된 사용자';
+
+        const token = getAccessToken();
+        if (token && isTokenValid(token)) {
+            // 디버그 로그: 토큰은 읽을 수 있음
+            logDecodedToken(token, 'local');
+        } else if (token && !isTokenValid(token)) {
+            console.warn('[Auth] 토큰이 존재하지만 만료되었거나 유효하지 않습니다. 서버가 쿠키 기반 인증을 사용하는지 확인하세요.');
+        } else {
+            // 토큰이 JS에서 읽히지 않아도, fetch에 credentials: 'include'가 설정되어 있다면 서버가 쿠키에서 인증을 처리할 수 있습니다.
+            console.debug('[Auth] 클라이언트에서 읽을 수 있는 토큰이 없습니다. 쿠키(httpOnly) 기반 인증일 수 있으므로 서버에 요청을 진행합니다.');
+        }
+
+        showLoading(true);
+        // 화면 표시용 ID(실제 삭제 등 서버 호출은 서버의 인증을 따름)
+        motionService.currentUserId = displayUser;
+
+        try {
+            const motions = await motionService.getRecordedMotions();
+            renderMotionList(motions);
+            updateStats(motions);
+            if (motions && motions.length > 0) showMessage(`✅ ${displayUser}의 모션 ${motions.length}개를 불러왔습니다.`, 'success');
+            else showMessage(`ℹ️ ${displayUser}의 녹화된 모션이 없습니다.`, 'info');
+        } catch (error) {
+            console.error('Error loading motions:', error);
+            const status = error && error.status ? error.status : null;
+
+            if (status === 401) {
+                showMessage('❌ 401 Unauthorized — 인증 실패. 로그인 상태를 확인하세요.', 'error');
+            } else if (status === 403) {
+                showMessage('❌ 403 Forbidden — 권한이 없습니다.', 'error');
+            } else {
+                showMessage(`❌ 모션 데이터를 불러오는 중 오류가 발생했습니다: ${error.message || error}`, 'error');
+            }
+            const container = document.getElementById('motionContainer'); if (container) container.innerHTML = '';
+            showTabContainer(false);
+            updateStats([]);
+        } finally { showLoading(false); }
+    }
+</script>
+<script src="../js/patient/patient.js"></script>
+<script src="../libs/jquery/dist/jquery.min.js"></script>
+<script src="../libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
+<script src="../libs/aos-master/dist/aos.js"></script>
+<script src="../js/custom.js"></script>
+<script src="../js/user/index.js"></script>
+<script src="../js/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+
+</html>
