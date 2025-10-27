@@ -781,3 +781,23 @@ body {
     justify-content: center;
     align-items: center;
 }
+
+/* Dangerous phrase alert row style */
+.patient-table tbody tr.alert-red-row {
+    background-color: #ffebeb !important; /* Light red background */
+    border-left: 5px solid #ff0000 !important; /* Red border on the left */
+}
+
+.patient-table tbody tr.alert-red-row:hover {
+    background-color: #ffdddd !important; /* Slightly darker red on hover */
+}
+
+/* Ensure table cells inside an alert-red-row are forced to red (higher specificity) */
+.patient-table tbody tr.alert-red-row td {
+    background-color: #ffebeb !important; /* Light red background */
+    color: #b20000 !important; /* Dark red text */
+}
+
+.patient-table tbody tr.alert-red-row td:hover {
+    background-color: #ffdddd !important;
+}

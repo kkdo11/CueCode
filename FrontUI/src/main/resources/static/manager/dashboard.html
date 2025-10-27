@@ -14,6 +14,11 @@
 </head>
 
 <body>
+    <div id="dangerousPhraseAlert" style="position: fixed; top: 10px; right: 10px; background-color: #ffcccc; border: 1px solid #ff0000; padding: 10px; border-radius: 5px; z-index: 1000; display: none;">
+        <strong>위험 알림!</strong><br>
+        환자: <span id="alertPatientName"></span> (<span id="alertPatientId"></span>)<br>
+        위험 문구 감지됨!
+    </div>
 <!--Header start!-->
 <header class="header border-4 border-primary border-top position-fixed start-0 top-0 w-100 fixed-header">
     <div class="container">
@@ -319,8 +324,90 @@
 <script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
 <script src="../libs/aos-master/dist/aos.js"></script>
 <script src="../js/custom.js"></script>
-<script src="../js/manager/manager.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+    <script src="../js/manager/manager.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
-</body>
-</html>
+    <script>
+        // Global function to process external dangerous phrase detection data
+        // This function should be called with an array of alert objects,
+        // like the JSON snippet provided by the user.
+        window.processDetectedAlerts = function(alertsData) {
+            const alertDiv = document.getElementById('dangerousPhraseAlert');
+            const alertPatientNameSpan = document.getElementById('alertPatientName');
+            const alertPatientIdSpan = document.getElementById('alertPatientId');
+
+            // Determine active dangerous alerts (unconfirmed and matching phrases)
+            const dangerAlerts = Array.isArray(alertsData) ? alertsData.filter(a => {
+                if (a == null || a.confirmed) return false;
+                const p = String(a.phrase ?? '').trim();
+                return p.includes('도와주세요') || p.includes('아파요');
+            }) : [];
+
+            // Show the top-right alert using the most recent danger alert (if any)
+            const activeAlert = dangerAlerts.length ? dangerAlerts[dangerAlerts.length - 1] : null;
+            if (activeAlert) {
+                alertPatientNameSpan.textContent = activeAlert.userName || '(이름 없음)';
+                alertPatientIdSpan.textContent = activeAlert.userId || '(ID 없음)';
+                alertDiv.style.display = 'block';
+
+                // Auto-hide after 10s
+                setTimeout(() => { alertDiv.style.display = 'none'; }, 10000);
+            } else {
+                alertDiv.style.display = 'none';
+            }
+
+            // Highlight patient rows in the table by data-patient-id
+            // Collect IDs from dangerAlerts
+            console.log('[DEBUG] processDetectedAlerts called with alerts:', alertsData);
+            const dangerIds = dangerAlerts.map(a => String(a.userId).trim());
+            console.log('[DEBUG] Danger IDs (unconfirmed):', dangerIds);
+            const rows = document.querySelectorAll('#patient-list-tbody tr');
+            console.log('[DEBUG] Found', rows.length, 'patient rows in table');
+            rows.forEach(row => {
+                const dataPid = (row.getAttribute('data-patient-id') || '').trim();
+                const tdId = (row.querySelector('td:nth-child(1)')?.textContent || '').trim();
+                const tdName = (row.querySelector('td:nth-child(2)')?.textContent || '').trim();
+
+                // Decide match by any reasonable heuristic:
+                // - exact data-patient-id match
+                // - first cell (id) includes alert id
+                // - alert id includes first cell
+                // - second cell (name) includes alert.userName
+                let matched = false;
+                let matchedBy = '';
+
+                for (const aid of dangerIds) {
+                    if (!aid) continue;
+                    if (dataPid && dataPid === aid) { matched = true; matchedBy = 'data-patient-id exact'; break; }
+                    if (tdId && tdId === aid) { matched = true; matchedBy = 'td id exact'; break; }
+                    if (tdId && aid.includes(tdId)) { matched = true; matchedBy = 'aid includes tdId'; break; }
+                    if (aid && tdId && tdId.includes(aid)) { matched = true; matchedBy = 'tdId includes aid'; break; }
+                    // match by name if available
+                    const correspondingAlert = dangerAlerts.find(a => String(a.userId).trim() === aid);
+                    const alertName = correspondingAlert ? String(correspondingAlert.userName || '').trim() : '';
+                    if (alertName && tdName && tdName.includes(alertName)) { matched = true; matchedBy = 'name includes'; break; }
+                }
+
+                console.log(`[DEBUG] row pidAttr=${dataPid} tdId=${tdId} tdName=${tdName} => matched=${matched} (${matchedBy})`);
+                if (matched) {
+                    row.classList.add('alert-red-row');
+                    row.querySelectorAll('td').forEach(td => {
+                        td.style.backgroundColor = '#ffebeb';
+                        td.style.color = '#b20000';
+                    });
+                    console.log('[DEBUG] Applied alert-red-row styling to row', dataPid || tdId);
+                } else {
+                    row.classList.remove('alert-red-row');
+                    row.querySelectorAll('td').forEach(td => { td.style.backgroundColor = ''; td.style.color = ''; });
+                }
+            });
+         };
+
+         // Example of how to use window.processDetectedAlerts:
+         // You would call this function whenever your frontend receives
+         // new dangerous phrase detection data, for example, from a WebSocket,
+         // an API call, or other real-time update mechanisms.
+
+     </script>
+ </body>
+ </html>

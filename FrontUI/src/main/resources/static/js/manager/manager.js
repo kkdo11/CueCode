@@ -71,6 +71,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                 if (!p?.id) return;
                 managedPatientIds.add(p.id);
                 const tr = document.createElement('tr');
+                // Set data attribute so other scripts can target this row by patient id
+                tr.setAttribute('data-patient-id', p.id);
                 tr.innerHTML = `
                     <td class="whitespace-nowrap">${p.id}</td>
                     <td class="whitespace-nowrap">${p.name ?? ''}</td>
@@ -103,9 +105,37 @@ window.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(`${API_BASE}/motions/history/last?patientId=${patientId}`, {credentials: 'include'});
             if (response.ok) {
                 const data = await response.json();
-                statusCell.textContent = data.phrase || '기록 없음';
+                // Normalize phrase: ensure string, trim whitespace
+                const phraseRaw = typeof data.phrase === 'string' ? data.phrase : (data.phrase ?? '기록 없음');
+                const phrase = phraseRaw.trim();
+                statusCell.textContent = phrase;
+                console.log(`[DEBUG] Patient ${patientId}: Fetched phrase: "${phrase}"`);
+
+                // Use includes to be robust against extra context or punctuation
+                const isDanger = (phrase.includes('도와주세요') || phrase.includes('아파요'));
+                if (isDanger) {
+                    tr.classList.add('alert-red-row');
+                    // also ensure tr-level inline styles in case td-level styles are overridden
+                    try { tr.style.backgroundColor = '#ffebeb'; tr.style.color = '#b20000'; } catch(e) {}
+                    // also set td backgrounds directly to avoid td-level overrides
+                    tr.querySelectorAll('td').forEach(td => {
+                        td.style.backgroundColor = '#ffebeb';
+                        td.style.color = '#b20000';
+                    });
+                    console.log(`[DEBUG] Patient ${patientId}: Marked as DANGER (phrase matches).`);
+                } else {
+                    tr.classList.remove('alert-red-row'); // Ensure it's removed if phrase changes
+                    try { tr.style.backgroundColor = ''; tr.style.color = ''; } catch(e) {}
+                    tr.querySelectorAll('td').forEach(td => {
+                        td.style.backgroundColor = '';
+                        td.style.color = '';
+                    });
+                    console.log(`[DEBUG] Patient ${patientId}: Not dangerous. Removed 'alert-red-row' class if present.`);
+                }
             } else {
                 statusCell.textContent = '정보 없음';
+                tr.classList.remove('alert-red-row'); // Ensure it's removed on error
+                console.log(`[DEBUG] Patient ${patientId}: Failed to fetch status or response not OK. Removed 'alert-red-row' class.`);
             }
         } catch (error) {
             console.error(`Error fetching status for patient ${patientId}:`, error);
@@ -136,11 +166,23 @@ window.addEventListener('DOMContentLoaded', async () => {
 
                     // 내가 관리하는 환자의 알림인지 확인
                     if (isManaged) {
-                        console.log("[WebSocket] Alert is for a managed patient. Showing modal.");
-                        document.getElementById('alert-patient-id').textContent = alert.userId;
-                        document.getElementById('alert-patient-name').textContent = alert.userName || '(이름 정보 없음)';
-                        currentAlertId = alert.id; // alert.id가 alertId라고 가정
-                        alertModal.show();
+                        console.log("[WebSocket] Alert is for a managed patient. Processing with window.processDetectedAlerts.");
+                        // Call the global function defined in dashboard.html
+                        // Pass the alert object as an array, as processDetectedAlerts expects an array
+                        // Only trigger for specific dangerous phrases
+                        // Use includes() with normalization to be robust to extra whitespace/punctuation
+                        const phraseNormalized = String(alert.phrase ?? '').trim();
+                        if (phraseNormalized.includes('도와주세요') || phraseNormalized.includes('아파요')) {
+                            console.log("[WebSocket] Dangerous phrase detected for managed patient:", phraseNormalized);
+                            window.processDetectedAlerts([alert]);
+                        } else {
+                            console.log("[WebSocket] Alert is for a managed patient but phrase not considered dangerous:", phraseNormalized);
+                        }
+                        // Keep the modal logic if it's for a different type of alert or for future use
+                        // document.getElementById('alert-patient-id').textContent = alert.userId;
+                        // document.getElementById('alert-patient-name').textContent = alert.userName || '(이름 정보 없음)';
+                        // currentAlertId = alert.id; // alert.id가 alertId라고 가정
+                        // alertModal.show(); // Do not show the modal for the top-right alert
                     } else {
                         console.log("[WebSocket] Alert is for a patient not managed by the current user. Ignoring.");
                     }
