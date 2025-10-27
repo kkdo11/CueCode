@@ -532,7 +532,7 @@
 
     const SIGN_IN_PAGE_URL = '/user/sign-in.html';
     // config.js가 로드되지 않았을 경우를 대비하여 전역 API_BASE 변수 대신 try-catch로 대체
-    const API_GATEWAY_URL = typeof API_BASE !== 'undefined' ? API_BASE : "http://localhost:13000";
+    const API_GATEWAY_URL = window.API_BASE;
     const RECORD_SECONDS = 3;
     const COUNTDOWN_SECONDS = 3;
 

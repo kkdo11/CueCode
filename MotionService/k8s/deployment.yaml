@@ -35,6 +35,7 @@ spec:
             name: motion-db-secret
         ports:
         - containerPort: 15000
+        - containerPort: 15001 # 관리 포트 추가
         resources:
           requests:
             cpu: "500m"

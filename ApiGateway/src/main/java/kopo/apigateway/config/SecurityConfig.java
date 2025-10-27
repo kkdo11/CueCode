@@ -61,7 +61,7 @@ public class SecurityConfig {
 
                 // 🧑‍⚕️ 환자만 접근 허용 (ROLE_USER)
                 .pathMatchers(
-                        "/api/patient/dashboard.html",
+                        "/api/ws/motion/**",
                         "/api/patient/detection-area/update",
                         "/api/motions/upload",
                         "/api/v1/recorded-motions/**"
@@ -69,19 +69,11 @@ public class SecurityConfig {
 
                 // 🤝 환자 또는 관리자 모두 접근 허용 (ROLE_USER, ROLE_USER_MANAGER)
                 .pathMatchers(
-                        "/api/user/info",
-                        "/api/user/verify-password",
-                        "/api/user/update-name",
-                        "/api/user/update-email",
-                        "/api/user/detection-area",
-                        "/api/user/update-detection-area",
+                        "/api/user/**",
                         "/api/users/contact",
-                        "/api/motions/**",
-                        "/api/user/update-password"
+                        "/api/motions/**"
                 ).hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
 
-                // ⚠️ '/api/user/' 하위 경로 중 위에 명시되지 않은 나머지 경로는 환자만 접근
-                .pathMatchers("/api/user/**").hasAuthority("ROLE_USER")
 
                 // 🚫 명시적으로 허용/권한 부여되지 않은 모든 요청은 차단 (denyAll)
                 .anyExchange().denyAll()

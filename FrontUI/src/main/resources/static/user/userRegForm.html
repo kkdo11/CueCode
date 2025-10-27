@@ -75,7 +75,7 @@
         let url = '';
         if (role === 'patient') {
             const detectionAreaType = document.querySelector('input[name="detectionAreaType"]:checked').value;
-            url = API_BASE + `/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
+            url = window.API_BASE + `/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
         } else {
             url = API_BASE + `/reg/insertManager?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`;
         }

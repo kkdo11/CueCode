@@ -1610,8 +1610,7 @@
 
     // Pick the correct backend port!
     // const WEBSOCKET_URL = "ws://localhost:8000/ws/motion";
-    //const WEBSOCKET_URL = "ws://localhost:13000/ws/motion";
-    const WEBSOCKET_URL = "ws://localhost:15000/ws/motion";
+    const WEBSOCKET_URL = `${window.WEBSOCKET_BASE_URL}/ws/motion`;
 
     const SEND_INTERVAL_MS = 100;
     const SEGMENT_MS = 1000; // send "end" every 1s while streaming
@@ -1937,7 +1936,7 @@
     // --------------------------------------------------------------------------------
 
     // API Gateway URL: 실제 배포 환경에 맞게 config.js의 API_BASE 등을 사용해야 합니다.
-    const API_GATEWAY_URL_MODAL = typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:13000';
+    const API_GATEWAY_URL_MODAL = window.API_BASE;
 
     function getCookie(name) {
         const value = `; ${document.cookie}`;
