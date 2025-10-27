@@ -1,6 +1,6 @@
 package kopo.userservice.config;
 
-import jakarta.servlet.http.HttpServletResponse;
+import kopo.userservice.auth.filter.GatewaySecretValidatorFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,14 +8,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,9 +28,11 @@ import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final GatewaySecretValidatorFilter gatewaySecretValidatorFilter;
 
     @Value("${jwt.secret.key}")
     private String secretKeyBase64;
@@ -45,23 +49,21 @@ public class SecurityConfig {
         return cfg.getAuthenticationManager();
     }
 
-
     @Bean
     @Order(1)
     public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher(
                         "/", "/index.html", "/css/**", "/js/**", "/images/**",
-                        "/auth/login", "/auth/refresh", "/health", "/login",
+                        "/auth/login", "/auth/refresh", "/health", "/login/**",
                         "/swagger-ui/**", "/v3/api-docs/**",
-                        "/reg/**",
-                        "/actuator/**"
+                        "/reg/**", "/error"
                 )
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .formLogin(fl -> fl.disable())
-                .httpBasic(b -> b.disable());
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
@@ -70,21 +72,18 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/**")
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated()
-                )
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+
+                .addFilterBefore(gatewaySecretValidatorFilter, BearerTokenAuthenticationFilter.class)
+
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(cookieFirstBearerTokenResolver())
                         .jwt(jwt -> jwt.decoder(jwtDecoder()))
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/login/user/v1/logout") // 컨트롤러의 전체 경로와 일치시킵니다.
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                        })
                 );
 
         return http.build();
