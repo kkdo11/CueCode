@@ -27,6 +27,11 @@ spec:
                   key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms256m -Xmx512m"
+            - name: GATEWAY_TRUSTED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-trusted-secret
+                  key: GATEWAY_TRUSTED_SECRET
           # [수정] 올바른 위치와 들여쓰기 적용
           ports:
             - containerPort: 11000

@@ -46,6 +46,11 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: JWT_SECRET_KEY
+            - name: GATEWAY_TRUSTED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-trusted-secret
+                  key: GATEWAY_TRUSTED_SECRET
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms256m -Xmx512m -XX:+UseG1GC"
           resources:
