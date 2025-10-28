@@ -263,11 +263,11 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public String findUserIdByEmail(String email) {
+    public java.util.List<java.util.Map<String, String>> findUserIdByEmail(String email) {
         log.info("[findUserIdByEmail] 이메일로 사용자 ID 찾기 시도: {}", email);
         if (email == null || email.isBlank()) {
             log.warn("[findUserIdByEmail] 이메일 파라미터가 비어 있습니다.");
-            return null;
+            return java.util.Collections.emptyList();
         }
 
         String encryptedEmail;
@@ -276,27 +276,39 @@ public class UserService implements IUserService {
             log.info("[findUserIdByEmail] 암호화된 이메일: {}", encryptedEmail);
         } catch (Exception e) {
             log.error("[findUserIdByEmail] 이메일 암호화 실패", e);
-            return null;
+            return java.util.Collections.emptyList();
         }
 
+        java.util.List<java.util.Map<String, String>> users = new java.util.ArrayList<>();
+
         // 1. 환자(Patient)에서 검색
-        Optional<PatientDocument> patientOpt = patientRepository.findByEmail(encryptedEmail);
-        if (patientOpt.isPresent()) {
-            String userId = patientOpt.get().getId();
-            log.info("[findUserIdByEmail] 환자 ID 찾기 성공: {}", userId);
-            return userId;
+        java.util.List<PatientDocument> patients = patientRepository.findByEmail(encryptedEmail);
+        if (!patients.isEmpty()) {
+            for (PatientDocument patient : patients) {
+                java.util.Map<String, String> userInfo = new java.util.HashMap<>();
+                userInfo.put("userId", patient.getId());
+                userInfo.put("userType", "patient");
+                users.add(userInfo);
+                log.info("[findUserIdByEmail] 환자 ID 찾기 성공: {}", patient.getId());
+            }
         }
 
         // 2. 관리자(Manager)에서 검색
-        Optional<ManagerDocument> managerOpt = managerRepository.findByEmail(encryptedEmail);
-        if (managerOpt.isPresent()) {
-            String userId = managerOpt.get().getId();
-            log.info("[findUserIdByEmail] 관리자 ID 찾기 성공: {}", userId);
-            return userId;
+        java.util.List<ManagerDocument> managers = managerRepository.findByEmail(encryptedEmail);
+        if (!managers.isEmpty()) {
+            for (ManagerDocument manager : managers) {
+                java.util.Map<String, String> userInfo = new java.util.HashMap<>();
+                userInfo.put("userId", manager.getId());
+                userInfo.put("userType", "manager");
+                users.add(userInfo);
+                log.info("[findUserIdByEmail] 관리자 ID 찾기 성공: {}", manager.getId());
+            }
         }
 
-        log.info("[findUserIdByEmail] 이메일 {}에 해당하는 사용자 ID를 찾을 수 없습니다.", email);
-        return null;
+        if (users.isEmpty()) {
+            log.info("[findUserIdByEmail] 이메일 {}에 해당하는 사용자 ID를 찾을 수 없습니다.", email);
+        }
+        return users;
     }
 
     /**

@@ -118,13 +118,28 @@ findIdForm.onsubmit = function (e) {
     })
         .then(res => res.json())
         .then(data => {
-            if (data.result === 1) {
-                foundUserIdInput.value = data.userId; // 찾은 아이디 표시
+            if (data.result === 1 && data.users && data.users.length > 0) {
+                // 아이디 목록을 표시할 컨테이너 초기화
+                foundIdDisplay.innerHTML = ''; // 기존 내용 지우기
+
+                const ul = document.createElement('ul');
+                ul.style.listStyleType = 'none';
+                ul.style.padding = '0';
+
+                data.users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '5px';
+                    li.style.fontSize = '1.1em';
+                    li.innerHTML = `<strong>${user.userId}</strong> (${user.userType === 'patient' ? '환자' : '관리자'})`;
+                    ul.appendChild(li);
+                });
+
+                foundIdDisplay.appendChild(ul);
                 foundIdDisplay.style.display = 'block'; // 아이디 표시 영역 보이게 함
-                Swal.fire({icon: 'success', text: `아이디를 찾았습니다: ${data.userId}`});
+                Swal.fire({icon: 'success', title: '아이디를 찾았습니다!', html: '등록된 아이디 목록입니다.'});
             } else {
                 foundIdDisplay.style.display = 'none'; // 아이디 표시 영역 숨김
-                Swal.fire({icon: 'error', text: data.msg || '아이디를 찾을 수 없습니다.'});
+                Swal.fire({icon: 'error', text: data.msg || '일치하는 아이디를 찾을 수 없습니다.'});
             }
         })
         .catch(() => {
