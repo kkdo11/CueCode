@@ -10,6 +10,7 @@ import kopo.motionservice.service.IMotionService;
 import kopo.motionservice.util.RedisUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,45 +67,50 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
      * userId가 null이면 전체 사용자의 데이터를 로드합니다.
      */
     public void reloadCache(String userId) {
-        if (userId == null || userId.isEmpty()) {
-            log.info("[MotionDetectorServiceImpl] Reloading cache for ALL users...");
-            reloadAllUserCaches();
-            return;
-        }
-
-        // --- Step 0) Ensure template motions are imported once for this user ---
-        try {
-            ensureDefaultTemplatesImported(userId); // NEW
-        } catch (Exception e) {
-            log.warn("[MotionDetectorServiceImpl] Template import skipped due to error for userId={}: {}", userId, e.getMessage());
-        }
+        if (userId == null || userId.isEmpty()) { reloadAllUserCaches(); return; }
 
         String redisKey = REDIS_CACHE_PREFIX + userId;
-        String cachedData = redisUtil.get(redisKey);
 
-        if (cachedData != null) {
+        // 0) import; if imported, invalidate Redis
+        int imported = 0;
+        try {
+            imported = ensureDefaultTemplatesImported(userId);
+            if (imported > 0) {
+                redisUtil.delete(redisKey); // force rebuild from DB
+                log.info("[MotionDetectorServiceImpl] Deleted Redis cache after import for userId={}", userId);
+            }
+        } catch (Exception e) {
+            log.warn("[MotionDetectorServiceImpl] Template import error for userId={}: {}", userId, e.getMessage());
+        }
+
+        // 1) try Redis, but only trust it if non-empty
+        String cachedData = redisUtil.get(redisKey);
+        if (cachedData != null  && !cachedData.isBlank()) {
             try {
-                Map<String, CachedMotion> userCache = objectMapper.readValue(cachedData, new TypeReference<Map<String, CachedMotion>>() {});
-                userCaches.put(userId, userCache);
-                log.info("[MotionDetectorServiceImpl] Cache loaded from Redis for userId={}. {} motions cached.", userId, userCache.size());
-                return;
+                Map<String, CachedMotion> userCache = objectMapper.readValue(
+                        cachedData, new TypeReference<Map<String, CachedMotion>>() {});
+                if (userCache != null && !userCache.isEmpty()) {
+                    userCaches.put(userId, userCache);
+                    log.info("[MotionDetectorServiceImpl] Cache loaded from Redis for userId={}. {} motions cached.",
+                            userId, userCache.size());
+                    return;
+                } else {
+                    log.info("[MotionDetectorServiceImpl] Redis cache empty for userId={}; rebuilding from DB.", userId);
+                }
             } catch (Exception e) {
-                log.warn("[MotionDetectorServiceImpl] Failed to load cache from Redis for userId={}: {}", userId, e.getMessage());
-                // Fallback to DB if Redis cache fails
+                log.warn("[MotionDetectorServiceImpl] Failed to load cache from Redis for userId={}: {}",
+                        userId, e.getMessage());
             }
         }
 
+        // 2) rebuild from DB
         log.info("[MotionDetectorServiceImpl] Reloading cache from DB for userId={}...", userId);
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
         Map<String, CachedMotion> userCache = new HashMap<>();
         int loadedCount = 0;
 
         for (RecordedMotionDocument doc : all) {
-            // userId가 일치하는 레코드만 처리
-            if (!userId.equals(doc.getUserId())) {
-                continue;
-            }
-
+            if (!userId.equals(doc.getUserId())) continue;
             try {
                 CachedMotion cm = buildCachedMotion(doc);
                 if (cm != null) {
@@ -116,11 +122,9 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             }
         }
 
-        // 해당 사용자의 캐시를 업데이트
         userCaches.put(userId, userCache);
         log.info("[MotionDetectorServiceImpl] Cache loaded for userId={}. {} motions cached.", userId, loadedCount);
 
-        // Save to Redis
         try {
             String jsonCache = objectMapper.writeValueAsString(userCache);
             redisUtil.set(redisKey, jsonCache, REDIS_CACHE_TIMEOUT_SECONDS);
@@ -134,58 +138,51 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
      * NEW: Import default template motions into target user if not already present.
      * Idempotent: skips creating a copy when the user already has the same (phrase, motionType).
      */
-    private void ensureDefaultTemplatesImported(String targetUserId) {
-        if (TEMPLATE_USER_IDS.contains(targetUserId)) {
-            // Definition users themselves should not import from others.
-            return;
-        }
+    private int ensureDefaultTemplatesImported(String targetUserId) {
+        if (TEMPLATE_USER_IDS.contains(targetUserId)) return 0;
 
         List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
 
-        // Collect what the target already has, keyed by (phrase|motionType) lowercased
         Set<String> targetKeys = all.stream()
                 .filter(d -> targetUserId.equals(d.getUserId()))
                 .map(d -> key(d.getPhrase(), d.getMotionType()))
                 .collect(Collectors.toSet());
 
-        // Gather template docs
         List<RecordedMotionDocument> templates = all.stream()
                 .filter(d -> TEMPLATE_USER_IDS.contains(d.getUserId()))
                 .collect(Collectors.toList());
 
         if (templates.isEmpty()) {
             log.info("[Importer] No template motions found to import for userId={}", targetUserId);
-            return;
+            return 0;
         }
 
-        // Build copies where missing
         List<RecordedMotionDocument> copies = new ArrayList<>();
         for (RecordedMotionDocument t : templates) {
             String k = key(t.getPhrase(), t.getMotionType());
-            if (targetKeys.contains(k)) {
-                // already present: skip
-                continue;
-            }
-            // Clone a minimal safe set of fields; assign new recordId & userId
+            if (targetKeys.contains(k)) continue;
+
             RecordedMotionDocument clone = new RecordedMotionDocument();
             clone.setRecordId(UUID.randomUUID().toString());
             clone.setUserId(targetUserId);
             clone.setPhrase(t.getPhrase());
             clone.setMotionType(t.getMotionType());
-            clone.setMotionData(t.getMotionData()); // deep copy if your class is mutable; otherwise this is fine
             clone.setDescription(t.getDescription());
-            // If you have createdAt/updatedAt fields, set them here:
-            // clone.setCreatedAt(LocalDateTime.now()); clone.setUpdatedAt(LocalDateTime.now());
+
+            RecordedMotionDocument.MotionDataDocument mdCopy =
+                    objectMapper.convertValue(t.getMotionData(), RecordedMotionDocument.MotionDataDocument.class);
+            clone.setMotionData(mdCopy);
             copies.add(clone);
         }
 
         if (copies.isEmpty()) {
             log.info("[Importer] All template motions already exist for userId={}; nothing to import.", targetUserId);
-            return;
+            return 0;
         }
 
         recordedMotionRepository.saveAll(copies);
         log.info("[Importer] Imported {} template motions into userId={}", copies.size(), targetUserId);
+        return copies.size();
     }
 
     private String key(String phrase, String motionType) {
@@ -549,6 +546,7 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         return Math.abs(x) < 1e-8 && Math.abs(y) < 1e-8 && Math.abs(z) < 1e-8;
     }
 
+    @NoArgsConstructor
     @Data
     @AllArgsConstructor
     public static class CachedMotion {
