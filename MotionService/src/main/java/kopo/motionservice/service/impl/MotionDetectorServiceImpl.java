@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import kopo.motionservice.repository.PhraseHistoryRepository;
 import kopo.motionservice.repository.document.PhraseHistoryDocument;
+import kopo.motionservice.repository.RecordedMotionRepository;
 
 @Slf4j
 @Service
@@ -38,6 +39,8 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
     private RedisUtil redisUtil;
     @Autowired
     private DangerousPhraseAlertRepository dangerousPhraseAlertRepository;
+    // NEW: write access for cloning imports
+    @Autowired private RecordedMotionRepository recordedMotionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 사용자별 캐시: userId -> Map<recordId, CachedMotion>
@@ -45,6 +48,10 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
 
     private static final String REDIS_CACHE_PREFIX = "motion_cache:";
     private static final long REDIS_CACHE_TIMEOUT_SECONDS = 3600; // 1 hour
+
+    // NEW: template definition owners that act like “golden sets”
+    private static final Set<String> TEMPLATE_USER_IDS =
+            new HashSet<>(Arrays.asList("HandDef", "FaceDef", "EyesDef", "SignLangDef"));
 
     private static final Set<String> DANGEROUS_PHRASES = new HashSet<>(Arrays.asList("도와주세요", "아파요"));
 
@@ -63,6 +70,13 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             log.info("[MotionDetectorServiceImpl] Reloading cache for ALL users...");
             reloadAllUserCaches();
             return;
+        }
+
+        // --- Step 0) Ensure template motions are imported once for this user ---
+        try {
+            ensureDefaultTemplatesImported(userId); // NEW
+        } catch (Exception e) {
+            log.warn("[MotionDetectorServiceImpl] Template import skipped due to error for userId={}: {}", userId, e.getMessage());
         }
 
         String redisKey = REDIS_CACHE_PREFIX + userId;
@@ -114,6 +128,70 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         } catch (Exception e) {
             log.error("[MotionDetectorServiceImpl] Failed to save cache to Redis for userId={}: {}", userId, e.getMessage());
         }
+    }
+
+    /**
+     * NEW: Import default template motions into target user if not already present.
+     * Idempotent: skips creating a copy when the user already has the same (phrase, motionType).
+     */
+    private void ensureDefaultTemplatesImported(String targetUserId) {
+        if (TEMPLATE_USER_IDS.contains(targetUserId)) {
+            // Definition users themselves should not import from others.
+            return;
+        }
+
+        List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
+
+        // Collect what the target already has, keyed by (phrase|motionType) lowercased
+        Set<String> targetKeys = all.stream()
+                .filter(d -> targetUserId.equals(d.getUserId()))
+                .map(d -> key(d.getPhrase(), d.getMotionType()))
+                .collect(Collectors.toSet());
+
+        // Gather template docs
+        List<RecordedMotionDocument> templates = all.stream()
+                .filter(d -> TEMPLATE_USER_IDS.contains(d.getUserId()))
+                .collect(Collectors.toList());
+
+        if (templates.isEmpty()) {
+            log.info("[Importer] No template motions found to import for userId={}", targetUserId);
+            return;
+        }
+
+        // Build copies where missing
+        List<RecordedMotionDocument> copies = new ArrayList<>();
+        for (RecordedMotionDocument t : templates) {
+            String k = key(t.getPhrase(), t.getMotionType());
+            if (targetKeys.contains(k)) {
+                // already present: skip
+                continue;
+            }
+            // Clone a minimal safe set of fields; assign new recordId & userId
+            RecordedMotionDocument clone = new RecordedMotionDocument();
+            clone.setRecordId(UUID.randomUUID().toString());
+            clone.setUserId(targetUserId);
+            clone.setPhrase(t.getPhrase());
+            clone.setMotionType(t.getMotionType());
+            clone.setMotionData(t.getMotionData()); // deep copy if your class is mutable; otherwise this is fine
+            clone.setDescription(t.getDescription());
+            // If you have createdAt/updatedAt fields, set them here:
+            // clone.setCreatedAt(LocalDateTime.now()); clone.setUpdatedAt(LocalDateTime.now());
+            copies.add(clone);
+        }
+
+        if (copies.isEmpty()) {
+            log.info("[Importer] All template motions already exist for userId={}; nothing to import.", targetUserId);
+            return;
+        }
+
+        recordedMotionRepository.saveAll(copies);
+        log.info("[Importer] Imported {} template motions into userId={}", copies.size(), targetUserId);
+    }
+
+    private String key(String phrase, String motionType) {
+        String p = (phrase == null) ? "" : phrase.trim().toLowerCase();
+        String m = (motionType == null) ? "" : motionType.trim().toLowerCase();
+        return p + "|" + m;
     }
 
     /**
