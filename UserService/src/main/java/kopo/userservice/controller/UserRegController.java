@@ -388,42 +388,56 @@ public class UserRegController {
 
     @PostMapping("/find/resetPassword")
     public Map<String, Object> resetPassword(@RequestBody Map<String, String> req) {
+        log.info(this.getClass().getName() + ".resetPassword start!");
         String userId = req.get("user_id");
         String email = req.get("email");
         String newPassword = req.get("new_password");
-        String role = req.get("role"); // "patient" 또는 "manager"
+        log.info("userId : " + userId);
+        log.info("email : " + email);
+
         Map<String, Object> result = new HashMap<>();
 
         String encryptedEmail = "";
         try {
             encryptedEmail = EncryptUtil.encAES128CBC(email);
         } catch (Exception e) {
+            log.error("Email encryption failed", e);
             result.put("result", 0);
             result.put("msg", "이메일 암호화 오류: " + e.getMessage());
             return result;
         }
+
         boolean success = false;
-        if ("manager".equalsIgnoreCase(role)) {
+
+        // 환자 리포지토리에서 먼저 검색
+        kopo.userservice.model.PatientDocument patient = patientRepository.findByIdAndEmail(userId, encryptedEmail);
+        if (patient != null) {
+            log.info("Patient found. Resetting password.");
+            patient.setPw(bCryptPasswordEncoder.encode(newPassword));
+            patientRepository.save(patient);
+            success = true;
+        } else {
+            // 환자가 아니면 관리자 리포지토리에서 검색
+            log.info("Patient not found. Checking for a manager.");
             kopo.userservice.model.ManagerDocument manager = managerRepository.findByIdAndEmail(userId, encryptedEmail);
             if (manager != null) {
+                log.info("Manager found. Resetting password.");
                 manager.setPw(bCryptPasswordEncoder.encode(newPassword));
                 managerRepository.save(manager);
                 success = true;
             }
-        } else {
-            kopo.userservice.model.PatientDocument patient = patientRepository.findByIdAndEmail(userId, encryptedEmail);
-            if (patient != null) {
-                patient.setPw(bCryptPasswordEncoder.encode(newPassword));
-                patientRepository.save(patient);
-                success = true;
-            }
         }
+
         if (success) {
+            log.info("Password reset successful for userId: {}", userId);
             result.put("result", 1);
+            result.put("msg", "비밀번호가 성공적으로 변경되었습니다.");
         } else {
+            log.warn("No matching user found for userId: {} and email", userId);
             result.put("result", 0);
             result.put("msg", "일치하는 회원 정보가 없습니다.");
         }
+        log.info(this.getClass().getName() + ".resetPassword end!");
         return result;
     }
 
@@ -442,12 +456,12 @@ public class UserRegController {
         }
 
         try {
-            String userId = userService.findUserIdByEmail(email);
-            if (userId != null) {
+            java.util.List<java.util.Map<String, String>> users = userService.findUserIdByEmail(email);
+            if (users != null && !users.isEmpty()) {
                 result.put("result", 1);
                 result.put("msg", "아이디를 찾았습니다.");
-                result.put("userId", userId);
-                log.info("[findIdByEmail] 아이디 찾기 성공: email={}, userId={}", email, userId);
+                result.put("users", users);
+                log.info("[findIdByEmail] 아이디 찾기 성공: email={}, users={}", email, users);
             }
             else {
                 result.put("result", 0);

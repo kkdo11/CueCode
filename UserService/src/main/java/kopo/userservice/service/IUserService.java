@@ -28,7 +28,7 @@ public interface IUserService {
     int sendEmailAuthCode(String email) throws Exception;
 
     // 이메일로 사용자 ID 찾기
-    String findUserIdByEmail(String email);
+    java.util.List<java.util.Map<String, String>> findUserIdByEmail(String email);
 
     /**
      * 로그아웃 시 Access/Refresh Token 블랙리스트 등록
