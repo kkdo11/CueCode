@@ -119,22 +119,41 @@ findIdForm.onsubmit = function (e) {
         .then(res => res.json())
         .then(data => {
             if (data.result === 1 && data.users && data.users.length > 0) {
-                // 아이디 목록을 표시할 컨테이너 초기화
                 foundIdDisplay.innerHTML = ''; // 기존 내용 지우기
 
-                const ul = document.createElement('ul');
-                ul.style.listStyleType = 'none';
-                ul.style.padding = '0';
+                const title = document.createElement('h4');
+                title.textContent = '찾은 아이디 목록';
+                title.style.marginBottom = '15px';
+                title.style.color = '#333';
+                foundIdDisplay.appendChild(title);
 
                 data.users.forEach(user => {
-                    const li = document.createElement('li');
-                    li.style.marginBottom = '5px';
-                    li.style.fontSize = '1.1em';
-                    li.innerHTML = `<strong>${user.userId}</strong> (${user.userType === 'patient' ? '환자' : '관리자'})`;
-                    ul.appendChild(li);
+                    const userCard = document.createElement('div');
+                    userCard.style.border = '1px solid #e0e0e0';
+                    userCard.style.borderRadius = '8px';
+                    userCard.style.padding = '15px';
+                    userCard.style.marginBottom = '10px';
+                    userCard.style.backgroundColor = '#f9f9f9';
+                    userCard.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+
+                    const userIdElem = document.createElement('p');
+                    userIdElem.style.margin = '0';
+                    userIdElem.style.fontSize = '1.2em';
+                    userIdElem.style.fontWeight = 'bold';
+                    userIdElem.style.color = '#007bff';
+                    userIdElem.textContent = `아이디: ${user.userId}`;
+                    userCard.appendChild(userIdElem);
+
+                    const userTypeElem = document.createElement('p');
+                    userTypeElem.style.margin = '5px 0 0 0';
+                    userTypeElem.style.fontSize = '0.9em';
+                    userTypeElem.style.color = '#6c757d';
+                    userTypeElem.textContent = `(${user.userType === 'patient' ? '환자' : '관리자'})`;
+                    userCard.appendChild(userTypeElem);
+
+                    foundIdDisplay.appendChild(userCard);
                 });
 
-                foundIdDisplay.appendChild(ul);
                 foundIdDisplay.style.display = 'block'; // 아이디 표시 영역 보이게 함
                 Swal.fire({icon: 'success', title: '아이디를 찾았습니다!', html: '등록된 아이디 목록입니다.'});
             } else {
