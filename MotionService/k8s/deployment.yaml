@@ -12,46 +12,49 @@ spec:
       labels:
         app: motion-service
     spec:
+      imagePullSecrets:
+        - name: ncr-secret
       containers:
-      - name: motion-service-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode/motion-service:latest
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: prod,json
-        - name: JWT_SECRET # motion-prod.yml의 ${JWT_SECRET}에 주입될 값
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret      # 시크릿 이름
-              key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
-        - name: JAVA_TOOL_OPTIONS
-          value: "-Xms256m -Xmx768m"
-        - name: GATEWAY_TRUSTED_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: gateway-trusted-secret
-              key: GATEWAY_TRUSTED_SECRET
-        envFrom:
-        - secretRef:
-            name: motion-db-secret
-        ports:
-        - containerPort: 15000
-        - containerPort: 15001 # 관리 포트 추가
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
-          limits:
-            cpu: "1000m"
-            memory: "1Gi"
-        readinessProbe:
-          httpGet:
-            path: /actuator/health/readiness
-            port: 15001
-          initialDelaySeconds: 60 # 시작 시 시간이 더 걸릴 수 있으므로 여유있게 설정
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /actuator/health/liveness
-            port: 15001
-          initialDelaySeconds: 30
-          periodSeconds: 15
+        - name: motion-service-app
+          image: cuecode.kr.ncr.ntruss.com/cuecode/motion-service:latest
+          imagePullPolicy: Always # 일관성을 위해 추가하는 것을 권장합니다.
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod,json
+            - name: JWT_SECRET # motion-prod.yml의 ${JWT_SECRET}에 주입될 값
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret      # 시크릿 이름
+                  key: JWT_SECRET_KEY   # 시크릿 안의 키 이름
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms256m -Xmx768m"
+            - name: GATEWAY_TRUSTED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-trusted-secret
+                  key: GATEWAY_TRUSTED_SECRET
+          envFrom:
+            - secretRef:
+                name: motion-db-secret
+          ports:
+            - containerPort: 15000
+            - containerPort: 15001 # 관리 포트 추가
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 15001
+            initialDelaySeconds: 60 # 시작 시 시간이 더 걸릴 수 있으므로 여유있게 설정
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 15001
+            initialDelaySeconds: 30
+            periodSeconds: 15

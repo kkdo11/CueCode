@@ -12,6 +12,8 @@ spec:
       labels:
         app: user-service
     spec:
+      imagePullSecrets:
+        - name: ncr-secret
       containers:
         - name: user-service-app
           # [개선] :latest 대신 특정 버전 태그 사용 (예: git-commit-hash)

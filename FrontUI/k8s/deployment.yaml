@@ -13,6 +13,8 @@ spec:
       labels:
         app: front-ui
     spec:
+      imagePullSecrets:
+        - name: ncr-secret
       containers:
         - name: front-ui-app
           # [개선/일관성] :latest 대신 특정 버전 태그를 사용

@@ -12,52 +12,55 @@ spec:
       labels:
         app: config-server
     spec:
+      imagePullSecrets:
+        - name: ncr-secret
       containers:
-      - name: config-server-app
-        image: cuecode.kr.ncr.ntruss.com/cuecode/config-server:latest
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: git,json
-        - name: GIT_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: git-credentials-secret
-              key: username
-        - name: GIT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: git-credentials-secret
-              key: password
-        - name: JAVA_TOOL_OPTIONS
-          value: "-Xms256m -Xmx512m"
-        ports:
-        - containerPort: 8888
-        resources:
-          requests:
-            cpu: "50m"
-            memory: "384Mi"
-          limits:
-            cpu: "100m"
-            memory: "768Mi"
-        readinessProbe:
-          httpGet:
-            path: /actuator/health/readiness
-            port: 8888
-          initialDelaySeconds: 180
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /actuator/health/liveness
-            port: 8888
-          initialDelaySeconds: 180
-          periodSeconds: 15
-        volumeMounts:
-        - name: git-ssh-key
-          mountPath: /root/.ssh # 컨테이너의 ssh 키 경로에 볼륨을 마운트합니다.
-          readOnly: true
+        - name: config-server-app
+          image: cuecode.kr.ncr.ntruss.com/cuecode/config-server:latest
+          imagePullPolicy: Always # 일관성을 위해 추가하는 것을 권장합니다.
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: git,json
+            - name: GIT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: git-credentials-secret
+                  key: username
+            - name: GIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: git-credentials-secret
+                  key: password
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms256m -Xmx512m"
+          ports:
+            - containerPort: 8888
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "384Mi"
+            limits:
+              cpu: "100m"
+              memory: "768Mi"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8888
+            initialDelaySeconds: 180
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8888
+            initialDelaySeconds: 180
+            periodSeconds: 15
+          volumeMounts:
+            - name: git-ssh-key
+              mountPath: /root/.ssh # 컨테이너의 ssh 키 경로에 볼륨을 마운트합니다.
+              readOnly: true
       volumes:
-      - name: git-ssh-key
-        secret:
-          # NCP SourceCommit에 접근하기 위한 SSH 키를 담은 Secret의 이름
-          secretName: sourcecommit-ssh-secret 
-          defaultMode: 0400 # 키 파일의 권한 설정
+        - name: git-ssh-key
+          secret:
+            # NCP SourceCommit에 접근하기 위한 SSH 키를 담은 Secret의 이름
+            secretName: sourcecommit-ssh-secret
+            defaultMode: 0400 # 키 파일의 권한 설정
