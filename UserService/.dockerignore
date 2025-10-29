@@ -1,6 +1,5 @@
 # Exclude common development and build artifacts
 .gradle
-/build
 .idea
 .vscode
 *.iml
