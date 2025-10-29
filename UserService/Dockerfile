@@ -1,32 +1,19 @@
-# STAGE 1: Build the application using Gradle with dependency caching
-FROM gradle:8.4-jdk17-alpine AS build
+# 실행에 필요한 가벼운 JRE 이미지를 기반으로 합니다.
+FROM eclipse-temurin:17-jre
+
+# (필수) 타임존 설정
+ENV TZ=Asia/Seoul
+
+# 작업 디렉토리 설정
 WORKDIR /app
 
-# 1. Copy only dependency-related files first
-# [수정] gradlew 실행 파일을 함께 복사합니다.
-COPY build.gradle settings.gradle gradlew ./
-COPY gradle ./gradle
+# [수정] 빌드 스크립트에서 '--build-arg'로 전달해주는 .jar 파일 경로를 받습니다.
+ARG JAR_FILE=build/libs/unknown.jar
+COPY ${JAR_FILE} /app/app.jar
 
-# 2. Download dependencies. This layer is cached as long as build.gradle doesn't change.
-# [수정] gradlew에 실행 권한을 부여합니다.
-RUN chmod +x ./gradlew && ./gradlew dependencies
-
-# 3. Copy the rest of the source code
-COPY src ./src
-
-# 4. Build the application (dependencies are already cached)
-RUN ./gradlew build -x test
-
-# Find the executable jar and rename it to a predictable name
-RUN find /app/build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} /app/build/libs/app.jar \;
-
-# STAGE 2: Create the final, lightweight image
-FROM openjdk:17-jdk-slim
-WORKDIR /app
-
-# Copy the renamed jar from the build stage
-COPY --from=build /app/build/libs/app.jar /app/app.jar
-
-# 각 서비스에 맞는 포트 번호로 수정해야 합니다.
+# [필수] 이 포트 번호는 각 서비스의 Dockerfile마다 실제 서비스 포트로 수정해야 합니다.
+# (예: ApiGateway는 8080, UserService는 8001, ConfigServer는 8888 등)
 EXPOSE 11000
+
+# 애플리케이션 실행
 ENTRYPOINT ["java","-jar","/app/app.jar"]
