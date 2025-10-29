@@ -2,10 +2,13 @@ FROM eclipse-temurin:17-jre
 ENV TZ=Asia/Seoul
 WORKDIR /app
 
-# [수정] .jar 파일 이름을 직접 명시합니다! (ARG 사용 안 함)
-COPY build/libs/SpringConfigServer-0.0.1-SNAPSHOT.jar /app/app.jar
+# 빌드 스크립트에서 전달하는 JAR_FILENAME 인자를 받도록 선언
+ARG JAR_FILENAME
 
-# [수정] Config Server 포트 (예: 8888)
+# 선언한 인자를 사용하여 파일을 복사
+COPY build/libs/${JAR_FILENAME} /app/app.jar
+
+# 각 서비스에 맞는 포트 노출 (예: FrontUI는 8080)
 EXPOSE 8888
 
 ENTRYPOINT ["java","-jar","/app/app.jar"]
