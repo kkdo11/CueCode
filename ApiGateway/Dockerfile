@@ -1,18 +1,17 @@
 # 실행에 필요한 가벼운 JRE 이미지를 기반으로 합니다.
 FROM eclipse-temurin:17-jre
 
-# (필수) 타임존 설정
+# 타임존 설정
 ENV TZ=Asia/Seoul
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# [수정 확인!] 빌드 스크립트에서 '--build-arg'로 전달해주는 .jar '파일명'을 받습니다.
-ARG JAR_FILENAME=unknown.jar
-# [수정 확인!] COPY 명령어에서는 디렉토리 경로를 명시하고, 파일명 변수를 사용합니다.
-COPY build/libs/${JAR_FILENAME} /app/app.jar
+# [수정 확인!] ApiGateway의 .jar 파일 이름을 직접 명시합니다.
+# build.gradle 버전 변경 시 여기도 수정해야 합니다.
+COPY build/libs/ApiGateway-0.0.1-SNAPSHOT.jar /app/app.jar
 
-# [필수] Config Server 포트 번호로 수정 (예: 8888)
+# [수정 확인!] ApiGateway의 실제 포트 번호로 변경하세요. (예: 8000)
 EXPOSE 13000
 
 # 애플리케이션 실행
