@@ -1,18 +1,14 @@
-# 실행에 필요한 가벼운 JRE 이미지를 기반으로 합니다.
 FROM eclipse-temurin:17-jre
-
-# 타임존 설정
 ENV TZ=Asia/Seoul
-
-# 작업 디렉토리 설정
 WORKDIR /app
 
-# [수정 확인!] ApiGateway의 .jar 파일 이름을 직접 명시합니다.
-# build.gradle 버전 변경 시 여기도 수정해야 합니다.
-COPY build/libs/ApiGateway-0.0.1-SNAPSHOT.jar /app/app.jar
+# 빌드 스크립트에서 전달하는 JAR_FILENAME 인자를 받도록 선언
+ARG JAR_FILENAME
 
-# [수정 확인!] ApiGateway의 실제 포트 번호로 변경하세요. (예: 8000)
+# 선언한 인자를 사용하여 파일을 복사
+COPY build/libs/${JAR_FILENAME} /app/app.jar
+
+# 각 서비스에 맞는 포트 노출 (예: FrontUI는 8080)
 EXPOSE 13000
 
-# 애플리케이션 실행
 ENTRYPOINT ["java","-jar","/app/app.jar"]
