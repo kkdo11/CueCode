@@ -362,11 +362,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         setEditMode(false);
         qid('patient-modal')?.classList.remove('d-none');
 
+        // 디버깅: window.userRole 값 확인
+        console.log('[DEBUG] openPatientModal - window.userRole:', window.userRole);
+        console.log('[DEBUG] openPatientModal - typeof window.userRole:', typeof window.userRole);
+
         const editBtn = qid('modal-edit-btn');
-        const isManager = (window.userRole === 'ROLE_USER_MANAGER' || window.userRole === 'ROLE_MANAGER');
+        // ROLE_ADMIN 권한도 포함하도록 수정
+        const isManager = ['ROLE_USER_MANAGER', 'ROLE_MANAGER', 'ROLE_ADMIN'].includes(window.userRole);
+        console.log('[DEBUG] openPatientModal - isManager:', isManager);
+
         if (editBtn) {
             editBtn.disabled = !isManager;
             editBtn.textContent = isManager ? '수정하기' : '수정 권한 없음';
+            console.log('[DEBUG] openPatientModal - editBtn.disabled:', editBtn.disabled, ', editBtn.textContent:', editBtn.textContent);
         }
     };
 

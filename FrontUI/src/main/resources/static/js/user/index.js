@@ -141,6 +141,10 @@ async function getAuthData() {
             const data = await response.json();
             if (data.userId) {
                 console.log(`로그인 성공: userId=${data.userId}, userName=${data.userName}, userRole=${data.userRole}`);
+
+                // 전역 변수에 userRole 저장 (다른 스크립트에서 사용 가능)
+                window.userRole = data.userRole || '';
+
                 return {
                     isLoggedIn: true,
                     userName: data.userName || '사용자',
@@ -156,7 +160,8 @@ async function getAuthData() {
         console.error('로그인 상태 확인 API 호출 실패:', e);
     }
 
-    // 기본 미로그인 상태 반환
+    // 기본 미로그인 상태 반환 (userRole도 초기화)
+    window.userRole = '';
     return { isLoggedIn: false, userName: '', userRole: '' };
 }
 
