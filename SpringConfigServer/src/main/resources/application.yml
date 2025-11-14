@@ -7,11 +7,9 @@ spring:
     config:
       server:
         git:
-          uri: https://devtools.ncloud.com/3067145/CueCode-Config.git
-          default-label: master
+          uri: https://github.com/kkdo11/CueCode-Config.git
+          default-label: main
           search-paths: msa
-          username: ${GIT_USERNAME}
-          password: ${GIT_PASSWORD}
 
 management:
   endpoints:
