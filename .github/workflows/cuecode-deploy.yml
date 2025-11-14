@@ -48,7 +48,7 @@ env:
     ./SpringConfigServer/k8s/deployment.yaml
     ./SpringConfigServer/k8s/service.yaml
   DOCKER_FILE: ./SpringConfigServer/Dockerfile
-  BUILD_CONTEXT_PATH: /SpringConfigServer
+  BUILD_CONTEXT_PATH: ./SpringConfigServer
   NAMESPACE: default
   ENABLENAMESPACECREATION: false
   AUTH_TYPE: SERVICE_PRINCIPAL
