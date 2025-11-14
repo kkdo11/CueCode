@@ -76,6 +76,18 @@ jobs:
       - name: Log into ACR
         run: |
           az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+
+      - name: Build Spring Boot app with Gradle
+        working-directory: ./SpringConfigServer  # 작업 디렉토리를 SpringConfigServer로 변경
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build
 
       # Builds and pushes an image up to your Azure Container Registry
       - name: Build and push image to ACR
