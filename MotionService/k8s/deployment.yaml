@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: motion-service-app
-          image: cuecoderegistry.azurecr.io/motion-service:latest
+          image: cuecoderegistry.azurecr.io/motion-service:__TAG__
           imagePullPolicy: Always # 일관성을 위해 추가하는 것을 권장합니다.
           env:
             - name: SPRING_PROFILES_ACTIVE

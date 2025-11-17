@@ -19,7 +19,7 @@ spec:
       containers:
         - name: config-server-app
           # --- 수정 ---
-          image: cuecoderegistry.azurecr.io/spring-config-server:latest
+          image: cuecoderegistry.azurecr.io/spring-config-server:__TAG__
           # --- 수정 ---
           imagePullPolicy: Always
           env:
