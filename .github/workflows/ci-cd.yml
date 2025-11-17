@@ -118,16 +118,6 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build -x test
 
-      - name: Build and push image to ACR
-        run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
-          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
-
-      - name: Set up kubelogin for non-interactive login
-        uses: azure/use-kubelogin@v1
-        with:
-          kubelogin-version: 'v0.0.25'
-
       - name: Get K8s context
         uses: azure/aks-set-context@v4
         with:
@@ -136,6 +126,14 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
           resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
+
+      - name: Apply RBAC for ApiGateway
+        if: matrix.service.name == 'ApiGateway'
+        run: kubectl apply -f ./ApiGateway/k8s/rbac.yaml
+
+      - name: Apply Ingress for ApiGateway
+        if: matrix.service.name == 'ApiGateway'
+        run: kubectl apply -f ./ApiGateway/k8s/ingress.yaml
 
       - name: Deploys application
         uses: Azure/k8s-deploy@v5
