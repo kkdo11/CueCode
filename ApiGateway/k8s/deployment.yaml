@@ -14,12 +14,9 @@ spec:
     spec:
       # Spring Cloud Kubernetes 등에서 Service Discovery를 사용하기 위한 ServiceAccount
       serviceAccountName: api-gateway-sa
-      # Private Container Registry에서 이미지를 가져오기 위한 Secret
-      imagePullSecrets:
-        - name: ncr-secret
       containers:
         - name: api-gateway-app
-          image: cuecode.kr.ncr.ntruss.com/cuecode/api-gateway:latest
+          image: cuecoderegistry.azurecr.io/api-gateway:latest
           imagePullPolicy: Always # 항상 최신 이미지를 가져오도록 설정
           ports:
             - name: http

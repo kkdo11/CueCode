@@ -12,11 +12,9 @@ spec:
       labels:
         app: motion-service
     spec:
-      imagePullSecrets:
-        - name: ncr-secret
       containers:
         - name: motion-service-app
-          image: cuecode.kr.ncr.ntruss.com/cuecode/motion-service:latest
+          image: cuecoderegistry.azurecr.io/motion-service:latest
           imagePullPolicy: Always # 일관성을 위해 추가하는 것을 권장합니다.
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -36,6 +34,8 @@ spec:
           envFrom:
             - secretRef:
                 name: motion-db-secret
+            - secretRef:
+                name: motion-redis-secret
           ports:
             - containerPort: 15000
             - containerPort: 15001 # 관리 포트 추가
