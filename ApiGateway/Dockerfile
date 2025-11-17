@@ -12,10 +12,11 @@ COPY src ./src
 
 # Build the application
 RUN ./gradlew build -x test
-RUN ls -l /app/build/libs
-
-# Find the executable jar
-RUN find /app/build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} /app/app.jar \;
+RUN for file in /app/build/libs/*.jar; do \
+      if ! echo "$file" | grep -q -- "-plain.jar$"; then \
+        mv "$file" /app/build/libs/app.jar; \
+      fi; \
+    done
 
 # STAGE 2: Create the final, lightweight image
 FROM eclipse-temurin:17-jre-alpine
