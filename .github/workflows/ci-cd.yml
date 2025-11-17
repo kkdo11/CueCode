@@ -34,17 +34,6 @@ jobs:
       - name: Log into ACR
         run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Set up Gradle and Cache
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          java-version: '17'
-          distribution: 'corretto'
-
-      - name: Build Spring Boot app with Gradle (Skip Tests)
-        working-directory: ./SpringConfigServer
-        run: |
-          chmod +x ./gradlew
-          ./gradlew build -x test
 
       - name: Build and push image to ACR
         run: |
@@ -107,11 +96,11 @@ jobs:
       - name: Log into ACR
         run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Set up Gradle and Cache
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          java-version: '17'
-          distribution: 'corretto'
+
+      - name: Build and push image to ACR
+        run: |
+          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
 
       - name: Install kubelogin
         run: |
