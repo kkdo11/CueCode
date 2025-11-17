@@ -15,11 +15,21 @@ env:
   AUTH_TYPE: SERVICE_PRINCIPAL
 
 jobs:
-  build_and_deploy_config_server:
+  build:
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2 # 2코어 러너 스펙에 맞춰 빌드 병렬성 제한
+      matrix:
+        service:
+          - { name: 'SpringConfigServer', container_name: 'spring-config-server' }
+          - { name: 'ApiGateway', container_name: 'api-gateway' }
+          - { name: 'FrontUI', container_name: 'front-ui' }
+          - { name: 'MotionService', container_name: 'motion-service' }
+          - { name: 'UserService', container_name: 'user-service' }
+
     steps:
       - uses: actions/checkout@v3
 
@@ -34,11 +44,31 @@ jobs:
       - name: Log into ACR
         run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-
       - name: Build and push image to ACR
         run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/spring-config-server:${{ github.sha }} -f ./SpringConfigServer/Dockerfile ./SpringConfigServer
-          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/spring-config-server:${{ github.sha }}
+          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
+
+      - name: Set image tag output
+        id: set_image_tag
+        run: echo "tags=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  deploy_config_server:
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v2.2.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          auth-type: ${{ env.AUTH_TYPE }}
 
       - name: Install kubelogin
         run: |
@@ -55,7 +85,7 @@ jobs:
           use-kubelogin: 'true'
           resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
 
-      - name: Deploys application
+      - name: Deploys SpringConfigServer
         uses: Azure/k8s-deploy@v5
         with:
           action: deploy
@@ -69,13 +99,14 @@ jobs:
           namespace: ${{ env.NAMESPACE }}
           resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
 
-  build_and_deploy_services:
-    needs: build_and_deploy_config_server
+  deploy_services:
+    needs: deploy_config_server
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 4 # 배포는 가벼우므로 병렬성 최대로 설정
       matrix:
         service:
           - { name: 'ApiGateway', container_name: 'api-gateway' }
@@ -92,15 +123,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           auth-type: ${{ env.AUTH_TYPE }}
-
-      - name: Log into ACR
-        run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
-
-
-      - name: Build and push image to ACR
-        run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
-          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
 
       - name: Install kubelogin
         run: |
