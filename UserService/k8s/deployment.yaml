@@ -12,12 +12,10 @@ spec:
       labels:
         app: user-service
     spec:
-      imagePullSecrets:
-        - name: ncr-secret
       containers:
         - name: user-service-app
           # [개선] :latest 대신 특정 버전 태그 사용 (예: git-commit-hash)
-          image: cuecode.kr.ncr.ntruss.com/cuecode/user-service:latest
+          image: cuecoderegistry.azurecr.io/user-service:latest
           imagePullPolicy: Always
           env:
             - name: SPRING_PROFILES_ACTIVE
@@ -42,6 +40,10 @@ spec:
             - secretRef:
                 # UserService의 데이터베이스 접속 정보를 담은 Secret
                 name: user-db-secret
+            - secretRef:
+                name: user-redis-secret
+            - secretRef:
+                name: mail-secret
           resources:
             requests:
               cpu: "150m"

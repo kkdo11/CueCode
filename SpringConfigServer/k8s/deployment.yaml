@@ -25,16 +25,6 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: git,json # 또는 "git"
-            - name: GIT_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: git-credentials-secret
-                  key: username
-            - name: GIT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: git-credentials-secret
-                  key: password
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms256m -Xmx512m"
             # (선택) Spring Cloud Config가 GitHub 리포지토리를 바라보게 설정
