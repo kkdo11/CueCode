@@ -12,6 +12,7 @@ COPY src ./src
 
 # Build the application
 RUN ./gradlew build -x test
+RUN ls -l /app/build/libs
 
 # Find the executable jar
 RUN find /app/build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} /app/app.jar \;
