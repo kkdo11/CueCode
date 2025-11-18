@@ -23,6 +23,7 @@ out/
 # Generated files
 .idea/compiler.xml
 .idea/modules.xml
+.idea/libraries/
 
 
 # Visual Studio Code (만약 사용한다면)
