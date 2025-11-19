@@ -1,0 +1,69 @@
+
+
+# ===============================
+# MOTION-SERVICE (dev) - Spring Config
+# 목적: 개발/로컬 테스트용. 로그·Actuator 전면 개방, CORS 완화, 긴 토큰 만료시간.
+# ===============================
+spring:
+  application:
+    name: motion-service             # Config Server에서 식별할 앱 이름
+  config:
+    activate:
+      on-profile: dev                  # 이 파일은 dev 프로필에서만 활성화
+  data:
+    mongodb:
+      uri: "mongodb://poly:${DB_PASSWORD}@localhost:27017/motionDB?authSource=motionDB" # motionDB로 변경
+      auto-index-creation: true
+      uuid-representation: standard
+    redis:
+      uri: "redis://:${REDIS_DB}@localhost:6380"  # Redis 포트 6380으로 변경
+gateway:
+  trusted:
+    secret: "cue-code-secret-key-for-internal-communication"
+server:
+  port: 15000                          # 모션 서비스 HTTP 포트 (15000으로 변경)
+  shutdown: graceful                   # 요청 마무리 후 정상 종료
+
+management:
+  server:
+    address: localhost                 # Actuator를 로컬에서만 노출
+    port: 15001                        # Actuator 포트(앱 포트와 분리) (15001로 변경)
+  endpoints:
+    web:
+      exposure:
+        include: "*"                   # 개발은 전부 노출(beans/env 등) — 운영 금지
+  endpoint:
+    health:
+      show-details: always             # 상세 헬스 정보 표시
+    shutdown:
+      enabled: true                    # /actuator/shutdown 허용 (개발 편의)
+  info:
+    env:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.data.mongodb: INFO
+    org.springframework.security: TRACE # Spring Security 상세 로그 활성화
+
+# JWT (개발) — 게이트웨이/다른 서비스와 '동일한 HS256 키'를 사용해야 검증 가능
+jwt:
+  token:
+    creator: cuecoder
+    access:
+      valid:
+        time: "600"                    # Access Token 10분
+      name: jwtAccessToken
+    refresh:
+      valid:
+        time: "7200"                   # Refresh Token 2시간
+      name: jwtRefreshToken
+    cookie:
+      domain: localhost
+  secret:
+    # ⚠️ 개발 전용 키 — 운영에 반입 금지! (32바이트 이상 Base64 권장)
+    key: "Ixp3HCXOS5Hi0py81JF610NG5nvySPjBq3VQXPmwsLI="
+
+cuecodemotion:
+  url: http://localhost:8000
