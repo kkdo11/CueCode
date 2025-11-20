@@ -29,7 +29,7 @@ spec:
               value: "-Xms256m -Xmx512m"
             # (선택) Spring Cloud Config가 GitHub 리포지토리를 바라보게 설정
             - name: SPRING_CLOUD_CONFIG_SERVER_GIT_URI
-              value: "https://github.com/kkdo11/CueCode-Config.git"
+              value: "https://github.com/CueCode-200OK/CueCode-Config.git"
           ports:
             - containerPort: 8888
           resources:
