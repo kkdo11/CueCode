@@ -70,3 +70,7 @@ Thumbs.db
 # 기타 임시 파일
 tmp/
 temp/
+
+# Sealed Secrets originals
+k8s/secrets.yaml
+pub-cert.pem
