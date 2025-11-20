@@ -447,10 +447,10 @@ function showTerms(type) {
     if (type === 'terms') {
         modalTitle.textContent = '이용약관';
         modalContent.innerHTML = `
-                <h4>㈜우장산 산신령들 CueCode 서비스 이용약관</h4>
+                <h4>㈜200ok CueCode 서비스 이용약관</h4>
                 <p><strong>제1장 총칙</strong></p>
                 <p><strong>제1조 [목적]</strong></p>
-                <p>본 약관은 ㈜우장산 산신령들(이하 '회사')이 제공하는 CueCode 서비스(웹 기반 서비스 및 의료기관 납품 서비스 등)의 이용조건 및 절차, 회원과 회사의 권리·의무와 책임사항을 규정함을 목적으로 합니다.</p>
+                <p>본 약관은 ㈜200ok(이하 '회사')이 제공하는 CueCode 서비스(웹 기반 서비스 및 의료기관 납품 서비스 등)의 이용조건 및 절차, 회원과 회사의 권리·의무와 책임사항을 규정함을 목적으로 합니다.</p>
 
                 <p><strong>제2조 [정의]</strong></p>
                 <ul>
@@ -525,7 +525,7 @@ function showTerms(type) {
                 <section class="privacy-consent">
                   <h2>[필수] 개인정보 수집 및 이용 동의</h2>
                   <p>
-                    ㈜우장산 산신령들(이하 "회사")는 CueCode 서비스 제공을 위해 필요한 최소한의 개인정보를 수집하고 있습니다.
+                    ㈜200ok(이하 "회사")는 CueCode 서비스 제공을 위해 필요한 최소한의 개인정보를 수집하고 있습니다.
                   </p>
 
                   <div class="privacy-table">
