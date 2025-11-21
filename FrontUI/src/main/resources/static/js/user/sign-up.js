@@ -189,7 +189,6 @@ function startCountdown(seconds){ let remaining = seconds; document.getElementBy
  sendCodeBtn.textContent = '인증번호 재발송';
  }
 },1000); }
-
 // 이메일 값이 변경되면 기존 인증 상태 무효화 (사용자가 이메일을 바꿀 경우를 대비)
 emailInput.addEventListener('input', function() {
     if (emailVerified) {
