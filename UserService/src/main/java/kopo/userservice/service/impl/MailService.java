@@ -50,8 +50,10 @@ public class MailService implements IMailService {
             mailSender.send(message);
 
         } catch (Exception e) {
-            res = 0;
-            log.info("[ERROR] " + this.getClass().getName() + ".doSendMail : " + e);
+            // 실제 실패 원인 메시지를 포함하여 로그 및 예외 생성
+            String errorMessage = "이메일 발송 중 오류 발생: " + e.getMessage();
+            log.error(errorMessage, e);
+            throw new RuntimeException(errorMessage, e);
         }
 
         log.info(this.getClass().getName() + ".doSendMail end!");

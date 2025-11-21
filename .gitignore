@@ -9,25 +9,12 @@ out/
 .apt_generated/
 .apt_generated_tests/
 
-# IntelliJ IDEA
-# User-specific files
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/gradle.xml
+# IntelliJ IDEA 설정 제외
+.idea/
+*.iws
+*.iml
+*.ipr
 
-# Sensitive or machine-specific information
-.idea/dataSources.xml
-.idea/dataSources.local.xml
-.idea/shelf/
-
-# Generated files
-.idea/compiler.xml
-.idea/modules.xml
-.idea/libraries/
-
-
-# Visual Studio Code (만약 사용한다면)
-.vscode/
 
 # Maven (만약 프로젝트의 일부가 Maven을 사용한다면)
 target/
