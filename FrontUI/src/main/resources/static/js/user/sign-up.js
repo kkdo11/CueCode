@@ -107,8 +107,7 @@ pwInput.addEventListener('input', function() {
         pwValidMsg.textContent = '사용 가능한 비밀번호입니다.';
         pwValidMsg.className = 'subtext ok';
     } else {
-        let msg = '비밀번호는 8~20자, 영문, 숫자, 특수문자를 모두 포함해야 합니다.';
-        pwValidMsg.textContent = msg;
+        pwValidMsg.textContent = '비밀번호는 8~20자, 영문, 숫자, 특수문자를 모두 포함해야 합니다.';
         pwValidMsg.className = 'subtext err';
     }
 });
@@ -176,19 +175,35 @@ const emailVerifyGroup = document.getElementById('emailVerifyGroup');
 const emailCodeInput = document.getElementById('email_code');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const emailVerifyMsg = document.getElementById('emailVerifyMsg');
-let sentCode = null, emailVerified = false, countdownTimer = null, remaining = 0;
+let emailVerified = false, countdownTimer = null;
 function formatTime(sec){ const m = Math.floor(sec/60).toString().padStart(2,'0'); const s = (sec%60).toString().padStart(2,'0'); return `${m}:${s}`; }
-function startCountdown(seconds){ remaining = seconds; document.getElementById('countdown').textContent = formatTime(remaining); clearInterval(countdownTimer); countdownTimer = setInterval(()=>{
+function startCountdown(seconds){ let remaining = seconds; document.getElementById('countdown').textContent = formatTime(remaining); clearInterval(countdownTimer); countdownTimer = setInterval(()=>{
  remaining--;
  document.getElementById('countdown').textContent = formatTime(Math.max(remaining,0));
  if(remaining<=0){
  clearInterval(countdownTimer);
+ countdownTimer = null;
  emailVerifyMsg.textContent = '인증 시간이 만료되었습니다.';
  verifyCodeBtn.disabled = true;
  sendCodeBtn.disabled = false;
  sendCodeBtn.textContent = '인증번호 재발송';
  }
 },1000); }
+
+// 이메일 값이 변경되면 기존 인증 상태 무효화 (사용자가 이메일을 바꿀 경우를 대비)
+emailInput.addEventListener('input', function() {
+    if (emailVerified) {
+        emailVerified = false;
+        emailVerifyMsg.textContent = '';
+        verifyCodeBtn.disabled = false;
+        sendCodeBtn.disabled = false;
+        sendCodeBtn.textContent = '인증번호 발송';
+        // 타이머가 돌고있다면 중단
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+        document.getElementById('countdown').textContent = '';
+    }
+});
+
 sendCodeBtn.onclick = function() {
     const email = emailInput.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -198,6 +213,11 @@ sendCodeBtn.onclick = function() {
         });
         return;
     }
+    // 인증 상태 초기화
+    emailVerified = false;
+    emailVerifyMsg.textContent = '';
+    verifyCodeBtn.disabled = false;
+
     // 서버로 이메일만 전송, 인증번호 및 HTML 메일 발송은 백엔드에서 처리
     fetch(API_BASE + '/reg/sendMail', {
         method: 'POST',
@@ -284,7 +304,7 @@ function submitForm() {
     const user_name = document.getElementById('user_name').value;
     const password = document.getElementById('password').value;
     const email = document.getElementById('email').value;
-    let url = '';
+    let url;
     if (role === 'patient') {
         url = API_BASE + `/reg/insertPatient?user_id=${encodeURIComponent(user_id)}&user_name=${encodeURIComponent(user_name)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}&detectionAreaType=${encodeURIComponent(detectionAreaType)}`;
     } else {
@@ -313,7 +333,6 @@ function submitForm() {
 const userIdInput = document.getElementById('user_id');
 const checkIdBtn = document.getElementById('checkIdBtn');
 const idCheckMsg = document.getElementById('idCheckMsg');
-let idCheckTimeout = null;
 checkIdBtn.onclick = function() {
     const userId = userIdInput.value.trim();
     if (!userId) {
@@ -394,24 +413,30 @@ agreementManagerCheckboxes.forEach(checkbox => {
 // 회원가입 버튼 클릭 시 약관 동의 검증 추가
 const originalSubmitForm = submitForm;
 submitForm = function() {
+    // 보호자 회원가입(3단계)에서는 이메일 입력 및 인증이 반드시 필요
+    if (role === 'manager' && currentStep === 2) {
+        if (!emailInput.value.trim()) {
+            Swal.fire({ icon: 'warning', text: '이메일을 입력하세요.' });
+            return;
+        }
+        if (!emailVerified) {
+            Swal.fire({ icon: 'warning', text: '이메일 인증을 완료하세요.' });
+            return;
+        }
+        // 보호자 약관 동의 확인
+        const termsAgreed = document.getElementById('agreeTermsManager').checked;
+        const privacyAgreed = document.getElementById('agreePrivacyManager').checked;
+        if (!termsAgreed || !privacyAgreed) {
+            Swal.fire({ icon: 'warning', text: '필수 약관에 동의해주세요.' });
+            return;
+        }
+    }
+
     // 환자 회원가입 약관 동의 확인
     if (role === 'patient' && currentStep === 3) {
         const termsAgreed = document.getElementById('agreeTerms').checked;
         const privacyAgreed = document.getElementById('agreePrivacy').checked;
 
-        if (!termsAgreed || !privacyAgreed) {
-            Swal.fire({
-                icon: 'warning',
-                text: '필수 약관에 동의해주세요.'
-            });
-            return;
-        }
-    }
-
-    // 보호자 회원가입 약관 동의 확인
-    if (role === 'manager' && currentStep === 2) {
-        const termsAgreed = document.getElementById('agreeTermsManager').checked;
-        const privacyAgreed = document.getElementById('agreePrivacyManager').checked;
 
         if (!termsAgreed || !privacyAgreed) {
             Swal.fire({
