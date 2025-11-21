@@ -14,8 +14,7 @@ out/
 *.iws
 *.iml
 *.ipr
-out/
-build/
+
 
 # Maven (만약 프로젝트의 일부가 Maven을 사용한다면)
 target/
