@@ -14,6 +14,7 @@ function removeCookie(name) {
 window.addEventListener('DOMContentLoaded', async () => {
     const patientListBody = document.getElementById('patient-list-tbody');
     let managedPatientIds = new Set(); // 관리하는 환자 ID 목록
+    let statusPollingInterval = null; // 환자 상태 폴링 타이머
 
     // ---- 유틸 ----
     const qs = (sel) => document.querySelector(sel);
@@ -64,6 +65,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
             if (!Array.isArray(arr) || arr.length === 0) {
                 patientListBody.innerHTML = `<tr><td colspan="3" class="text-center text-secondary">표시할 환자가 없습니다.</td></tr>`;
+                // If there are no patients, stop any existing polling
+                if (statusPollingInterval) {
+                    clearInterval(statusPollingInterval);
+                    statusPollingInterval = null;
+                }
                 return;
             }
 
@@ -91,6 +97,25 @@ window.addEventListener('DOMContentLoaded', async () => {
                 patientListBody.appendChild(tr);
                 fetchAndSetPatientStatus(p.id, tr);
             });
+
+            // Clear any existing polling interval to avoid duplicates
+            if (statusPollingInterval) {
+                clearInterval(statusPollingInterval);
+            }
+
+            // Start polling for status updates every second
+            statusPollingInterval = setInterval(() => {
+                console.log('[DEBUG] Polling for patient status updates...');
+                const rows = patientListBody.querySelectorAll('tr[data-patient-id]');
+                rows.forEach(row => {
+                    const patientId = row.getAttribute('data-patient-id');
+                    if (patientId) {
+                        // Fire and forget, don't await, to poll all patients in parallel
+                        fetchAndSetPatientStatus(patientId, row);
+                    }
+                });
+            }, 1000); // Poll every 1 second
+
         } catch (e) {
             console.error('fetchPatients error:', e);
             patientListBody.innerHTML = `<tr><td colspan="3" class="text-center text-secondary">환자 목록을 불러오지 못했습니다.</td></tr>`;
@@ -114,15 +139,17 @@ window.addEventListener('DOMContentLoaded', async () => {
                 // Use includes to be robust against extra context or punctuation
                 const isDanger = (phrase.includes('도와주세요') || phrase.includes('아파요'));
                 if (isDanger) {
-                    tr.classList.add('alert-red-row');
-                    // also ensure tr-level inline styles in case td-level styles are overridden
-                    try { tr.style.backgroundColor = '#ffebeb'; tr.style.color = '#b20000'; } catch(e) {}
-                    // also set td backgrounds directly to avoid td-level overrides
-                    tr.querySelectorAll('td').forEach(td => {
-                        td.style.backgroundColor = '#ffebeb';
-                        td.style.color = '#b20000';
-                    });
-                    console.log(`[DEBUG] Patient ${patientId}: Marked as DANGER (phrase matches).`);
+                    // Previously we highlighted the table row in red. Instead, trigger the
+                    // top-right SweetAlert2 toast via window.processDetectedAlerts.
+                    // Construct a minimal alert object compatible with processDetectedAlerts.
+                    const nameCell = tr.querySelector('td:nth-child(2)');
+                    const patientName = nameCell ? (nameCell.textContent || '').trim() : '';
+                    try {
+                        window.processDetectedAlerts([{ userId: patientId, userName: patientName, phrase: phrase, confirmed: false }]);
+                        console.log(`[DEBUG] Patient ${patientId}: processDetectedAlerts invoked for danger phrase.`);
+                    } catch (e) {
+                        console.error('[ERROR] calling processDetectedAlerts:', e);
+                    }
                 } else {
                     tr.classList.remove('alert-red-row'); // Ensure it's removed if phrase changes
                     try { tr.style.backgroundColor = ''; tr.style.color = ''; } catch(e) {}
