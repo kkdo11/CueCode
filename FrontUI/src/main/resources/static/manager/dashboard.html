@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CueCode | 관리자 대시보드</title>
+    <style>
+        /* Ensure alert-red-row cannot make rows red anymore (override existing CSS) */
+        .patient-table tbody tr.alert-red-row,
+        .patient-table tbody tr.alert-red-row td {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+        /* Also neutralize specific inline color values if applied */
+        .patient-table tbody tr[style*="#ffebeb"],
+        .patient-table tbody tr[style*="#b20000"] {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+    </style>
     <link rel="shortcut icon" type="image/png" href="../images/logos/favicon.svg"/>
     <link rel="stylesheet" href="../libs/owl.carousel/dist/assets/owl.carousel.min.css">
     <link rel="stylesheet" href="../libs/aos-master/dist/aos.css">
@@ -324,90 +338,250 @@
 <script src="../libs/owl.carousel/dist/owl.carousel.min.js"></script>
 <script src="../libs/aos-master/dist/aos.js"></script>
 <script src="../js/custom.js"></script>
-    <script src="../js/manager/manager.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+<script>
+    // Buffer stub: ensure calls from manager.js don't fail if the real processDetectedAlerts
+    // implementation hasn't loaded yet. Manager.js may run its DOMContentLoaded handler
+    // before the inline script below is parsed, so provide a temporary buffer.
+    window._processAlertsBuffer = window._processAlertsBuffer || [];
+    if (typeof window.processDetectedAlerts !== 'function') {
+        window.processDetectedAlerts = function(alerts) {
+            window._processAlertsBuffer.push(alerts);
+            console.log('[BUFFER] processDetectedAlerts buffered', alerts);
+        };
+    }
+</script>
+<script src="../js/manager/manager.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
-    <script>
+<script>
         // Global function to process external dangerous phrase detection data
         // This function should be called with an array of alert objects,
         // like the JSON snippet provided by the user.
-        window.processDetectedAlerts = function(alertsData) {
-            const alertDiv = document.getElementById('dangerousPhraseAlert');
-            const alertPatientNameSpan = document.getElementById('alertPatientName');
-            const alertPatientIdSpan = document.getElementById('alertPatientId');
+        (function() {
+            // Keep track of shown alerts to avoid duplicates
+            window._shownDangerAlerts = window._shownDangerAlerts || new Set();
 
-            // Determine active dangerous alerts (unconfirmed and matching phrases)
-            const dangerAlerts = Array.isArray(alertsData) ? alertsData.filter(a => {
-                if (a == null || a.confirmed) return false;
-                const p = String(a.phrase ?? '').trim();
-                return p.includes('도와주세요') || p.includes('아파요');
-            }) : [];
-
-            // Show the top-right alert using the most recent danger alert (if any)
-            const activeAlert = dangerAlerts.length ? dangerAlerts[dangerAlerts.length - 1] : null;
-            if (activeAlert) {
-                alertPatientNameSpan.textContent = activeAlert.userName || '(이름 없음)';
-                alertPatientIdSpan.textContent = activeAlert.userId || '(ID 없음)';
-                alertDiv.style.display = 'block';
-
-                // Auto-hide after 10s
-                setTimeout(() => { alertDiv.style.display = 'none'; }, 10000);
-            } else {
-                alertDiv.style.display = 'none';
+            // Create/get a container element for stacking toasts in the top-right
+            function getOrCreateToastContainer() {
+                let container = document.getElementById('swal-toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'swal-toast-container';
+                    Object.assign(container.style, {
+                        position: 'fixed',
+                        top: '10px',
+                        right: '10px',
+                        display: 'flex',
+                        flexDirection: 'column', // new toasts stack downward
+                        gap: '10px',
+                        zIndex: 20000,
+                        alignItems: 'flex-end',
+                        pointerEvents: 'none'
+                    });
+                    document.body.appendChild(container);
+                }
+                return container;
             }
 
-            // Highlight patient rows in the table by data-patient-id
-            // Collect IDs from dangerAlerts
-            console.log('[DEBUG] processDetectedAlerts called with alerts:', alertsData);
-            const dangerIds = dangerAlerts.map(a => String(a.userId).trim());
-            console.log('[DEBUG] Danger IDs (unconfirmed):', dangerIds);
-            const rows = document.querySelectorAll('#patient-list-tbody tr');
-            console.log('[DEBUG] Found', rows.length, 'patient rows in table');
-            rows.forEach(row => {
-                const dataPid = (row.getAttribute('data-patient-id') || '').trim();
-                const tdId = (row.querySelector('td:nth-child(1)')?.textContent || '').trim();
-                const tdName = (row.querySelector('td:nth-child(2)')?.textContent || '').trim();
+            window.processDetectedAlerts = async function(alertsData) {
+                console.log('[DEBUG] processDetectedAlerts called with alerts:', alertsData);
 
-                // Decide match by any reasonable heuristic:
-                // - exact data-patient-id match
-                // - first cell (id) includes alert id
-                // - alert id includes first cell
-                // - second cell (name) includes alert.userName
-                let matched = false;
-                let matchedBy = '';
-
-                for (const aid of dangerIds) {
-                    if (!aid) continue;
-                    if (dataPid && dataPid === aid) { matched = true; matchedBy = 'data-patient-id exact'; break; }
-                    if (tdId && tdId === aid) { matched = true; matchedBy = 'td id exact'; break; }
-                    if (tdId && aid.includes(tdId)) { matched = true; matchedBy = 'aid includes tdId'; break; }
-                    if (aid && tdId && tdId.includes(aid)) { matched = true; matchedBy = 'tdId includes aid'; break; }
-                    // match by name if available
-                    const correspondingAlert = dangerAlerts.find(a => String(a.userId).trim() === aid);
-                    const alertName = correspondingAlert ? String(correspondingAlert.userName || '').trim() : '';
-                    if (alertName && tdName && tdName.includes(alertName)) { matched = true; matchedBy = 'name includes'; break; }
+                // Ensure SweetAlert2 is available; if not, try to load it dynamically.
+                async function ensureSwalLoaded() {
+                    if (window.Swal) return;
+                    return new Promise((resolve, reject) => {
+                        try {
+                            const s = document.createElement('script');
+                            s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+                            s.async = true;
+                            s.onload = () => { console.log('[DEBUG] Loaded SweetAlert2 dynamically'); resolve(); };
+                            s.onerror = (e) => { console.warn('[WARN] Failed to load SweetAlert2 dynamically', e); reject(e); };
+                            document.head.appendChild(s);
+                            // Safety timeout
+                            setTimeout(() => {
+                                if (window.Swal) resolve();
+                                else reject(new Error('SweetAlert2 load timeout'));
+                            }, 5000);
+                        } catch (e) { reject(e); }
+                    });
                 }
 
-                console.log(`[DEBUG] row pidAttr=${dataPid} tdId=${tdId} tdName=${tdName} => matched=${matched} (${matchedBy})`);
-                if (matched) {
-                    row.classList.add('alert-red-row');
-                    row.querySelectorAll('td').forEach(td => {
-                        td.style.backgroundColor = '#ffebeb';
-                        td.style.color = '#b20000';
+                try {
+                    if (!window.Swal) await ensureSwalLoaded();
+                } catch (e) {
+                    console.warn('[WARN] SweetAlert2 not available; falling back to console alerts', e);
+                }
+
+                const dangerAlerts = Array.isArray(alertsData) ? alertsData.filter(a => {
+                    if (!a || a.confirmed) return false;
+                    const p = String(a.phrase ?? '').trim();
+                    return p.includes('도와주세요') || p.includes('아파요');
+                }) : [];
+
+                // Remove old fixed red alert div (no longer used)
+                const oldDiv = document.getElementById('dangerousPhraseAlert');
+                if (oldDiv) oldDiv.style.display = 'none';
+
+                const toastContainer = getOrCreateToastContainer();
+
+                // For each danger alert, show a toast if not already shown
+                dangerAlerts.forEach(alert => {
+                    const id = String(alert.userId ?? '').trim() || ('_phrase_' + (alert.phrase ?? '').slice(0,10));
+                    if (window._shownDangerAlerts.has(id)) return;
+                    window._shownDangerAlerts.add(id);
+
+                    const name = alert.userName || '(이름없음)';
+                    const uid = alert.userId || '(ID없음)';
+                    const phrase = String(alert.phrase ?? '').replace(/\n/g, '<br/>');
+
+                    // If Swal is not available, fallback to a simple alert() so user still notices.
+                    if (!window.Swal) {
+                        console.warn('[DEBUG] Swal not present, using DOM fallback alert');
+                        try {
+                            // DOM fallback: create a visible toast element inside toastContainer
+                            const f = document.createElement('div');
+                            f.className = 'fallback-toast';
+                            Object.assign(f.style, {
+                                background: '#ffefef',
+                                border: '1px solid #ff8a80',
+                                padding: '10px 14px',
+                                borderRadius: '6px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                                color: '#690000',
+                                minWidth: '260px',
+                                maxWidth: '360px',
+                                pointerEvents: 'auto'
+                            });
+                            f.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">응급 알림 — ${name} (${uid})</div><div style="font-size:0.95em">${String(alert.phrase || '')}</div>`;
+                            toastContainer.appendChild(f);
+                            // auto-remove after timer
+                            setTimeout(() => { try { f.remove(); } catch(e){}; window._shownDangerAlerts.delete(id); }, 10000);
+                        } catch(e){ console.warn('[WARN] fallback DOM alert failed', e); window._shownDangerAlerts.delete(id); }
+                        return;
+                    }
+
+                    console.log('[DEBUG] Swal present:', !!window.Swal, 'toastContainer element:', toastContainer);
+                    try {
+                        const fireResult = Swal.fire({
+                            toast: true,
+                            target: toastContainer,
+                            position: 'top-end',
+                            icon: 'warning',
+                            title: '응급 알림',
+                            html: `<div style="text-align:left; line-height:1.2;">
+                                    <strong>환자:</strong> ${name} (${uid})<br/>
+                                    <strong>문구:</strong> ${phrase}
+                                   </div>`,
+                            showConfirmButton: true,
+                            confirmButtonText: '확인',
+                            showCloseButton: true,
+                            customClass: { popup: 'swal2-toast-custom' },
+                            timer: 10000,
+                            timerProgressBar: true,
+                            didOpen: (toast) => {
+                                toast.style.pointerEvents = 'auto';
+                                toast.addEventListener('mouseenter', Swal.stopTimer);
+                                toast.addEventListener('mouseleave', Swal.resumeTimer);
+                            }
+                        });
+                        Promise.resolve(fireResult).then(() => { console.log('[DEBUG] Swal.fire resolved for', id); }).catch(e => { console.error('[ERROR] Swal.fire promise rejected', e); });
+                    } catch (e) {
+                        console.error('[ERROR] calling Swal.fire', e);
+                        // Create DOM fallback if Swal.fire threw synchronously
+                        try {
+                            const f2 = document.createElement('div');
+                            f2.className = 'fallback-toast';
+                            Object.assign(f2.style, { background: '#ffefef', border: '1px solid #ff8a80', padding: '10px 14px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', color: '#690000', minWidth: '260px', maxWidth: '360px', pointerEvents: 'auto'});
+                            f2.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">응급 알림 — ${name} (${uid})</div><div style="font-size:0.95em">${String(alert.phrase || '')}</div>`;
+                            toastContainer.appendChild(f2);
+                            setTimeout(() => { try { f2.remove(); } catch(err){}; window._shownDangerAlerts.delete(id); }, 10000);
+                        } catch(err) { console.error('[ERROR] fallback DOM creation also failed', err); window._shownDangerAlerts.delete(id); }
+                    }
+                    // ensure shown flag is removed on didClose as well (Swal's didClose can't be passed here because we handled promise above)
+                    // NOTE: for Swal, didClose is supported inside options; but we used promise to detect resolution.
+                    // In case Swal doesn't call our cleanup, set a safety timeout to remove id after 12s
+                    setTimeout(() => { window._shownDangerAlerts.delete(id); }, 12000);
+                 });
+
+                 // Remove red-row styling from patient table rows (we use toasts now)
+                 const rows = document.querySelectorAll('#patient-list-tbody tr');
+                 rows.forEach(row => {
+                     row.classList.remove('alert-red-row');
+                     row.querySelectorAll('td').forEach(td => { td.style.backgroundColor = ''; td.style.color = ''; });
+                 });
+             };
+
+            // If any alerts were buffered before this implementation loaded, drain them now.
+            if (Array.isArray(window._processAlertsBuffer) && window._processAlertsBuffer.length) {
+                console.log('[BUFFER] Draining', window._processAlertsBuffer.length, 'alerts buffered before processDetectedAlerts was ready');
+                window._processAlertsBuffer.forEach(buf => {
+                    try { window.processDetectedAlerts(buf); } catch (e) { console.error('Error draining buffered alert', e); }
+                });
+                window._processAlertsBuffer.length = 0;
+            }
+        })();
+    </script>
+
+<script>
+    // Runtime safety: block any code that attempts to add the 'alert-red-row' class and
+    // clear inline red background styles if they appear. Also observe the patient table
+    // for changes and remove the red styling immediately.
+    (function(){
+        try {
+            const origAdd = DOMTokenList.prototype.add;
+            DOMTokenList.prototype.add = function(...tokens){
+                if (tokens.includes('alert-red-row')) {
+                    console.warn('[BLOCK] Prevented adding alert-red-row', tokens, this);
+                    return;
+                }
+                return origAdd.apply(this, tokens);
+            };
+        } catch(e) {
+            console.error('Failed to patch classList.add', e);
+        }
+
+        const tbody = document.getElementById('patient-list-tbody');
+        if (!tbody) return;
+
+        const mo = new MutationObserver((mutations)=>{
+            mutations.forEach(m=>{
+                // Attribute changes
+                if (m.type === 'attributes') {
+                    const target = m.target;
+                    try {
+                        if (target.classList && target.classList.contains('alert-red-row')) {
+                            target.classList.remove('alert-red-row');
+                            console.warn('[MO] Removed alert-red-row class from', target);
+                        }
+                        if (target.style) {
+                            const bg = target.style.backgroundColor;
+                            const color = target.style.color;
+                            if (bg && (bg === '#ffebeb' || bg === 'rgb(255, 235, 235)')) {
+                                target.style.backgroundColor = '';
+                                console.warn('[MO] Cleared backgroundColor from', target);
+                            }
+                            if (color && color === '#b20000') {
+                                target.style.color = '';
+                                console.warn('[MO] Cleared color from', target);
+                            }
+                        }
+                    } catch(e) { /* ignore */ }
+                }
+                // New nodes added
+                if (m.addedNodes && m.addedNodes.length) {
+                    m.addedNodes.forEach(n=>{
+                        if (n.nodeType !== 1) return;
+                        try {
+                            if (n.classList && n.classList.contains('alert-red-row')) n.classList.remove('alert-red-row');
+                            if (n.style) {
+                                if (n.style.backgroundColor === '#ffebeb' || n.style.backgroundColor === 'rgb(255, 235, 235)') n.style.backgroundColor = '';
+                                if (n.style.color === '#b20000') n.style.color = '';
+                            }
+                        } catch(e) {}
                     });
-                    console.log('[DEBUG] Applied alert-red-row styling to row', dataPid || tdId);
-                } else {
-                    row.classList.remove('alert-red-row');
-                    row.querySelectorAll('td').forEach(td => { td.style.backgroundColor = ''; td.style.color = ''; });
                 }
             });
-         };
-
-         // Example of how to use window.processDetectedAlerts:
-         // You would call this function whenever your frontend receives
-         // new dangerous phrase detection data, for example, from a WebSocket,
-         // an API call, or other real-time update mechanisms.
-
-     </script>
- </body>
- </html>
+        });
+        mo.observe(tbody, { attributes: true, subtree: true, attributeFilter: ['class','style'], childList: true });
+    })();
+</script>
