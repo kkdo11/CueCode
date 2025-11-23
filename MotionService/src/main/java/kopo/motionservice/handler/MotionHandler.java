@@ -51,7 +51,8 @@ public class MotionHandler extends TextWebSocketHandler {
 
         log.info("[MotionHandler] New client connected: {}, userId: {}", session.getId(), userId);
 
-        // 해당 사용자의 캐시를 로드 (중요!)
+        // 해당 사용자의 캐시를 로드 (중요!) -> 수동 로드로 변경됨
+        /*
         if (userId != null && !"anonymous".equals(userId)) {
             try {
                 log.info("[MotionHandler] Loading cache for userId: {}", userId);
@@ -60,6 +61,7 @@ public class MotionHandler extends TextWebSocketHandler {
                 log.error("[MotionHandler] Failed to load cache for userId: {}", userId, e);
             }
         }
+        */
 
         buffers.put(session.getId(), new ArrayList<>());
     }
@@ -88,6 +90,24 @@ public class MotionHandler extends TextWebSocketHandler {
         try {
             JsonNode root = mapper.readTree(payload);
             String type = root.has("type") ? root.get("type").asText() : "frame";
+
+            if ("load_dictionaries".equalsIgnoreCase(type)) {
+                if (userId != null && !"anonymous".equals(userId)) {
+                    try {
+                        log.info("[MotionHandler] Manually loading cache for userId: {}", userId);
+                        matchingService.reloadCache(userId);
+                        // Send success response
+                        session.sendMessage(new TextMessage(mapper.writeValueAsString(Map.of("type", "dictionaries_loaded", "status", "success"))));
+                    } catch (Exception e) {
+                        log.error("[MotionHandler] Failed to manually load cache for userId: {}", userId, e);
+                        session.sendMessage(new TextMessage(mapper.writeValueAsString(Map.of("type", "dictionaries_loaded", "status", "error", "message", e.getMessage()))));
+                    }
+                } else {
+                    log.warn("[MotionHandler] Attempted to load dictionaries for anonymous user.");
+                    session.sendMessage(new TextMessage(mapper.writeValueAsString(Map.of("type", "dictionaries_loaded", "status", "error", "message", "User is not authenticated"))));
+                }
+                return;
+            }
 
             if ("frame".equalsIgnoreCase(type)) {
                 JsonNode featuresNode = root.get("features");
