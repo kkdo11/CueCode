@@ -308,6 +308,47 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
             historyDoc.setDetectedTime(LocalDateTime.now());
             phraseHistoryRepository.save(historyDoc);
             log.info("[MotionDetectorServiceImpl] Phrase history saved to MongoDB for userId={}", userId);
+
+            // 2) ✅ LangGraph용 최근 phrase 목록을 Redis에 JSON 배열로 저장
+            try {
+                String redisKey = "phrases:" + userId;
+
+                // 기존 JSON 배열 불러오기
+                List<String> phrases = new ArrayList<>();
+                String existingJson = redisUtil.get(redisKey);
+                if (existingJson != null && !existingJson.isBlank()) {
+                    try {
+                        phrases = objectMapper.readValue(
+                                existingJson,
+                                new TypeReference<List<String>>() {}
+                        );
+                    } catch (Exception ex) {
+                        log.warn("[MotionDetectorServiceImpl] Failed to parse existing phrases from Redis for userId={}: {}",
+                                userId, ex.getMessage());
+                        phrases = new ArrayList<>();
+                    }
+                }
+
+                // 새 phrase 추가
+                phrases.add(best.phrase);
+
+                // 최근 N개만 유지 (예: 20개)
+                int MAX = 20;
+                if (phrases.size() > MAX) {
+                    phrases = phrases.subList(phrases.size() - MAX, phrases.size());
+                }
+
+                // 다시 JSON으로 저장 (TTL 2시간)
+                String json = objectMapper.writeValueAsString(phrases);
+                redisUtil.set(redisKey, json, 2 * 60 * 60);
+                log.info("[MotionDetectorServiceImpl] Updated recent phrases in Redis for userId={}, size={}",
+                        userId, phrases.size());
+
+            } catch (Exception ex) {
+                log.warn("[MotionDetectorServiceImpl] Failed to update recent phrases in Redis for userId={}: {}",
+                        userId, ex.getMessage());
+            }
+
         } catch (Exception e) {
             log.error("[MotionDetectorServiceImpl] Failed to save phrase history for userId={}: {}", userId, e.getMessage());
         }
