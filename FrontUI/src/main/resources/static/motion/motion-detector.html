@@ -2248,60 +2248,46 @@
      * 결과 문장을 #detectedPhrase에 표시 + 음성 출력
      */
     async function generateSentenceForCurrentUser() {
-        const phraseDiv = document.getElementById('detectedPhrase');
+        const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
 
-        // 이미 아래에 정의돼 있는 유틸을 재사용합니다.
-        const userId = getAuthenticatedUserId();
+        // ✅ 공통 토큰 가져오기 로직 재사용
         const token = getAccessToken();
 
-        if (!userId) {
-            Swal.fire({
-                icon: 'warning',
-                title: '로그인이 필요합니다',
-                text: '문장 생성을 위해 로그인 상태를 확인해 주세요.',
-            });
+        if (!token) {
+            alert(ALERT_MSG);
             return;
         }
 
         try {
-            phraseDiv.textContent = '문장 생성 중...';
-
-            const resp = await fetch(SENTENCE_API_URL, {
+            // ✅ 이미 위에서 선언한 상수 쓰기 (또는 API_BASE 사용)
+            // const res = await fetch(SENTENCE_API_URL, {
+            const res = await fetch(`${API_GATEWAY_URL_MODAL}/api/motion/generate-sentence`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ user_id: userId }),
-                credentials: 'include',
+                body: JSON.stringify({ /* 필요하면 payload */ }),
+                credentials: 'include'
             });
 
-            if (!resp.ok) {
-                const text = await resp.text().catch(() => '');
-                throw new Error(`${resp.status} ${resp.statusText} : ${text}`);
+            if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                console.error('generateSentence failed', res.status, text);
+                alert('문장 생성에 실패했습니다.');
+                return;
             }
 
-            const data = await resp.json();
-            const sentence = data.sentence || '생성된 문장이 없습니다.';
-
-            phraseDiv.textContent = sentence;
-
-            // ✅ 기존 speak() 패턴과 맞춰서, 생성된 문장을 음성으로 읽어주기
-            if ('speechSynthesis' in window && sentence) {
-                const utterance = new SpeechSynthesisUtterance(sentence);
-                utterance.lang = 'ko-KR';
-                window.speechSynthesis.speak(utterance);
+            const data = await res.json();
+            if (data && data.sentence) {
+                document.getElementById('detectedPhrase').textContent = data.sentence;
+            } else {
+                console.warn('generateSentence: no sentence in response', data);
+                alert('문장 생성 결과가 없습니다.');
             }
-
         } catch (err) {
-            console.error('Sentence generation error:', err);
-            phraseDiv.textContent = '문장 생성 중 오류가 발생했습니다.';
-
-            Swal.fire({
-                icon: 'error',
-                title: '문장 생성 실패',
-                text: err.message || '서버 통신 중 오류가 발생했습니다.',
-            });
+            console.error('generateSentence error', err);
+            alert('문장 생성 중 오류가 발생했습니다.');
         }
     }
 </script>
