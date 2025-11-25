@@ -144,6 +144,8 @@ async function getAuthData() {
 
                 // 전역 변수에 userRole 저장 (다른 스크립트에서 사용 가능)
                 window.userRole = data.userRole || '';
+                window.userId   = data.userId;                 // ✅ 전역 userId
+                window.userName = data.userName || '사용자';   // (원하면 같이 저장)
 
                 return {
                     isLoggedIn: true,

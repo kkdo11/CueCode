@@ -331,7 +331,7 @@ public class MotionServiceImpl implements IMotionService {
     }
 
     private final WebClient webClient = WebClient.builder()
-            .baseUrl("http://sentence-service:8000") // docker-compose / k8s service 이름
+            .baseUrl("http://localhost:8000") // 또는 필요 시 host.docker.internal
             .build();
 
     @Data
