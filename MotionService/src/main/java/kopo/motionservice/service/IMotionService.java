@@ -122,4 +122,5 @@ public interface IMotionService {
      */
     List<RecordedMotionDocument> getAllRecordedMotions();
 
+    public String generateSentence(String userId);
 }

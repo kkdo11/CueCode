@@ -1,14 +1,18 @@
 package kopo.motionservice.controller;
 
 import kopo.motionservice.service.IMotionService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import java.security.Principal;
 
+@Slf4j
 @RestController
 @RequestMapping("/motions")
 @RequiredArgsConstructor
@@ -30,5 +34,17 @@ public class MotionController {
 
         String result = motionService.sendMotionVideoToFastAPI(motionLabel, detectionArea, videoFile, userId, motionDescription);
         return ResponseEntity.ok(result);
+    }
+
+    @Data
+    public static class SentenceResponseDto {
+        private final String sentence;
+    }
+
+    @PostMapping("/users/{userId}/sentence")
+    public ResponseEntity<SentenceResponseDto> generateSentence(@PathVariable String userId) {
+        log.info("[SentenceController] Generating sentence for userId={}", userId);
+        String sentence = motionService.generateSentence(userId);
+        return ResponseEntity.ok(new SentenceResponseDto(sentence));
     }
 }

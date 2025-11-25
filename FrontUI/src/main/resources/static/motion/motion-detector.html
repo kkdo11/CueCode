@@ -1497,6 +1497,18 @@
                     <div class="p-4 bg-primary rounded shadow text-white detected-phrase-card">
                         <h5 class="mb-2 text-center text-white-75">인식된 문장</h5>
                         <div id="detectedPhrase" class="text-center">인식 대기 중</div>
+
+                        <!-- ✅ LangGraph 문장 생성 버튼 -->
+                        <button
+                                id="generateSentenceBtn"
+                                class="btn btn-light mt-3 w-100 fw-semibold"
+                                onclick="generateSentenceForCurrentUser()">
+                            ✨ 최근 동작으로 문장 생성하기
+                        </button>
+
+                        <small class="d-block mt-1 text-center text-white-75">
+                            최근 인식된 단어들을 바탕으로 AAC 문장을 생성합니다.
+                        </small>
                     </div>
 
                 </div>
@@ -2224,5 +2236,58 @@
      */
     function deleteAllMotions() {
         showMessageModal("❌ 이 모달에서는 데이터 삭제 기능이 비활성화되어 있습니다.", 'error');
+    }
+
+    // ✅ Sentence API URL (API Gateway 기준)
+    // FastAPI sentence-service의 @app.post("/api/sentence/generate") 에 매핑
+    const SENTENCE_API_URL = `${window.API_BASE}/api/sentence/generate`;
+
+    /**
+     * 현재 로그인한 사용자의 user_id를 이용해
+     * LangGraph 문장 생성 API를 호출하고,
+     * 결과 문장을 #detectedPhrase에 표시 + 음성 출력
+     */
+    async function generateSentenceForCurrentUser() {
+        const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
+
+        // ✅ 공통 토큰 가져오기 로직 재사용
+        const token = getAccessToken();
+
+        if (!token) {
+            alert(ALERT_MSG);
+            return;
+        }
+
+        try {
+            // ✅ 이미 위에서 선언한 상수 쓰기 (또는 API_BASE 사용)
+            // const res = await fetch(SENTENCE_API_URL, {
+            const res = await fetch(`${API_GATEWAY_URL_MODAL}/api/motion/generate-sentence`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ /* 필요하면 payload */ }),
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                console.error('generateSentence failed', res.status, text);
+                alert('문장 생성에 실패했습니다.');
+                return;
+            }
+
+            const data = await res.json();
+            if (data && data.sentence) {
+                document.getElementById('detectedPhrase').textContent = data.sentence;
+            } else {
+                console.warn('generateSentence: no sentence in response', data);
+                alert('문장 생성 결과가 없습니다.');
+            }
+        } catch (err) {
+            console.error('generateSentence error', err);
+            alert('문장 생성 중 오류가 발생했습니다.');
+        }
     }
 </script>
