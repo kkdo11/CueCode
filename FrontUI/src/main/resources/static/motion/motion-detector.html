@@ -2238,9 +2238,6 @@
         showMessageModal("❌ 이 모달에서는 데이터 삭제 기능이 비활성화되어 있습니다.", 'error');
     }
 
-    // ✅ Sentence API URL (API Gateway 기준)
-    // FastAPI sentence-service의 @app.post("/api/sentence/generate") 에 매핑
-    const SENTENCE_API_URL = `${window.API_BASE}/api/sentence/generate`;
 
     /**
      * 현재 로그인한 사용자의 user_id를 이용해
@@ -2250,26 +2247,39 @@
     async function generateSentenceForCurrentUser() {
         const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
 
-        // ✅ 공통 토큰 가져오기 로직 재사용
-        const token = getAccessToken();
-
-        if (!token) {
+        // 1️⃣ 현재 로그인 유저 ID 가져오기
+        const userId = getAuthenticatedUserId();
+        if (!userId) {
+            console.warn('[Sentence] 로그인 유저 ID를 찾을 수 없습니다.');
             alert(ALERT_MSG);
             return;
         }
 
+        // 2️⃣ Authorization 헤더 구성 (선택이지만 JWT 쓰고 있으니까 넣는 게 안전)
+        const token = getAccessToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+
         try {
-            // ✅ 이미 위에서 선언한 상수 쓰기 (또는 API_BASE 사용)
-            // const res = await fetch(SENTENCE_API_URL, {
-            const res = await fetch(`${API_GATEWAY_URL_MODAL}/api/motion/generate-sentence`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ /* 필요하면 payload */ }),
-                credentials: 'include'
-            });
+            // 3️⃣ 백엔드 컨트롤러 경로와 일치하게 호출
+            const res = await fetch(
+                `${API_GATEWAY_URL_MODAL}/motions/users/${encodeURIComponent(userId)}/sentence`,
+                {
+                    method: 'POST',
+                    headers,
+                    credentials: 'include'
+                }
+            );
+
+            if (res.status === 401 || res.status === 403) {
+                console.log(res.status);
+                alert(ALERT_MSG);
+                return;
+            }
+
+
 
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
@@ -2281,6 +2291,11 @@
             const data = await res.json();
             if (data && data.sentence) {
                 document.getElementById('detectedPhrase').textContent = data.sentence;
+
+                // 옵션: 음성으로도 읽어주고 싶으면
+                if (typeof speak === 'function') {
+                    speak(data.sentence);
+                }
             } else {
                 console.warn('generateSentence: no sentence in response', data);
                 alert('문장 생성 결과가 없습니다.');
