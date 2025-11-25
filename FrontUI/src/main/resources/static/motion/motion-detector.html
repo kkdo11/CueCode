@@ -2247,29 +2247,25 @@
     async function generateSentenceForCurrentUser() {
         const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
 
-        // 1️⃣ 현재 로그인 유저 ID 가져오기
-        const userId = getAuthenticatedUserId();
+        // ✅ index.js에서 /user/me 호출 시 세팅한 전역 userId 사용
+        const userId = window.userId;
+
         if (!userId) {
-            console.warn('[Sentence] 로그인 유저 ID를 찾을 수 없습니다.');
+            console.warn('[Sentence] 로그인 유저 ID를 찾을 수 없습니다. (window.userId 없음)');
             alert(ALERT_MSG);
             return;
         }
 
-        // 2️⃣ Authorization 헤더 구성 (선택이지만 JWT 쓰고 있으니까 넣는 게 안전)
-        const token = getAccessToken();
+        // Authorization 헤더는 httpOnly 쿠키 기반이면 사실 없어도 됨
         const headers = { 'Content-Type': 'application/json' };
-        if (token) {
-            headers['Authorization'] = 'Bearer ' + token;
-        }
 
         try {
-            // 3️⃣ 백엔드 컨트롤러 경로와 일치하게 호출
             const res = await fetch(
                 `${API_GATEWAY_URL_MODAL}/motions/users/${encodeURIComponent(userId)}/sentence`,
                 {
                     method: 'POST',
                     headers,
-                    credentials: 'include'
+                    credentials: 'include' // ✅ 쿠키 자동 전송
                 }
             );
 
@@ -2278,8 +2274,6 @@
                 alert(ALERT_MSG);
                 return;
             }
-
-
 
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
@@ -2292,7 +2286,6 @@
             if (data && data.sentence) {
                 document.getElementById('detectedPhrase').textContent = data.sentence;
 
-                // 옵션: 음성으로도 읽어주고 싶으면
                 if (typeof speak === 'function') {
                     speak(data.sentence);
                 }
