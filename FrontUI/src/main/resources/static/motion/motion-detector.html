@@ -1497,6 +1497,18 @@
                     <div class="p-4 bg-primary rounded shadow text-white detected-phrase-card">
                         <h5 class="mb-2 text-center text-white-75">인식된 문장</h5>
                         <div id="detectedPhrase" class="text-center">인식 대기 중</div>
+
+                        <!-- ✅ LangGraph 문장 생성 버튼 -->
+                        <button
+                                id="generateSentenceBtn"
+                                class="btn btn-light mt-3 w-100 fw-semibold"
+                                onclick="generateSentenceForCurrentUser()">
+                            ✨ 최근 동작으로 문장 생성하기
+                        </button>
+
+                        <small class="d-block mt-1 text-center text-white-75">
+                            최근 인식된 단어들을 바탕으로 AAC 문장을 생성합니다.
+                        </small>
                     </div>
 
                 </div>
@@ -2185,5 +2197,72 @@
      */
     function deleteAllMotions() {
         showMessageModal("❌ 이 모달에서는 데이터 삭제 기능이 비활성화되어 있습니다.", 'error');
+    }
+
+    // ✅ Sentence API URL (API Gateway 기준)
+    // FastAPI sentence-service의 @app.post("/api/sentence/generate") 에 매핑
+    const SENTENCE_API_URL = `${window.API_BASE}/api/sentence/generate`;
+
+    /**
+     * 현재 로그인한 사용자의 user_id를 이용해
+     * LangGraph 문장 생성 API를 호출하고,
+     * 결과 문장을 #detectedPhrase에 표시 + 음성 출력
+     */
+    async function generateSentenceForCurrentUser() {
+        const phraseDiv = document.getElementById('detectedPhrase');
+
+        // 이미 아래에 정의돼 있는 유틸을 재사용합니다.
+        const userId = getAuthenticatedUserId();
+        const token = getAccessToken();
+
+        if (!userId) {
+            Swal.fire({
+                icon: 'warning',
+                title: '로그인이 필요합니다',
+                text: '문장 생성을 위해 로그인 상태를 확인해 주세요.',
+            });
+            return;
+        }
+
+        try {
+            phraseDiv.textContent = '문장 생성 중...';
+
+            const resp = await fetch(SENTENCE_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+                },
+                body: JSON.stringify({ user_id: userId }),
+                credentials: 'include',
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                throw new Error(`${resp.status} ${resp.statusText} : ${text}`);
+            }
+
+            const data = await resp.json();
+            const sentence = data.sentence || '생성된 문장이 없습니다.';
+
+            phraseDiv.textContent = sentence;
+
+            // ✅ 기존 speak() 패턴과 맞춰서, 생성된 문장을 음성으로 읽어주기
+            if ('speechSynthesis' in window && sentence) {
+                const utterance = new SpeechSynthesisUtterance(sentence);
+                utterance.lang = 'ko-KR';
+                window.speechSynthesis.speak(utterance);
+            }
+
+        } catch (err) {
+            console.error('Sentence generation error:', err);
+            phraseDiv.textContent = '문장 생성 중 오류가 발생했습니다.';
+
+            Swal.fire({
+                icon: 'error',
+                title: '문장 생성 실패',
+                text: err.message || '서버 통신 중 오류가 발생했습니다.',
+            });
+        }
     }
 </script>
