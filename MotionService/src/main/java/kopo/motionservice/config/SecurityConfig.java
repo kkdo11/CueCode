@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers("/motions/upload").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/v1/recorded-motions/**").hasAnyAuthority("ROLE_USER") // ✅ 명시적 경로
                         .requestMatchers("/motions/**").hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
+
                         .anyRequest().authenticated()
                 );
 
