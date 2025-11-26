@@ -45,4 +45,6 @@ public interface IMotionDetectorService {
      * @return match result dto
      */
     MatchResultDTO matchSequence(List<double[]> liveSequence, String detectionArea, String userId);
+    
+    void reloadCacheForUser(String userId);
 }

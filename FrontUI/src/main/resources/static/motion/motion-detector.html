@@ -1922,13 +1922,15 @@
         // 페이지 로드 시 초기 상태 설정 (unchecked = 정지 중)
         setUIStatus(toggle.checked);
 
-        toggle.addEventListener('change', (event) => {
+        toggle.addEventListener('change', async (event) => {
             const isChecked = event.target.checked;
 
             // 1. UI 상태를 즉시 업데이트
             setUIStatus(isChecked);
 
             if (isChecked) {
+
+                await reloadMotionCacheForCurrentUser();
                 // 토글 켜짐: 동작 인식 시작
                 if (!socket || socket.readyState === WebSocket.CLOSED) {
                     initWebSocket();
@@ -2296,6 +2298,36 @@
         } catch (err) {
             console.error('generateSentence error', err);
             alert('문장 생성 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function reloadMotionCacheForCurrentUser() {
+        const ALERT_MSG = "로그인이 필요합니다(동작 캐시를 새로 불러오려면 로그인 상태를 확인해 주세요)";
+        const userId = window.userId;  // index.js에서 세팅한 것 사용
+
+        if (!userId) {
+            console.warn('[CacheReload] window.userId가 없습니다.');
+            alert(ALERT_MSG);
+            return;
+        }
+
+        try {
+            const res = await fetch(
+                `${API_GATEWAY_URL_MODAL}/motions/users/${encodeURIComponent(userId)}/cache/reload`,
+                {
+                    method: 'POST',
+                    credentials: 'include'
+                }
+            );
+
+            if (!res.ok) {
+                console.error('[CacheReload] failed', res.status);
+                // 심각한 에러 아니면 여기서 alert까지는 안 해도 OK
+            } else {
+                console.log('[CacheReload] cache reloaded for userId=', userId);
+            }
+        } catch (err) {
+            console.error('[CacheReload] error', err);
         }
     }
 </script>
