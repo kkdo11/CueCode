@@ -978,7 +978,7 @@
         .detected-phrase-card h5 {
             color: rgba(255, 255, 255, 0.8) !important;
         }
-        #detectedPhrase {
+        #detectedPhrase, #generatedSentence{
             font-size: 2.5rem;
             font-weight: bold;
             color: white;
@@ -1292,6 +1292,14 @@
         /* ======================================================= */
         /* 모달 내부 콘텐츠 스타일 (End) */
         /* ======================================================= */
+
+        #generatedSentence {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #e5f3ff;
+            line-height: 1.4;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -1494,9 +1502,34 @@
                         </div>
                     </div>
 
+<!--                    <div class="p-4 bg-primary rounded shadow text-white detected-phrase-card">-->
+<!--                        <h5 class="mb-2 text-center text-white-75">인식된 문장</h5>-->
+<!--                        <div id="detectedPhrase" class="text-center">인식 대기 중</div>-->
+
+<!--                        &lt;!&ndash; ✅ LangGraph 문장 생성 버튼 &ndash;&gt;-->
+<!--                        <button-->
+<!--                                id="generateSentenceBtn"-->
+<!--                                class="btn btn-light mt-3 w-100 fw-semibold"-->
+<!--                                onclick="generateSentenceForCurrentUser()">-->
+<!--                            ✨ 최근 동작으로 문장 생성하기-->
+<!--                        </button>-->
+
+<!--                        <small class="d-block mt-1 text-center text-white-75">-->
+<!--                            최근 인식된 단어들을 바탕으로 AAC 문장을 생성합니다.-->
+<!--                        </small>-->
+<!--                    </div>-->
                     <div class="p-4 bg-primary rounded shadow text-white detected-phrase-card">
-                        <h5 class="mb-2 text-center text-white-75">인식된 문장</h5>
+                        <!-- ✅ 실시간 인식된 의미 -->
+                        <h5 class="mb-2 text-center text-white-75">인식된 의미</h5>
                         <div id="detectedPhrase" class="text-center">인식 대기 중</div>
+
+                        <hr class="my-3 opacity-50">
+
+                        <!-- ✅ LangGraph 생성된 문장 -->
+                        <h6 class="mb-1 text-center text-white-75">생성된 문장</h6>
+                        <div id="generatedSentence" class="text-center generated-sentence">
+                            아직 생성된 문장이 없습니다.
+                        </div>
 
                         <!-- ✅ LangGraph 문장 생성 버튼 -->
                         <button
@@ -1507,7 +1540,7 @@
                         </button>
 
                         <small class="d-block mt-1 text-center text-white-75">
-                            최근 인식된 단어들을 바탕으로 AAC 문장을 생성합니다.
+                            최근 10초동안 인식된 단어들을 바탕으로 AAC 문장을 생성합니다.
                         </small>
                     </div>
 
@@ -1662,7 +1695,7 @@
     const toggle = document.getElementById('detectionToggle');
 
     const phraseDiv = document.getElementById("detectedPhrase");
-
+    const generatedSentenceDiv = document.getElementById("generatedSentence");
 
     const { FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils } =
         await import("/vendor/mediapipe/js/vision_bundle.js");
@@ -1892,7 +1925,7 @@
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === "match") {
-                    const phrase = data.matched && data.phrase ? data.phrase : "인식된 문장이 없습니다.";
+                    const phrase = data.matched && data.phrase ? data.phrase : "인식된 의미가 없습니다.";
                     phraseDiv.textContent = phrase;
                     if (data.matched && data.phrase) speak(data.phrase);
                 }
@@ -1912,6 +1945,7 @@
             // -&#45;&#45; UI Bridge: Stop 상태 업데이트 -&#45;&#45;-->
             statusDiv.textContent = "상태: 연결 종료됨";
             setUIStatus(false); // 토글과 상단 텍스트를 "정지 중"으로 업데이트
+            stopAutoSentenceLoop();
             // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
         };
     }
@@ -1935,6 +1969,9 @@
                 if (!socket || socket.readyState === WebSocket.CLOSED) {
                     initWebSocket();
                 }
+
+                startAutoSentenceLoop();
+
             } else {
                 // 토글 꺼짐: 동작 인식 종료
                 if (socket && socket.readyState === WebSocket.OPEN) {
@@ -1942,6 +1979,8 @@
                     sendEnd();
                     socket.close();
                 }
+
+                stopAutoSentenceLoop();
             }
         });
     }
@@ -2246,6 +2285,65 @@
      * LangGraph 문장 생성 API를 호출하고,
      * 결과 문장을 #detectedPhrase에 표시 + 음성 출력
      */
+    // async function generateSentenceForCurrentUser() {
+    //     const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
+    //
+    //     // ✅ index.js에서 /user/me 호출 시 세팅한 전역 userId 사용
+    //     const userId = window.userId;
+    //
+    //     if (!userId) {
+    //         console.warn('[Sentence] 로그인 유저 ID를 찾을 수 없습니다. (window.userId 없음)');
+    //         alert(ALERT_MSG);
+    //         return;
+    //     }
+    //
+    //     // Authorization 헤더는 httpOnly 쿠키 기반이면 사실 없어도 됨
+    //     const headers = { 'Content-Type': 'application/json' };
+    //
+    //     try {
+    //         const res = await fetch(
+    //             `${API_GATEWAY_URL_MODAL}/motions/users/${encodeURIComponent(userId)}/sentence`,
+    //             {
+    //                 method: 'POST',
+    //                 headers,
+    //                 credentials: 'include' // ✅ 쿠키 자동 전송
+    //             }
+    //         );
+    //
+    //         if (res.status === 401 || res.status === 403) {
+    //             console.log(res.status);
+    //             alert(ALERT_MSG);
+    //             return;
+    //         }
+    //
+    //         if (!res.ok) {
+    //             const text = await res.text().catch(() => '');
+    //             console.error('generateSentence failed', res.status, text);
+    //             alert('문장 생성에 실패했습니다.');
+    //             return;
+    //         }
+    //
+    //         const data = await res.json();
+    //         if (data && data.sentence) {
+    //             document.getElementById('detectedPhrase').textContent = data.sentence;
+    //
+    //             if (typeof speak === 'function') {
+    //                 speak(data.sentence);
+    //             }
+    //
+    //
+    //         } else {
+    //             console.warn('generateSentence: no sentence in response', data);
+    //             alert('문장 생성 결과가 없습니다.');
+    //         }
+    //     } catch (err) {
+    //         console.error('generateSentence error', err);
+    //         alert('문장 생성 중 오류가 발생했습니다.');
+    //     }
+    // }
+
+    const generatedSentenceDiv = document.getElementById('generatedSentence');
+
     async function generateSentenceForCurrentUser() {
         const ALERT_MSG = "로그인이 필요합니다(문장 생성을 위해 로그인 상태를 확인해 주세요)";
 
@@ -2257,6 +2355,10 @@
             alert(ALERT_MSG);
             return;
         }
+
+        const startTime = performance.now();
+        console.log("[Sentence] Generation started at", startTime);
+
 
         // Authorization 헤더는 httpOnly 쿠키 기반이면 사실 없어도 됨
         const headers = { 'Content-Type': 'application/json' };
@@ -2286,15 +2388,24 @@
 
             const data = await res.json();
             if (data && data.sentence) {
-                document.getElementById('detectedPhrase').textContent = data.sentence;
+                // ✅ 생성된 문장을 별도 영역에 표시
+                if (generatedSentenceDiv) {
+                    generatedSentenceDiv.textContent = data.sentence;
+                }
 
+                // ✅ 생성된 문장도 음성 출력
                 if (typeof speak === 'function') {
                     speak(data.sentence);
                 }
             } else {
                 console.warn('generateSentence: no sentence in response', data);
-                alert('문장 생성 결과가 없습니다.');
+                // alert('문장 생성 결과가 없습니다.');
             }
+
+            const endTime = performance.now();
+            console.log("[Sentence] Generation finished at", endTime);
+            console.log(`[Sentence] Total generation time: ${(endTime - startTime).toFixed(0)} ms`);
+
         } catch (err) {
             console.error('generateSentence error', err);
             alert('문장 생성 중 오류가 발생했습니다.');
@@ -2328,6 +2439,27 @@
             }
         } catch (err) {
             console.error('[CacheReload] error', err);
+        }
+    }
+
+    let autoSentenceTimer = null;
+
+    function startAutoSentenceLoop() {
+        if (autoSentenceTimer) return; // 이미 돌고 있으면 중복 시작 방지
+
+        autoSentenceTimer = setInterval(() => {
+            // 인식 꺼져 있으면 굳이 호출 안 함
+            // if (!window.detectionActive) return;
+
+            // 최근 30초 동안 쌓인 phrase들로 문장 생성 요청
+            generateSentenceForCurrentUser();
+        }, 10_000); // 10초
+    }
+
+    function stopAutoSentenceLoop() {
+        if (autoSentenceTimer) {
+            clearInterval(autoSentenceTimer);
+            autoSentenceTimer = null;
         }
     }
 </script>
