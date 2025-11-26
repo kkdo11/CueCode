@@ -363,6 +363,29 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         return MatchResultDTO.noMatch();
     }
 
+    @Override
+    public void reloadCacheForUser(String userId) {
+        log.info("[MotionDetectorServiceImpl] Forcing cache reload for userId={}", userId);
+//        reloadCache(userId);   // 기존 로직 재사용
+        if (userId == null || userId.isEmpty()) {
+            return;
+        }
+
+        // 1) 우선 로컬 캐시와 Redis 캐시 둘 다 날리기
+        String redisKey = REDIS_CACHE_PREFIX + userId;
+        try {
+            userCaches.remove(userId);
+            redisUtil.delete(redisKey);
+            log.info("[MotionDetectorServiceImpl] Cleared local+Redis cache for userId={}", userId);
+        } catch (Exception e) {
+            log.warn("[MotionDetectorServiceImpl] Failed to clear cache for userId={}: {}", userId, e.getMessage());
+        }
+
+        // 2) 그리고 DB에서 강제로 다시 로드
+        forceReloadFromDb(userId);
+
+    }
+
     // simple matching rule: motionType contains detectionArea (case-insensitive)
     private boolean matchesArea(String motionType, String detectionArea) {
         if (motionType == null || detectionArea == null) return false;
@@ -595,5 +618,38 @@ public class MotionDetectorServiceImpl implements IMotionDetectorService {
         private String phrase;
         private String motionType;
         private double[][] sequence; // precomputed per-frame feature vectors
+    }
+
+    private void forceReloadFromDb(String userId) {
+        log.info("[MotionDetectorServiceImpl] Force reloading cache from DB for userId={}...", userId);
+
+        List<RecordedMotionDocument> all = motionService.getAllRecordedMotions();
+        Map<String, CachedMotion> userCache = new HashMap<>();
+        int loadedCount = 0;
+
+        for (RecordedMotionDocument doc : all) {
+            if (!userId.equals(doc.getUserId())) continue;
+            try {
+                CachedMotion cm = buildCachedMotion(doc);
+                if (cm != null) {
+                    userCache.put(doc.getRecordId(), cm);
+                    loadedCount++;
+                }
+            } catch (Exception e) {
+                log.warn("[MotionDetectorServiceImpl] Failed to cache record {}: {}", doc.getRecordId(), e.getMessage());
+            }
+        }
+
+        userCaches.put(userId, userCache);
+        log.info("[MotionDetectorServiceImpl] Force cache loaded for userId={}. {} motions cached.", userId, loadedCount);
+
+        try {
+            String redisKey = REDIS_CACHE_PREFIX + userId;
+            String jsonCache = objectMapper.writeValueAsString(userCache);
+            redisUtil.set(redisKey, jsonCache, REDIS_CACHE_TIMEOUT_SECONDS);
+            log.info("[MotionDetectorServiceImpl] Force cache saved to Redis for userId={}", userId);
+        } catch (Exception e) {
+            log.error("[MotionDetectorServiceImpl] Failed to save forced cache to Redis for userId={}: {}", userId, e.getMessage());
+        }
     }
 }
