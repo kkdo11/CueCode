@@ -1293,13 +1293,13 @@
         /* 모달 내부 콘텐츠 스타일 (End) */
         /* ======================================================= */
 
-        #generatedSentence {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #e5f3ff;
-            line-height: 1.4;
-            margin-top: 4px;
-        }
+        /*#generatedSentence {*/
+        /*    font-size: 1.4rem;*/
+        /*    font-weight: 600;*/
+        /*    color: #e5f3ff;*/
+        /*    line-height: 1.4;*/
+        /*    margin-top: 4px;*/
+        /*}*/
     </style>
 </head>
 <body>
@@ -1526,7 +1526,7 @@
                         <hr class="my-3 opacity-50">
 
                         <!-- ✅ LangGraph 생성된 문장 -->
-                        <h6 class="mb-1 text-center text-white-75">생성된 문장</h6>
+                        <h6 class="mb-1 text-center text-white-75" style="color:white">생성된 문장</h6>
                         <div id="generatedSentence" class="text-center generated-sentence">
                             아직 생성된 문장이 없습니다.
                         </div>
@@ -1535,6 +1535,7 @@
                         <button
                                 id="generateSentenceBtn"
                                 class="btn btn-light mt-3 w-100 fw-semibold"
+                                style="visibility: hidden;"
                                 onclick="generateSentenceForCurrentUser()">
                             ✨ 최근 동작으로 문장 생성하기
                         </button>
