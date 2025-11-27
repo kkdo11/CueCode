@@ -42,24 +42,13 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8888
-            initialDelaySeconds: 60
+            initialDelaySeconds: 150
             periodSeconds: 5
             failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8888
-            initialDelaySeconds: 60
+            initialDelaySeconds: 160
             periodSeconds: 5
             failureThreshold: 10
-          # --- 삭제 ---
-          # volumeMounts:
-          #   - name: git-ssh-key
-          #     mountPath: /root/.ssh
-          #     readOnly: true
-      # --- 삭제 ---
-      # volumes:
-      #   - name: git-ssh-key
-      #     secret:
-      #       secretName: sourcecommit-ssh-secret
-      #       defaultMode: 0400
