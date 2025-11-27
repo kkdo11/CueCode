@@ -71,7 +71,8 @@ public class SecurityConfig {
                 .pathMatchers(
                         "/api/user/**",
                         "/api/users/contact",
-                        "/api/motions/**"
+                        "/api/motions/**",
+                        "/api/sentence/generate" // ⭐️ 문장 생성 엔드포인트 접근 허용
                 ).hasAnyAuthority("ROLE_USER", "ROLE_USER_MANAGER")
 
 
