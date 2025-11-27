@@ -56,12 +56,12 @@ spec:
               path: /actuator/health/readiness
               port: 11001
             # [개선] Spring Boot 구동 시간을 고려하여 대기 시간 증가
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: 40
+            periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 11001
             # [개선] ReadinessProbe보다 길게 설정하여 안정성 확보
-            initialDelaySeconds: 90
-            periodSeconds: 15
+            initialDelaySeconds: 60
+            periodSeconds: 5
