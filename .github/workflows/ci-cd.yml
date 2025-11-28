@@ -1,162 +1,162 @@
 name: CueCode CI/CD
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 env:
-  ACR_RESOURCE_GROUP: cuecode-rg
-  AZURE_CONTAINER_REGISTRY: cuecoderegistry
-  CLUSTER_NAME: cuecode-k8s
-  CLUSTER_RESOURCE_GROUP: cuecode-rg
-  CLUSTER_RESOURCE_TYPE: Microsoft.ContainerService/managedClusters
-  NAMESPACE: default
-  AUTH_TYPE: SERVICE_PRINCIPAL
+  ACR_RESOURCE_GROUP: cuecode-rg
+  AZURE_CONTAINER_REGISTRY: cuecoderegistry
+  CLUSTER_NAME: cuecode-k8s
+  CLUSTER_RESOURCE_GROUP: cuecode-rg
+  CLUSTER_RESOURCE_TYPE: Microsoft.ContainerService/managedClusters
+  NAMESPACE: default
+  AUTH_TYPE: SERVICE_PRINCIPAL
 
 jobs:
-  build:
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 2 # 2코어 러너 스펙에 맞춰 빌드 병렬성 제한
-      matrix:
-        service:
-          - { name: 'SpringConfigServer', container_name: 'spring-config-server' }
-          - { name: 'ApiGateway', container_name: 'api-gateway' }
-          - { name: 'FrontUI', container_name: 'front-ui' }
-          - { name: 'MotionService', container_name: 'motion-service' }
-          - { name: 'UserService', container_name: 'user-service' }
+  build:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2 # 2코어 러너 스펙에 맞춰 빌드 병렬성 제한
+      matrix:
+        service:
+          - { name: 'SpringConfigServer', container_name: 'spring-config-server' }
+          - { name: 'ApiGateway', container_name: 'api-gateway' }
+          - { name: 'FrontUI', container_name: 'front-ui' }
+          - { name: 'MotionService', container_name: 'motion-service' }
+          - { name: 'UserService', container_name: 'user-service' }
 
-    steps:
-      - uses: actions/checkout@v3
+    steps:
+      - uses: actions/checkout@v3
 
-      - name: Azure login
-        uses: azure/login@v2.2.0
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          auth-type: ${{ env.AUTH_TYPE }}
+      - name: Azure login
+        uses: azure/login@v2.2.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          auth-type: ${{ env.AUTH_TYPE }}
 
-      - name: Log into ACR
-        run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
+      - name: Log into ACR
+        run: az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Build and push image to ACR
-        run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
-          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
+      - name: Build and push image to ACR
+        run: |
+          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }} -f ./${{ matrix.service.name }}/Dockerfile ./${{ matrix.service.name }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
 
-      - name: Set image tag output
-        id: set_image_tag
-        run: echo "tags=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Set image tag output
+        id: set_image_tag
+        run: echo "tags=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
-  deploy_config_server:
-    needs: build
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+  deploy_config_server:
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-      - name: Azure login
-        uses: azure/login@v2.2.0
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          auth-type: ${{ env.AUTH_TYPE }}
+      - name: Azure login
+        uses: azure/login@v2.2.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          auth-type: ${{ env.AUTH_TYPE }}
 
-      - name: Install kubelogin
-        run: |
-          curl -LO https://github.com/Azure/kubelogin/releases/download/v0.0.25/kubelogin-linux-amd64.zip
-          unzip kubelogin-linux-amd64.zip
-          sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+      - name: Install kubelogin
+        run: |
+          curl -LO https://github.com/Azure/kubelogin/releases/download/v0.0.25/kubelogin-linux-amd64.zip
+          unzip kubelogin-linux-amd64.zip
+          sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
 
-      - name: Get K8s context
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
-          cluster-name: ${{ env.CLUSTER_NAME }}
-          admin: 'false'
-          use-kubelogin: 'true'
-          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
+      - name: Get K8s context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
 
-      - name: Deploys SpringConfigServer
-        uses: Azure/k8s-deploy@v5
-        with:
-          action: deploy
-          manifests: |
-            ./SpringConfigServer/k8s/deployment.yaml
-            ./SpringConfigServer/k8s/service.yaml
-          images: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/spring-config-server:${{ github.sha }}
-          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
-          name: ${{ env.CLUSTER_NAME }}
-          namespace: ${{ env.NAMESPACE }}
-          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
+      - name: Deploys SpringConfigServer
+        uses: Azure/k8s-deploy@v5
+        with:
+          action: deploy
+          manifests: |
+            ./SpringConfigServer/k8s/deployment.yaml
+            ./SpringConfigServer/k8s/service.yaml
+          images: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/spring-config-server:${{ github.sha }}
+          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+          name: ${{ env.CLUSTER_NAME }}
+          namespace: ${{ env.NAMESPACE }}
+          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
 
-  deploy_services:
-    needs: deploy_config_server
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4 # 배포는 가벼우므로 병렬성 최대로 설정
-      matrix:
-        service:
-          - { name: 'ApiGateway', container_name: 'api-gateway' }
-          - { name: 'FrontUI', container_name: 'front-ui' }
-          - { name: 'MotionService', container_name: 'motion-service' }
-          - { name: 'UserService', container_name: 'user-service' }
-    steps:
-      - uses: actions/checkout@v3
+  deploy_services:
+    needs: deploy_config_server
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4 # 배포는 가벼우므로 병렬성 최대로 설정
+      matrix:
+        service:
+          - { name: 'ApiGateway', container_name: 'api-gateway' }
+          - { name: 'FrontUI', container_name: 'front-ui' }
+          - { name: 'MotionService', container_name: 'motion-service' }
+          - { name: 'UserService', container_name: 'user-service' }
+    steps:
+      - uses: actions/checkout@v3
 
-      - name: Azure login
-        uses: azure/login@v2.2.0
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          auth-type: ${{ env.AUTH_TYPE }}
+      - name: Azure login
+        uses: azure/login@v2.2.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          auth-type: ${{ env.AUTH_TYPE }}
 
-      - name: Install kubelogin
-        run: |
-          curl -LO https://github.com/Azure/kubelogin/releases/download/v0.0.25/kubelogin-linux-amd64.zip
-          unzip kubelogin-linux-amd64.zip
-          sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+      - name: Install kubelogin
+        run: |
+          curl -LO https://github.com/Azure/kubelogin/releases/download/v0.0.25/kubelogin-linux-amd64.zip
+          unzip kubelogin-linux-amd64.zip
+          sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
 
-      - name: Get K8s context
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
-          cluster-name: ${{ env.CLUSTER_NAME }}
-          admin: 'false'
-          use-kubelogin: 'true'
-          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
+      - name: Get K8s context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
 
-      - name: Apply RBAC for ApiGateway
-        if: matrix.service.name == 'ApiGateway'
-        run: kubectl apply -f ./ApiGateway/k8s/rbac.yaml
+      - name: Apply RBAC for ApiGateway
+        if: matrix.service.name == 'ApiGateway'
+        run: kubectl apply -f ./ApiGateway/k8s/rbac.yaml
 
-      - name: Apply Ingress for ApiGateway
-        if: matrix.service.name == 'ApiGateway'
-        run: kubectl apply -f ./ApiGateway/k8s/ingress.yaml
+      - name: Apply Ingress for ApiGateway
+        if: matrix.service.name == 'ApiGateway'
+        run: kubectl apply -f ./ApiGateway/k8s/ingress.yaml
 
-      - name: Deploys application
-        uses: Azure/k8s-deploy@v5
-        with:
-          action: deploy
-          manifests: |
-            ./${{ matrix.service.name }}/k8s/deployment.yaml
-            ./${{ matrix.service.name }}/k8s/service.yaml
-          images: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
-          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
-          name: ${{ env.CLUSTER_NAME }}
-          namespace: ${{ env.NAMESPACE }}
-          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
+      - name: Deploys application
+        uses: Azure/k8s-deploy@v5
+        with:
+          action: deploy
+          manifests: |
+            ./${{ matrix.service.name }}/k8s/deployment.yaml
+            ./${{ matrix.service.name }}/k8s/service.yaml
+          images: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ matrix.service.container_name }}:${{ github.sha }}
+          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+          name: ${{ env.CLUSTER_NAME }}
+          namespace: ${{ env.NAMESPACE }}
+          resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
