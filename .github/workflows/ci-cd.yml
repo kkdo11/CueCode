@@ -160,6 +160,3 @@ jobs:
           name: ${{ env.CLUSTER_NAME }}
           namespace: ${{ env.NAMESPACE }}
           resource-type: ${{ env.CLUSTER_RESOURCE_TYPE }}
-
-
-빌드속도는 괜찮으거 같은데 배포가 오래걸리는 이유가 뭘까 
