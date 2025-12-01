@@ -231,6 +231,21 @@ public class MotionServiceImpl implements IMotionService {
                 return hdoc;
             }).collect(Collectors.toList()));
         }
+
+        if (motionDataMap.containsKey("eye_landmarks") && motionDataMap.get("eye_landmarks") instanceof List) {
+            List<Map<String, Object>> elList = (List<Map<String, Object>>) motionDataMap.get("eye_landmarks");
+            motionDataDocument.setEyeLandmarks(elList.stream().map(itemMap -> {
+                RecordedMotionDocument.EyeLandmarksFrameDocument edoc = new RecordedMotionDocument.EyeLandmarksFrameDocument();
+                edoc.setTimestampMs(((Number) itemMap.getOrDefault("timestamp_ms", 0)).longValue());
+                if (itemMap.get("right_eye") instanceof List) {
+                    edoc.setRightEye((List<List<Double>>) itemMap.get("right_eye"));
+                }
+                if (itemMap.get("left_eye") instanceof List) {
+                    edoc.setLeftEye((List<List<Double>>) itemMap.get("left_eye"));
+                }
+                return edoc;
+            }).collect(Collectors.toList()));
+        }
         return motionDataDocument;
     }
 
