@@ -1,0 +1,84 @@
+# ================================
+# USER-SERVICE (prod) - Spring Config
+# 목적: 운영/실서비스용. 최소 노출·보안 강화·환경변수/시크릿 기반 주입.
+# ================================
+spring:
+  application:
+    name: user-service            # Config Server에서 식별할 앱 이름
+  config:
+    activate:
+      on-profile: prod                 # 이 파일은 prod 프로필에서만 활성화
+  data:
+    mongodb:
+      host: ${MONGO_HOST}
+      port: ${MONGO_PORT}
+      database: ${MONGO_DB}
+      username: ${MONGO_USER}
+      password: ${MONGO_PASSWORD}
+      auto-index-creation: true
+      uuid-representation: standard
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true # Use SSL for port 465
+            trust: smtp.naver.com
+        debug: true # Re-adding debug logging for verification
+
+server:
+  port: 11000
+  shutdown: graceful
+
+management:
+  server:
+    address: 0.0.0.0
+    port: 11001
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when_authorized
+    shutdown:
+      enabled: false
+  info:
+    env:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.data.mongodb: INFO
+
+# JWT (운영)
+jwt:
+  token:
+    creator: cuecoder
+    access:
+      valid:
+        time: "10800"
+      name: jwtAccessToken
+    refresh:
+      valid:
+        time: "10800"
+      name: jwtRefreshToken
+    cookie:
+      domain: .cuecode.kr
+  secret:
+    key: ${JWT_SECRET}
+
+gateway:
+  trusted:
+    secret: ${GATEWAY_TRUSTED_SECRET:cue-code-secret-key-for-internal-communication}

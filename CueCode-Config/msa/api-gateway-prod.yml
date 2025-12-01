@@ -1,0 +1,186 @@
+# =========================================
+# API-GATEWAY (prod) - Spring Cloud Config
+# 목적: 운영/실서비스용. MSA의 단일 진입점(Single Point of Entry) 역할.
+# =========================================
+server:
+  port: 13000                    # 게이트웨이 HTTP 포트
+  shutdown: graceful             # 무중단 배포/롤링 업데이트 시 안전
+
+spring:
+  application:
+    name: api-gateway       # Config/로그 식별용 서비스명
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    gateway:
+      default-filters:
+        - AddRequestHeader=X-Gateway-Secret, ${GATEWAY_TRUSTED_SECRET:cue-code-secret-key-for-internal-communication}
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]': # 모든 경로(/**)에 대해 아래 CORS 정책 적용
+                allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:14000,http://cuecode.kr,https://cuecode.kr,https://api.cuecode.kr}" # Secret이나 환경변수로 주입 권장
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: "*"
+                allow-credentials: true
+          routes:
+            # 1. Motion-Service 라우팅
+            - id: motion_service_route
+              uri: ${service.uri.motion}
+              predicates:
+                - Path=/api/motions/**
+              filters:
+                - StripPrefix=1
+
+            - id: motion_service_websocket_routeEX
+              uri: ws://motion-service:15000
+              predicates:
+                - Path=/ws/motion/**
+
+            - id: motion_service_websocket_route
+              uri: ws://motion-service:15000
+              predicates:
+                - Path=/api/ws/motion/**
+              filters:
+                - StripPrefix=1
+
+            - id: motion_service_websocket_alerts_route
+              uri: ws://motion-service:15000
+              predicates:
+                - Path=/api/ws/alerts
+              filters:
+                - StripPrefix=1
+
+            - id: recorded-motions-v1-route
+              uri: ${service.uri.motion}
+              predicates:
+                - Path=/api/v1/recorded-motions/**
+
+            # --- Add new route for mediapipe-fastapi sentence generation ---
+            - id: mediapipe_fastapi_sentence_route
+              uri: http://mediapipe-fastapi:8000
+              predicates:
+                - Path=/api/sentence/generate
+
+            # ----------------------------------------------------------------
+
+            # 2. User-Service 라우팅
+            - id: user_login_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/login/**
+              filters:
+                - StripPrefix=1
+            - id: user_users_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - StripPrefix=1
+            - id: user_manager_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/manager/**
+              filters:
+                - StripPrefix=1
+            - id: user_patient_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/patient/**
+              filters:
+                - StripPrefix=1
+            - id: user_user_info_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/user/**
+              filters:
+                - StripPrefix=1
+            - id: user_reg_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/reg/**
+              filters:
+                - StripPrefix=1
+            - id: user_find_id_route
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/reg/findIdByEmail
+              filters:
+                - StripPrefix=1
+            - id: user-contact
+              uri: ${service.uri.user}
+              predicates:
+                - Path=/api/users/contact/**
+              filters:
+                - StripPrefix=1
+
+            # 3. Front-UI Service 라우팅 (Specific Routes First)
+            - id: front-ui-vendor-assets-route
+              uri: ${service.uri.front}
+              predicates:
+                - Path=/vendor/**
+
+            - id: front-ui-motion-detector-route
+              uri: ${service.uri.front}
+              predicates:
+                - Path=/motion
+              filters:
+                - RewritePath=/motion, /motion/motion-detector.html
+
+            - id: front-ui-motion-upload-route
+              uri: ${service.uri.front}
+              predicates:
+                - Path=/motion/upload
+              filters:
+                - RewritePath=/motion/upload, /motion/motion-upload.html
+
+            - id: front-ui-user-dashboard-route
+              uri: ${service.uri.front}
+              predicates:
+                - Path=/user/dashboard
+              filters:
+                - RewritePath=/user/dashboard, /user/dashboard.html
+
+            # 4. Front-UI Service 라우팅 (General Catch-all)
+            - id: front_ui_route
+              uri: ${service.uri.front}
+              predicates:
+                - Path=/, /index.html, /user/**, /css/**, /js/**, /images/**, /motion/**, /patient/**, /manager/**
+
+# Actuator 설정 (최신 방식)
+management:
+  server:
+    port: 13001
+    address: 0.0.0.0
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: INFO
+
+jwt:
+  secret:
+    key: ${JWT_SECRET_KEY}
+
+# Service URIs for Kubernetes environment
+service:
+  uri:
+    user: http://user-service:11000
+    front: http://front-ui-service:14000
+    motion: http://motion-service:15000
