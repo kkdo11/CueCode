@@ -12,21 +12,15 @@ spec:
       labels:
         app: config-server
     spec:
-      # --- 삭제 ---
-      # imagePullSecrets:
-      #   - name: ncr-secret
-      # --- 삭제 ---
       containers:
         - name: config-server-app
           image: cuecoderegistry.azurecr.io/spring-config-server:__TAG__
-          # --- 수정 ---
           imagePullPolicy: Always
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: git,json # 또는 "git"
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms256m -Xmx512m"
-            # (선택) Spring Cloud Config가 GitHub 리포지토리를 바라보게 설정
             - name: SPRING_CLOUD_CONFIG_SERVER_GIT_URI
               value: "https://github.com/CueCode-200OK/CueCode-Config.git"
           ports:
@@ -38,17 +32,32 @@ spec:
             limits:
               cpu: "100m"
               memory: "768Mi"
+
+          # 🚀 [추가] STARTUP PROBE: 느린 Spring Boot 시작 시간(최대 3분 20초)을 커버
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10      # 10초마다 검사
+            failureThreshold: 20   # 총 3분 20초(20 * 10s)까지 기다려 줌
+
+          # [수정] READINESS PROBE: Startup Probe가 끝나면 즉시 시작하도록 지연 시간 제거
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8888
-            initialDelaySeconds: 150
+            initialDelaySeconds: 0 # ⬅️ 0초로 수정 (Startup Probe가 커버)
             periodSeconds: 5
-            failureThreshold: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # [수정] LIVENESS PROBE: 생존 확인
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8888
-            initialDelaySeconds: 160
-            periodSeconds: 5
-            failureThreshold: 10
+            initialDelaySeconds: 40 # ⬅️ 40초로 수정 (Startup 이후 안전하게 시작)
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
