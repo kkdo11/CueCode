@@ -1,0 +1,17 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+# Let Mediapipe control its deps; give it the protobuf it needs
+mediapipe==0.10.14
+numpy==1.26.4
+protobuf==4.25.3
+# (No opencv-python-headless here; mediapipe installs opencv-contrib-python)
+
+# Add multipart form parser required by FastAPI for form/file inputs
+python-multipart
+
+openai
+google-generativeai
+requests
+langgraph
+
+redis>=4.6.0
