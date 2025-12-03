@@ -64,6 +64,9 @@ public class RecordedMotionDocument {
 
         @Field(name = "hand_landmarks")
         private List<HandLandmarksFrameDocument> handLandmarks;
+
+        @Field(name = "eye_landmarks")
+        private List<EyeLandmarksFrameDocument> eyeLandmarks;
     }
 
     // Nested class for face_blendshapes frames
@@ -89,6 +92,21 @@ public class RecordedMotionDocument {
 
         @Field(name = "left_hand")
         private List<List<Double>> leftHand;
+    }
+
+    // Nested class for eye_landmarks frames
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class EyeLandmarksFrameDocument {
+        @Field(name = "timestamp_ms")
+        private long timestampMs;
+
+        @Field(name = "right_eye")
+        private List<List<Double>> rightEye;
+
+        @Field(name = "left_eye")
+        private List<List<Double>> leftEye;
     }
 
 
